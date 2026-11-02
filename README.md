@@ -228,8 +228,15 @@ Public pages:
   their email (with Turnstile and a rate limit) and, only if the site holds data for it, emails a
   link that works for 24 hours (`/my-data?code=…`, a single-use `data` code in `magic_tokens`). The
   page always answers the same way, so it doesn't reveal whether an address is known.
-- Old Wix URLs redirect to their new pages; `sitemap.xml`, `robots.txt` and `rss.xml` are
-  generated. Every absolute link (canonical URL, social image, sitemap, structured data, emails)
+- Every URL of the old Wix sitemap (101 pages, events, posts, categories, sponsors, team and
+  member profiles, listed in `migration/data/wix-sitemap-urls.txt`) answers with a permanent 301
+  to the same content on the new site (`src/lib/redirects.ts`). Event, post, ecosystem and
+  category URLs are checked against the slugs in D1: a slug that changed on import
+  (`safecomms` -> `safecoms`, `wyzauto-` -> `wyzauto`, `french-tech-connect-54-1` ->
+  `french-tech-connect-54`) still lands on its page, and one that no longer exists lands on the
+  listing instead of a 404. Known renames go in `LEGACY_SLUGS`. The `www` / bare twin of
+  `SITE_URL` redirects to `SITE_URL` in the same hop. `sitemap.xml`, `robots.txt` and `rss.xml`
+  are generated. Every absolute link (canonical URL, social image, sitemap, structured data, emails)
   uses `SITE_URL` (`src/lib/site.ts`), so the domain switch is one line. Any other host serving the
   Worker (version previews, workers.dev after the switch) sends `X-Robots-Tag: noindex`. Pages
   without their own description use a default one (Admin > Settings > Site description overrides

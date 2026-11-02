@@ -165,7 +165,9 @@ share image, so the site must be reachable without the Access login: Access must
 ## Later: the domain
 
 When the site is ready to replace Wix: move `french-tech-bangkok.com` DNS to Cloudflare (or add a
-CNAME), add `www.french-tech-bangkok.com` as a Custom Domain on the Worker, add the hostname to
+CNAME), add both `www.french-tech-bangkok.com` and `french-tech-bangkok.com` as Custom Domains on
+the Worker (the bare one redirects to `www`, and old Wix URLs redirect to their new pages on both),
+add the hostname to
 the Access application and the Turnstile widget, set `SITE_URL` in `wrangler.jsonc` back to
 `https://www.french-tech-bangkok.com` (links in emails, canonical URLs, the sitemap and social
 images use it; the workers.dev address then answers with `noindex`), then run
