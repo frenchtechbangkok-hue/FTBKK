@@ -1,5 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
-import { redirectFor } from './lib/redirects';
+import { env } from 'cloudflare:workers';
+import { legacyMatch, resolveLegacy } from './lib/redirects';
 import { checkAdmin } from './lib/auth';
 import { siteOrigin } from './lib/site';
 
@@ -8,8 +9,19 @@ const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1']);
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname, search } = context.url;
 
-  const to = redirectFor(pathname);
-  if (to) return context.redirect(to.includes('#') ? to : `${to}${search}`, 301);
+  // The www / bare twin of the public address (french-tech-bangkok.com vs www.…) goes to the
+  // public address in one 301, so old Wix links on either host keep their search ranking.
+  const canonical = siteOrigin();
+  const host = context.url.host;
+  const twin = host === `www.${canonical.host}` || `www.${host}` === canonical.host;
+
+  // Old Wix URLs: permanent redirects, checked against the slugs in D1 (see lib/redirects.ts).
+  const legacy = legacyMatch(pathname);
+  if (legacy || twin) {
+    const to = legacy ? await resolveLegacy(legacy, env.DB) : pathname;
+    const target = to.includes('#') ? to : `${to}${search}`;
+    return context.redirect(twin ? new URL(target, canonical).href : target, 301);
+  }
 
   // Trailing slash: /events/ -> /events
   if (pathname.length > 1 && pathname.endsWith('/')) {
