@@ -369,6 +369,11 @@ live database). It adds one registration per email with the Wix order date and W
 LinkedIn URLs (mistyped ones are repaired) and free-text answers on the contact cards, sends no
 email, and can be re-run. For a folder of exports:
 `for f in ~/Downloads/Guest_list_*.csv; do npm run -s import:guests -- "$f" --remote; done`.
+Add `--extra-tickets-as-guests` when people booked several tickets under one email: the extra
+tickets become anonymous guests (+1, +2…, up to 5) on their registration. Leave it off for the
+older exports that listed every ticket twice (numbers ending in 1P and 1Q). One-off jobs that
+create an event Wix still holds and import its guests live in `scripts/one-off/` (for example
+`scripts/one-off/2026-10-27-game-over/run.sh <export.csv> --remote`).
 
 Other commands:
 

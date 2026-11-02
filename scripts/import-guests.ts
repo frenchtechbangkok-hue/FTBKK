@@ -7,6 +7,10 @@
  *                      "Guest_list_<slug>_<date>.csv")
  *   --send-reminders   let the daily cron send the usual reminder email (by default guests are
  *                      marked as already reminded, since Wix sends its own)
+ *   --extra-tickets-as-guests
+ *                      someone who booked several tickets gets the extra ones as anonymous
+ *                      guests (+1, +2…) on their registration. Use it for exports where a
+ *                      person's tickets are real extra seats, not the old duplicated 1P/1Q rows.
  *   --dry-run          print the SQL instead of running it
  *
  * One registration per email, dated with the Wix order date; guests checked in on Wix are marked
@@ -49,13 +53,15 @@ const token = () => randomBytes(24).toString('base64url');
 const guests = parseWixGuests(decodeGuestFile(readFileSync(file)));
 const event = `(SELECT id FROM events WHERE slug = ${q(slug)})`;
 const reminded = flag('--send-reminders') ? 'NULL' : 'unixepoch()';
+const ticketsAsGuests = flag('--extra-tickets-as-guests');
 
 const sql: string[] = [];
 for (const g of guests) {
   const status = g.checkedIn ? 'attended' : 'registered';
+  const extra = ticketsAsGuests ? g.extraTickets : 0;
   sql.push(
-    `INSERT INTO registrations (event_id, name, email, company, role, photo_consent, walk_in, status, token, created_at, checked_in_at, reminder_sent_at)
-     SELECT ${event}, ${q(g.name)}, ${q(g.email)}, ${q(g.company)}, ${q(g.role)}, 0, 0, '${status}', ${q(token())}, ${g.orderedAt}, ${g.checkedIn ? `(SELECT starts_at FROM events WHERE slug = ${q(slug)})` : 'NULL'}, ${reminded}
+    `INSERT INTO registrations (event_id, name, email, company, role, photo_consent, walk_in, guests, status, token, created_at, checked_in_at, reminder_sent_at)
+     SELECT ${event}, ${q(g.name)}, ${q(g.email)}, ${q(g.company)}, ${q(g.role)}, 0, 0, ${extra}, '${status}', ${q(token())}, ${g.orderedAt}, ${g.checkedIn ? `(SELECT starts_at FROM events WHERE slug = ${q(slug)})` : 'NULL'}, ${reminded}
      WHERE ${event} IS NOT NULL
      ON CONFLICT (event_id, email) DO NOTHING;`,
   );
@@ -78,8 +84,9 @@ for (const g of guests) {
 }
 
 const cards = guests.filter((g) => g.linkedin || g.notes).length;
+const extraSeats = ticketsAsGuests ? guests.reduce((n, g) => n + g.extraTickets, 0) : 0;
 console.log(
-  `${guests.length} guests for "${slug}" (${cards} with a LinkedIn URL or a note for their contact card).`,
+  `${guests.length} guests for "${slug}"${extraSeats ? ` bringing ${extraSeats} more people (extra tickets)` : ''} (${cards} with a LinkedIn URL or a note for their contact card).`,
 );
 if (flag('--dry-run')) {
   console.log(sql.join('\n'));

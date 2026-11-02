@@ -105,6 +105,57 @@ describe('parseWixGuests', () => {
     });
   });
 
+  it('counts the extra tickets booked under one email', () => {
+    const guests = parseWixGuests(
+      [
+        text,
+        row(
+          'C1',
+          '2026-10-23 12:00:00',
+          'Masha',
+          'M',
+          'm@x.com',
+          'C11P',
+          'Free',
+          'No',
+          '',
+          '',
+          '',
+          '',
+        ),
+        row(
+          'C1',
+          '2026-10-23 12:00:00',
+          'Masha',
+          'M',
+          'm@x.com',
+          'C11Q',
+          'Free',
+          'No',
+          '',
+          '',
+          '',
+          '',
+        ),
+        row(
+          'C1',
+          '2026-10-23 12:00:00',
+          'Masha',
+          'M',
+          'm@x.com',
+          'C11R',
+          'Free',
+          'No',
+          '',
+          '',
+          '',
+          '',
+        ),
+      ].join('\r\n'),
+    );
+    expect(guests.map((g) => g.extraTickets)).toEqual([1, 1, 2]);
+  });
+
   it('reads the UTF-16 file Wix exports', () => {
     const utf16 = new Uint8Array([0xff, 0xfe, ...Buffer.from(text, 'utf16le')]);
     expect(parseWixGuests(decodeGuestFile(utf16))).toHaveLength(2);

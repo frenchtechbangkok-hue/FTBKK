@@ -13,6 +13,12 @@ export interface WixGuest {
   checkedIn: boolean;
   /** Wix order date (site time zone, Bangkok) as a unix timestamp. */
   orderedAt: number;
+  /**
+   * Tickets beyond the first one under this email (distinct ticket numbers, capped at 5, the
+   * site's guest limit). Older exports listed each ticket twice (1P and 1Q), so the importer only
+   * turns these into registration guests when asked to (--extra-tickets-as-guests).
+   */
+  extraTickets: number;
 }
 
 // Shared with the admin's CSV import of registrants.
@@ -62,6 +68,7 @@ export function parseWixGuests(text: string): WixGuest[] {
     first: col((c) => c === 'guest first name' || c === 'first name'),
     last: col((c) => c === 'guest last name' || c === 'last name'),
     email: col((c) => c === 'email'),
+    ticket: col((c) => c === 'ticket number'),
     date: col((c) => c === 'order date' || c === 'timestamp'),
     checkedIn: col((c) => c === 'checked in' || c === 'checked-in'),
     response: col((c) => c === 'response'),
@@ -78,12 +85,15 @@ export function parseWixGuests(text: string): WixGuest[] {
   if (idx.email < 0 || idx.first < 0) throw new Error('Not a Wix guest list: no Email column');
 
   const byEmail = new Map<string, WixGuest>();
+  const tickets = new Map<string, Set<string>>();
   for (const r of rows) {
     const get = (i: number) => (i >= 0 ? r[i] : undefined);
     const email = clean(get(idx.email))?.toLowerCase();
     if (!email || !email.includes('@')) continue;
     // RSVP "No" answers are people who said they won't come.
     if (/^no$/i.test(get(idx.response)?.trim() ?? '')) continue;
+    const ticket = clean(get(idx.ticket));
+    if (ticket) tickets.set(email, (tickets.get(email) ?? new Set()).add(ticket));
     const name = [clean(get(idx.first)), clean(get(idx.last))].filter(Boolean).join(' ');
     const guest: WixGuest = {
       name: tidyName(name) || email,
@@ -98,6 +108,7 @@ export function parseWixGuests(text: string): WixGuest[] {
       // RSVP exports count the people checked in (2 = the guest and a +1).
       checkedIn: /^(yes|true|checked in|[1-9]\d*)$/i.test(get(idx.checkedIn)?.trim() ?? ''),
       orderedAt: bangkokTimestamp(get(idx.date) ?? '') ?? Math.floor(Date.now() / 1000),
+      extraTickets: 0,
     };
     const prev = byEmail.get(email);
     if (!prev) {
@@ -115,7 +126,11 @@ export function parseWixGuests(text: string): WixGuest[] {
       notes: prev.notes ?? guest.notes,
       checkedIn: prev.checkedIn || guest.checkedIn,
       orderedAt: Math.min(prev.orderedAt, guest.orderedAt),
+      extraTickets: 0,
     });
   }
-  return [...byEmail.values()];
+  return [...byEmail.values()].map((g) => ({
+    ...g,
+    extraTickets: Math.min(5, Math.max(0, (tickets.get(g.email)?.size ?? 1) - 1)),
+  }));
 }
