@@ -14,8 +14,9 @@ export interface WixGuest {
   /** Wix order date (site time zone, Bangkok) as a unix timestamp. */
   orderedAt: number;
   /**
-   * Tickets beyond the first one under this email (distinct ticket numbers, capped at 5, the
-   * site's guest limit). Older exports listed each ticket twice (1P and 1Q), so the importer only
+   * Tickets beyond the first one in this person's largest order (distinct ticket numbers, capped
+   * at 5, the site's guest limit). A second order under the same email is a repeat sign-up, not a
+   * guest. Older exports listed each ticket twice (1P and 1Q), so the importer only
    * turns these into registration guests when asked to (--extra-tickets-as-guests).
    */
   extraTickets: number;
@@ -69,6 +70,7 @@ export function parseWixGuests(text: string): WixGuest[] {
     last: col((c) => c === 'guest last name' || c === 'last name'),
     email: col((c) => c === 'email'),
     ticket: col((c) => c === 'ticket number'),
+    order: col((c) => c === 'order number'),
     date: col((c) => c === 'order date' || c === 'timestamp'),
     checkedIn: col((c) => c === 'checked in' || c === 'checked-in'),
     response: col((c) => c === 'response'),
@@ -85,7 +87,8 @@ export function parseWixGuests(text: string): WixGuest[] {
   if (idx.email < 0 || idx.first < 0) throw new Error('Not a Wix guest list: no Email column');
 
   const byEmail = new Map<string, WixGuest>();
-  const tickets = new Map<string, Set<string>>();
+  /** email -> order number -> its ticket numbers */
+  const tickets = new Map<string, Map<string, Set<string>>>();
   for (const r of rows) {
     const get = (i: number) => (i >= 0 ? r[i] : undefined);
     const email = clean(get(idx.email))?.toLowerCase();
@@ -93,7 +96,12 @@ export function parseWixGuests(text: string): WixGuest[] {
     // RSVP "No" answers are people who said they won't come.
     if (/^no$/i.test(get(idx.response)?.trim() ?? '')) continue;
     const ticket = clean(get(idx.ticket));
-    if (ticket) tickets.set(email, (tickets.get(email) ?? new Set()).add(ticket));
+    if (ticket) {
+      const orders = tickets.get(email) ?? new Map<string, Set<string>>();
+      const order = clean(get(idx.order)) ?? '';
+      orders.set(order, (orders.get(order) ?? new Set()).add(ticket));
+      tickets.set(email, orders);
+    }
     const name = [clean(get(idx.first)), clean(get(idx.last))].filter(Boolean).join(' ');
     const guest: WixGuest = {
       name: tidyName(name) || email,
@@ -131,6 +139,9 @@ export function parseWixGuests(text: string): WixGuest[] {
   }
   return [...byEmail.values()].map((g) => ({
     ...g,
-    extraTickets: Math.min(5, Math.max(0, (tickets.get(g.email)?.size ?? 1) - 1)),
+    extraTickets: Math.min(
+      5,
+      Math.max(0, ...[...(tickets.get(g.email)?.values() ?? [])].map((t) => t.size - 1)),
+    ),
   }));
 }

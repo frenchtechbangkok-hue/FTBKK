@@ -153,7 +153,8 @@ describe('parseWixGuests', () => {
         ),
       ].join('\r\n'),
     );
-    expect(guests.map((g) => g.extraTickets)).toEqual([1, 1, 2]);
+    // Rayen's second order is a repeat sign-up, not a guest.
+    expect(guests.map((g) => g.extraTickets)).toEqual([1, 0, 2]);
   });
 
   it('reads the UTF-16 file Wix exports', () => {

@@ -9,7 +9,7 @@
  *                      marked as already reminded, since Wix sends its own)
  *   --extra-tickets-as-guests
  *                      someone who booked several tickets gets the extra ones as anonymous
- *                      guests (+1, +2…) on their registration. Use it for exports where a
+ *                      guests (+1, +2…) on their registration, also when already imported. Use it for exports where a
  *                      person's tickets are real extra seats, not the old duplicated 1P/1Q rows.
  *   --dry-run          print the SQL instead of running it
  *
@@ -63,7 +63,10 @@ for (const g of guests) {
     `INSERT INTO registrations (event_id, name, email, company, role, photo_consent, walk_in, guests, status, token, created_at, checked_in_at, reminder_sent_at)
      SELECT ${event}, ${q(g.name)}, ${q(g.email)}, ${q(g.company)}, ${q(g.role)}, 0, 0, ${extra}, '${status}', ${q(token())}, ${g.orderedAt}, ${g.checkedIn ? `(SELECT starts_at FROM events WHERE slug = ${q(slug)})` : 'NULL'}, ${reminded}
      WHERE ${event} IS NOT NULL
-     ON CONFLICT (event_id, email) DO NOTHING;`,
+     ON CONFLICT (event_id, email) DO ${
+       // Someone imported before without their extra tickets gets them now.
+       extra ? `UPDATE SET guests = max(registrations.guests, ${extra})` : 'NOTHING'
+     };`,
   );
   if (g.linkedin || g.notes) {
     // A contact card overrides the details taken from registrations, so it carries them too.
