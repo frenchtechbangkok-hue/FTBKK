@@ -9,10 +9,25 @@ interface Props {
   checked: string;
   toc: { href: string; label: string }[];
   /** Link to the other guide, for readers who landed on the wrong one. */
-  other: { href: string; question: string; label: string };
+  other?: { href: string; question: string; label: string } | null;
+  /** The guide is offline and an admin is looking at it (lib/guides.ts). */
+  preview?: boolean;
 }
-const { eyebrow, title, intro, checked, toc, other } = Astro.props;
+const { eyebrow, title, intro, checked, toc, other, preview = false } = Astro.props;
 ---
+
+{preview && (
+  <div role="status" class="border-b border-warning/30 bg-warning/10 text-ink">
+    <p class="container-page py-3 text-sm">
+      <strong>Preview, not online.</strong> Only admins can see this page. Visitors get "page not
+      found" until it is switched on in{' '}
+      <a href="/admin/settings?section=guides" class="font-semibold text-accent">
+        Admin &gt; Settings &gt; Guide pages
+      </a>
+      .
+    </p>
+  </div>
+)}
 
 <!-- The navy header of the two Thailand guides: title, warning, other guide and the page index. -->
 <section class="relative isolate overflow-hidden bg-navy text-paper">
@@ -39,12 +54,14 @@ const { eyebrow, title, intro, checked, toc, other } = Astro.props;
           before you act.
         </span>
       </p>
-      <p class="mt-6 text-paper/85">
-        {other.question}{' '}
-        <a href={other.href} class="font-semibold text-paper underline">
-          {other.label}
-        </a>
-      </p>
+      {other && (
+        <p class="mt-6 text-paper/85">
+          {other.question}{' '}
+          <a href={other.href} class="font-semibold text-paper underline">
+            {other.label}
+          </a>
+        </p>
+      )}
     </div>
     <nav
       aria-label="On this page"

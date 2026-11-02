@@ -2,14 +2,21 @@
 import Logo from './Logo.astro';
 import Button from './Button.astro';
 import Icon from './Icon.astro';
+import { linkOnline } from '../lib/guides';
+import type { Settings } from '../lib/settings';
+
+interface Props {
+  settings: Settings;
+}
+const { settings } = Astro.props;
 
 type Link = { href: string; label: string; lang?: string };
-// Resources is a drop-down: our reports and guides.
+// Resources is a drop-down: our reports and guides (a guide shows once it is online).
 const resources: Link[] = [
   { href: '/tech-pulse', label: 'Tech Pulse' },
   { href: '/founders-guide', label: "Founder's Guide" },
   { href: '/expand-to-thailand', label: 'Expanding to Thailand' },
-];
+].filter((l) => linkOnline(settings, l.href));
 const nav: (Link | { label: string; children: Link[] })[] = [
   { href: '/', label: 'Home' },
   { href: '/ecosystem', label: 'Ecosystem' },

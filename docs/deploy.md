@@ -71,6 +71,19 @@ Until this is done, `/admin` answers **403** in production (it fails closed).
 
 To add an admin later, add their email to the policy. Nothing changes in the code.
 
+The application must cover **only** those two paths, never the whole host: crawlers, link previews,
+the email provider's review and visitors must reach the public site without a login. If an
+application covers the whole host (destination with an empty path), narrow it: open the
+application > **Configure** (or Edit) > Destinations (Overview > Application domain on older
+dashboards), replace the host-wide entry with two entries on the same host, path `admin` and path
+`api/admin`, and Save. Editing keeps the AUD tag, so `ACCESS_AUD` stays as it is (a new
+application has a new AUD: update `wrangler.jsonc` then). Check in a private window: `/` opens
+without a login, `/admin` asks for the email code.
+
+The admin stays closed even if Access is misconfigured: `src/middleware.ts` checks every `/admin`
+and `/api/admin` request against the Access login (signature, audience, issuer, expiry) and answers
+403 without one.
+
 ## 5. Forms anti-spam (Turnstile)
 
 Until this is done, forms use Cloudflare's test keys, which let every submission through.

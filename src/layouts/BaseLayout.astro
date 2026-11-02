@@ -122,7 +122,7 @@ const ld = [orgLd, ...websiteLd, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : 
     )}
   </head>
   <body class="flex min-h-screen flex-col">
-    <Header />
+    <Header settings={settings} />
     <main id="main" class="flex-1">
       <slot />
     </main>
