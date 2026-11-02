@@ -526,6 +526,12 @@ enrolment at check-in.
     the footer, and the WhatsApp invite link (kept here for the team and the welcome email to
     members, never shown publicly). Posting on social media is under Emails and social media >
     Social media posts.
+  - **Guide pages**: one "online" switch each for the Founder's Guide and Expanding to Thailand,
+    off until the board has checked the content. While a guide is off, visitors get "page not
+    found" and its links disappear from the Resources menu, the footer, the sitemap and the other
+    guide. Admins still see the page, with a yellow "Preview, not online" bar on top (use the
+    Preview link here; if you get "page not found", open the admin first so your Access login is
+    fresh). Tick the box and Save to publish.
   - **Change history**: who changed what in the admin, and when (the last 200 changes).
 - **Home page** (Website pages > Home): every photo has its own slot: **Main header** (the big
   photo at the top, also faint in the red closing band; its description is the small caption;

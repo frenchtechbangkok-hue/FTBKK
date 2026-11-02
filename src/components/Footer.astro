@@ -2,6 +2,7 @@
 import Logo from './Logo.astro';
 import Icon from './Icon.astro';
 import type { Settings } from '../lib/settings';
+import { linkOnline } from '../lib/guides';
 
 interface Props {
   settings: Settings;
@@ -52,16 +53,20 @@ const labels = {
             Tech Pulse
           </a>
         </li>
-        <li>
-          <a href="/founders-guide" class="text-paper hover:text-accent-soft">
-            Founder's Guide
-          </a>
-        </li>
-        <li>
-          <a href="/expand-to-thailand" class="text-paper hover:text-accent-soft">
-            Expanding to Thailand
-          </a>
-        </li>
+        {linkOnline(settings, '/founders-guide') && (
+          <li>
+            <a href="/founders-guide" class="text-paper hover:text-accent-soft">
+              Founder's Guide
+            </a>
+          </li>
+        )}
+        {linkOnline(settings, '/expand-to-thailand') && (
+          <li>
+            <a href="/expand-to-thailand" class="text-paper hover:text-accent-soft">
+              Expanding to Thailand
+            </a>
+          </li>
+        )}
         <li>
           <a href="/about" class="text-paper hover:text-accent-soft">
             About

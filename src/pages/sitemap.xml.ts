@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
 import { siteUrl } from '../lib/site';
+import { linkOnline } from '../lib/guides';
+import { getSettings } from '../lib/settings';
 import {
   allPosts,
   categoriesWithCounts,
@@ -12,12 +14,13 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 /** Built from D1 on each request (edge-cached for an hour). */
 export const GET: APIRoute = async () => {
-  const [up, past, posts, cats, orgs] = await Promise.all([
+  const [up, past, posts, cats, orgs, settings] = await Promise.all([
     upcomingEvents(),
     pastEvents(),
     allPosts(),
     categoriesWithCounts(),
     publishedOrganisations(),
+    getSettings(),
   ]);
   const urls: { loc: string; lastmod?: Date }[] = [
     { loc: '' },
@@ -26,8 +29,10 @@ export const GET: APIRoute = async () => {
     { loc: 'events' },
     { loc: 'blog' },
     { loc: 'tech-pulse' },
-    { loc: 'founders-guide' },
-    { loc: 'expand-to-thailand' },
+    // The guides are listed once they are online (Admin > Settings > Guide pages).
+    ...['founders-guide', 'expand-to-thailand']
+      .filter((loc) => linkOnline(settings, `/${loc}`))
+      .map((loc) => ({ loc })),
     { loc: 'about' },
     { loc: 'th' },
     { loc: 'join' },

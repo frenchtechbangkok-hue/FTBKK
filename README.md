@@ -50,19 +50,23 @@ Public pages:
   opens their member page with the download. Links to the report file itself (`/media/…` in the
   post, old bookmarks) go through the same check, so it can't be fetched directly. While
   membership is closed, the PDFs are free for everyone.
-- **Founder's Guide** at `/founders-guide` (Resources menu, footer, sitemap): for founders
+- **Founder's Guide** at `/founders-guide` (Resources menu, footer, sitemap, once online): for founders
   starting or growing a startup in Thailand. A "Where are you?" picker (testing an idea, remote
   work, setting up a company, hiring and raising) shows the visa, structure and next steps; then
   visas compared, company structures (BOI or a Thai partner), a first-year budget estimator, taxes
   at a glance, a setup checklist, hiring, money and culture tips, who can help and a FAQ.
-- **Expanding to Thailand** at `/expand-to-thailand` (Resources menu, footer, sitemap): for
+- **Expanding to Thailand** at `/expand-to-thailand` (Resources menu, footer, sitemap, once online): for
   established tech companies, often French, opening an office or a business in Thailand. Market
   figures, a five-question chooser that suggests an entry model and highlights its card, seven
   entry models compared (sell from home, distributor, representative office, branch, BOI
   subsidiary, Thai partner, regional hub) with invoicing, ownership, capital and setup time, an
   18-month roadmap, visas for the people you send, selling tips, local and cross-border taxes, a
   launch checklist, who can help and a FAQ.
-- Both guides link to each other, cite sources on every card and show a "last checked" date. Each
+- Each guide has an **online** switch (Admin > Settings > Guide pages), off by default so the board
+  can check the content first. Offline, the page answers 404 to visitors and is left out of the
+  Resources menu, footer, sitemap and the other guide; a logged-in admin sees it with a "Preview,
+  not online" bar (`src/lib/guides.ts`).
+- Both guides link to each other (once both are online), cite sources on every card and show a "last checked" date. Each
   checklist keeps its ticks in the browser (localStorage, one key per guide). Content is edited in
   code, not in the admin: shared visas, taxes, tips, helpers, sources and the date in
   `src/lib/thailand-guides.ts`; page content in `src/lib/founders-guide.ts` and
@@ -343,7 +347,7 @@ Bangkok logo and the full name "La French Tech Bangkok".
   for event reminders, directory renewals and the weekly backup.
 - D1 database `ftbkk` through Drizzle (`src/db/schema.ts`, migrations in `migrations/`).
 - R2 bucket `ftbkk-media` for images and files, served at `/media/*`.
-- Cloudflare Access on `/admin` and `/api/admin`, Turnstile on public forms, Resend for email (sent from `noreply@mail.delattre.me` until the French Tech domain is ours; see `EMAIL_FROM`).
+- Cloudflare Access on `/admin` and `/api/admin` only (the public site needs no login; the Worker also checks the Access login itself on those paths and refuses anything else with 403), Turnstile on public forms, Resend for email (sent from `noreply@mail.delattre.me` until the French Tech domain is ours; see `EMAIL_FROM`).
 
 ## Run it locally
 

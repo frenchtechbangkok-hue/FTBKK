@@ -1,5 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { guideMode, linkOnline } from '../lib/guides';
+import { getSettings } from '../lib/settings';
 import Button from '../components/Button.astro';
 import Icon from '../components/Icon.astro';
 import Checklist from '../components/guide/Checklist.astro';
@@ -24,7 +26,8 @@ import {
 // The Founder's Guide: practical notes for founders starting or growing a startup in Thailand,
 // with a path picker, a first-year budget estimator and a checklist that remembers ticks in the
 // browser. Companies that are already established elsewhere have their own guide,
-// /expand-to-thailand. Listed in the header's Resources menu, the footer and the sitemap.
+// /expand-to-thailand. Listed in the header's Resources menu, the footer and the sitemap once it
+// is online.
 const visas = [VISA.dtv, VISA.smartS, VISA.ltrWft, VISA.nonB];
 const toc = [
   { href: '#path', label: 'Where are you?' },
@@ -47,10 +50,18 @@ const allSources = sourceList(
   EXTRA_SOURCES,
 );
 const thb = (n: number) => `THB ${n.toLocaleString('en-US')}`;
+// Offline guides answer 404 to the public; admins see a preview (Admin > Settings > Guide pages).
+const settings = await getSettings();
+const mode = await guideMode(Astro, settings, '/founders-guide');
+if (mode === 'hidden') return Astro.rewrite('/404');
+const preview = mode === 'preview';
+const showOther = linkOnline(settings, '/expand-to-thailand');
 ---
 
 <BaseLayout
   title="Founder's Guide to Thailand"
+  noindex={preview}
+  cache={!preview}
   description="La French Tech Bangkok's practical guide for founders setting up in Thailand: visas, company structures, BOI, taxes, first-year budget and a setup checklist."
 >
   <GuideHero
@@ -59,11 +70,16 @@ const thb = (n: number) => `THB ${n.toLocaleString('en-US')}`;
     intro="What founders in our community wish they had known before they started: which visa, which company, what it costs in year one and what to file when. Pick your situation below and follow the steps."
     checked={GUIDE_CHECKED_LABEL}
     toc={toc}
-    other={{
-      href: '/expand-to-thailand',
-      question: 'Already running an established company abroad?',
-      label: 'Read Expanding to Thailand',
-    }}
+    preview={preview}
+    other={
+      showOther
+        ? {
+            href: '/expand-to-thailand',
+            question: 'Already running an established company abroad?',
+            label: 'Read Expanding to Thailand',
+          }
+        : null
+    }
   />
 
   <!-- 01 Path picker: each button shows its panel; without JavaScript every panel is visible. -->

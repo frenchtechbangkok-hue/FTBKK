@@ -1,5 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { guideMode, linkOnline } from '../lib/guides';
+import { getSettings } from '../lib/settings';
 import Button from '../components/Button.astro';
 import Icon from '../components/Icon.astro';
 import Checklist from '../components/guide/Checklist.astro';
@@ -67,10 +69,18 @@ const specs = (m: (typeof MODELS)[number]) => [
   { label: 'Capital', value: m.capital },
   { label: 'Setup', value: m.setup },
 ];
+// Offline guides answer 404 to the public; admins see a preview (Admin > Settings > Guide pages).
+const settings = await getSettings();
+const mode = await guideMode(Astro, settings, '/expand-to-thailand');
+if (mode === 'hidden') return Astro.rewrite('/404');
+const preview = mode === 'preview';
+const showOther = linkOnline(settings, '/founders-guide');
 ---
 
 <BaseLayout
   title="Expanding to Thailand"
+  noindex={preview}
+  cache={!preview}
   description="La French Tech Bangkok's guide for established tech companies opening an office or a business in Thailand: entry models, BOI, Foreign Business License, visas for your team, selling, taxes and a launch checklist."
 >
   <GuideHero
@@ -79,11 +89,16 @@ const specs = (m: (typeof MODELS)[number]) => [
     intro="For tech companies already established elsewhere, often in France, that want to sell in Thailand or open an office. Find the right way in, who to send, how to sell and what to file, from the French companies already here."
     checked={GUIDE_CHECKED_LABEL}
     toc={toc}
-    other={{
-      href: '/founders-guide',
-      question: 'Starting a new company from scratch?',
-      label: "Read the Founder's Guide",
-    }}
+    preview={preview}
+    other={
+      showOther
+        ? {
+            href: '/founders-guide',
+            question: 'Starting a new company from scratch?',
+            label: "Read the Founder's Guide",
+          }
+        : null
+    }
   />
 
   <!-- 01 Why Thailand -->

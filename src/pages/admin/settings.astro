@@ -11,6 +11,7 @@ import { adminNotifyEmails, audit, siteUrl } from '../../lib/orgs';
 import PhotoSlot from '../../components/admin/PhotoSlot.astro';
 import { readPhotoSlot } from '../../lib/photo-slots';
 import { COVER_KINDS, DEFAULT_EVENT_COVERS, KIND_NAMES } from '../../lib/event-covers';
+import { GUIDES } from '../../lib/guides';
 
 // Site-wide settings, one screen per section (?section=, listed under Settings in the admin menu).
 // Each screen saves only its own fields. The texts shown on public pages are in Website pages
@@ -20,6 +21,7 @@ const SECTIONS = {
   membership: 'Membership settings',
   'event-covers': 'Default event covers',
   'social-links': 'Social links',
+  guides: 'Guide pages',
 } as const;
 type Section = keyof typeof SECTIONS;
 const sectionParam = Astro.url.searchParams.get('section') ?? 'general';
@@ -58,6 +60,10 @@ const Schemas = {
     memberPriority: z.boolean().optional().default(false),
   }),
   'event-covers': z.object({}),
+  guides: z.object({
+    foundersGuideOnline: z.boolean().optional().default(false),
+    expansionGuideOnline: z.boolean().optional().default(false),
+  }),
   'social-links': z.object({
     instagram: url,
     whatsapp: url,
@@ -76,6 +82,9 @@ let values: Record<string, unknown> = {
 
 // Default covers of Connect, Talk and Select events (R2 keys; null = the built-in image).
 let covers = current.eventCovers;
+// Guide pages: one "online" switch per Thailand guide (lib/guides.ts).
+const GUIDE_SWITCHES = Object.entries(GUIDES).map(([path, g]) => ({ path, ...g }));
+
 const asPhoto = (key: string | null) => (key ? { key } : null);
 
 // "Send a test" next to Admin notifications: one email to the saved addresses, and Resend's
@@ -133,6 +142,8 @@ const INTROS: Record<Section, string> = {
     'Switches for individual membership, company membership and member priority on events.',
   'event-covers':
     'The image shown for events that have no cover of their own. Pick the type on each event.',
+  guides:
+    'Put the Thailand guides online once their content is checked. While a guide is offline, visitors get "page not found" and its links are hidden from the menu, the footer and the sitemap; admins can still open it to proofread.',
   'social-links':
     'Links to our pages, shown in the site footer. To post an event or a blog post on social media, use Emails and social media > Social media posts.',
 };
@@ -253,6 +264,25 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
             error={errors[k]}
             placeholder="https://"
           />
+        ))}
+      </section>
+    )}
+
+    {section === 'guides' && (
+      <section class="admin-panel grid gap-4">
+        {GUIDE_SWITCHES.map((g) => (
+          <div class="grid gap-1">
+            <FormField
+              name={g.key}
+              label={`${g.label} is online`}
+              type="checkbox"
+              checked={!!values[g.key]}
+              hint={`The page ${g.path}. Off = visitors get "page not found".`}
+            />
+            <a href={g.path} target="_blank" rel="noopener" class="text-sm text-accent">
+              {values[g.key] ? 'Open the page' : 'Preview the page (only admins see it)'}
+            </a>
+          </div>
         ))}
       </section>
     )}
