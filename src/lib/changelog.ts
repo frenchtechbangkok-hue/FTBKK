@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.104',
+    date: '2026-11-03',
+    pr: 119,
+    title: 'Preview a draft blog post',
+    summary:
+      'While a post is a draft or scheduled for later, the post editor has a "Preview the page" link that opens the post exactly as visitors will see it; only admins can open it and search engines never see it.',
+  },
+  {
     version: '1.103',
     date: '2026-11-03',
     pr: 118,

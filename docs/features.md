@@ -265,7 +265,9 @@ screen by screen for the team.
   Tech role (else job title) and LinkedIn; the post page matches the name to show their photo. Each
   post has editable SEO fields (title, meta description, keywords, social image, hide from search
   engines), pre-filled with automatic values from the post (`src/lib/seo.ts`); only overrides are
-  stored.
+  stored. Drafts and scheduled posts have an admin-only preview at `/admin/posts/<id>/preview`
+  (same `PostPage` component as `/blog/<slug>`, preview band, noindex, no-store), linked as
+  "Preview the page" from the editor.
 - **Share images and social media** (Admin > Emails and social media > Social media posts): every event and blog post gets a
   1200x630 share image (official logo, red label, title, date and venue or byline, its photo),
   used as `og:image` so LinkedIn, Facebook and WhatsApp previews look right. The admin's browser

@@ -1,0 +1,25 @@
+---
+import { eq } from 'drizzle-orm';
+import PostPage from '../../../../components/PostPage.astro';
+import { getDb } from '../../../../db';
+import { posts } from '../../../../db/schema';
+import { formatDate } from '../../../../lib/format';
+
+// The post page as visitors will see it, for any status. Under /admin, so only admins reach it
+// (Access + middleware); noindex and no-store so it never leaks into search or caches.
+const id = Number(Astro.params.id);
+const [post] = Number.isInteger(id)
+  ? await getDb().select().from(posts).where(eq(posts.id, id)).limit(1)
+  : [];
+if (!post) return Astro.redirect('/admin/posts');
+Astro.response.headers.set('X-Robots-Tag', 'noindex');
+const scheduled = post.status === 'published' && post.publishedAt && post.publishedAt > new Date();
+const reason =
+  post.status === 'draft'
+    ? 'This post is a draft: only admins can see this page.'
+    : scheduled
+      ? `This post goes online on ${formatDate(post.publishedAt!)}: only admins can see it until then.`
+      : 'This post is online; this is the admin preview of the saved version.';
+---
+
+<PostPage post={post} preview={{ editHref: `/admin/posts/${post.id}`, reason }} />
