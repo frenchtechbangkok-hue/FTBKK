@@ -468,7 +468,10 @@ enrolment at check-in.
 
 ## Reports
 
-**Reports** has three tabs, for the team and the board. Figures are live.
+**Reports** has four tabs, for the team and the board. Figures are live. Every tab is laid out the
+same way: the four main figures on top (with the change against the period before, green when
+better, and a small trend line), the other figures in a **More figures** panel, then charts and
+tables.
 
 - **Pick a period** at the top: last 30 or 90 days, last 12 months (the default), this year, last
   year, all time, or **Custom dates**. Every figure and chart follows it, and the key numbers say
@@ -484,12 +487,23 @@ enrolment at check-in.
   feedback ratings, the latest comments (without names), each event type side by side, and a
   sortable table with one line per event. Guests count as seats; first-timers, returning people
   and members count named people only. Events where check-in wasn't used show "–" for show-up.
+  Per-event charts are drawn as columns, one per event.
+- **Coming up** (Events tab): the next five events with seats taken, the waitlist and how they
+  compare with the usual for their type at the same number of days before (green when ahead).
+  **When people register** shows how many days before the event people sign up, and More figures
+  says by when half of them have registered: useful to time reminders and posts. **Most regular
+  attendees** (members marked) and **Companies that come most** come from the people who came.
 - **One event**: pick it in the **Event** list, or click its name in the table. You get its
   numbers next to the usual for its type (the same type's events in the 12 months before), the
   registration pace against the previous event of that type, arrivals at the door per 15
   minutes, how people heard about it, the companies represented, the ratings and every comment
   (no names). Buttons lead to the event, its registrations and its feedback with names.
-- **Membership**: active members, new members in the period, sign-ups that never confirmed,
+- **Membership**: the **net change** (new members minus members who lapsed and did not come
+  back) and the **renewal rate** (of the members whose year ended in the period, how many
+  renewed); a chart of members who joined and lapsed per week or month; **From attendee to
+  member** (people who came, came twice or more, are members today) and **Regulars who aren't
+  members yet**: people who came to two events or more without being members, good people to
+  invite to join (click a name to open the contact). Also: active members, new members in the period, sign-ups that never confirmed,
   lapsed members and renewals due in the next 30 days; the share of active members who came to an
   event; the share of attendees who are members (on the day of the event, and today); new members
   who had come to an event before joining; attendees who were not members and are members now;
@@ -519,7 +533,9 @@ enrolment at check-in.
   from Resend (or Amazon SES) as each email is delivered or opened, and start on the day that
   connection was set up (docs/deploy.md); until then the tab explains what to do.
 - **Export CSV** downloads what is shown: on Events, one line per event (or, with one event
-  picked, its figures and comments); on Membership, the growth table or the members at each event.
+  picked, its figures and comments); on Membership, the growth table (joined, lapsed, total) or
+  the members at each event; on Website traffic, visits per week or month or the most viewed
+  pages; on Emails, the emails per week or month or the table per email.
 
 ## Board and speakers, Messages, Website pages, Settings
 

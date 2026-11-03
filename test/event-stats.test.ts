@@ -236,3 +236,43 @@ describe('report period', () => {
     expect(delta(3, 0)).toBeNull();
   });
 });
+
+describe('lead time, companies, regulars, coming up', async () => {
+  const { leadTime, companies, regulars, comingUp } = await import('../src/lib/event-stats');
+  it('bands registrations by days before the event, with the median', () => {
+    const start = new Map([[1, d('2026-09-01T11:00:00Z')]]);
+    const l = leadTime(
+      [
+        reg(1, 'a@x.co', 'attended', '2026-09-01T09:00:00Z'),
+        reg(1, 'b@x.co', 'attended', '2026-08-30T11:00:00Z'),
+        reg(1, 'c@x.co', 'attended', '2026-08-10T11:00:00Z'),
+        { ...reg(1, 'w@x.co', 'attended', '2026-09-01T12:00:00Z'), walkIn: true },
+      ],
+      start,
+    );
+    expect(l.registrations).toBe(3);
+    expect(l.bands.map(([, n]) => n)).toEqual([1, 1, 0, 0, 1, 0]);
+    expect(l.median).toBe(2);
+    expect(l.lastWeek).toBeCloseTo(2 / 3);
+  });
+  it('lists companies and regulars from the people who came', () => {
+    const rows = eventRows(events, regs, [], [], now);
+    const past = rows.filter((r) => r.past);
+    const rs = [
+      { ...reg(1, 'a@x.co', 'attended', '2026-08-20T00:00:00Z'), company: 'Kite', name: 'Ann' },
+      { ...reg(1, 'b@x.co', 'attended', '2026-08-20T00:00:00Z'), company: 'kite ' },
+      { ...reg(1, 'c@x.co', 'registered', '2026-08-20T00:00:00Z'), company: 'Gone' },
+    ];
+    expect(companies(rs, past)).toEqual([{ name: 'Kite', people: 2, events: 1 }]);
+    expect(regulars(rs, past)).toEqual([]);
+  });
+  it('compares an upcoming event with the usual at the same point', () => {
+    const rows = eventRows(events, regs, [], [], now);
+    const next = rows.find((r) => r.event.id === 2)!;
+    const u = comingUp(next, rows, regs, now);
+    expect(u.daysToGo).toBe(3);
+    expect(u.usualCount).toBe(1);
+    // At the same point (2 days 3 hours before), Connect #50 had a, b and c registered.
+    expect(u.usual).toBe(3);
+  });
+});

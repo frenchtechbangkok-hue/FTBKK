@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.96',
+    date: '2026-11-03',
+    pr: 111,
+    title: 'Clearer reports',
+    summary:
+      'The four Reports tabs look alike: four main figures with trend lines on top, the rest in one panel, events as columns and a CSV on every tab. Events shows the coming events against the usual, when people register, the regulars and the companies that come most; Membership shows the net change, the renewal rate and the regulars who are not members yet.',
+  },
+  {
     version: '1.95',
     date: '2026-11-03',
     pr: 110,

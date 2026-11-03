@@ -2,6 +2,7 @@
 import Button from '../Button.astro';
 import Badge from '../Badge.astro';
 import Kpi from './Kpi.astro';
+import MoreFigures from './MoreFigures.astro';
 import BarList from './BarList.astro';
 import LineChart from './LineChart.astro';
 import { KIND_LABELS, type eventDetail } from '../../lib/event-stats';
@@ -19,7 +20,8 @@ const { detail: d, back } = Astro.props;
 const r = d.row;
 const u = d.usual;
 const kind = KIND_LABELS[r.kind];
-const versus = `vs usual for ${kind} (${d.usualCount} event${d.usualCount === 1 ? '' : 's'} before)`;
+const versus = `vs usual for ${kind}`;
+const usualNote = `Usual = average of the ${d.usualCount} ${kind} event${d.usualCount === 1 ? '' : 's'} in the 12 months before`;
 const round = (v: number | null) => (v === null ? '–' : String(Math.round(v)));
 const known = r.firstTimers + r.returning;
 const share = (n: number) => (known ? n / known : null);
@@ -48,6 +50,16 @@ const kpis = [
     hint: r.noShows === null ? '' : `${r.noShows} no-shows (${pct(1 - (r.showUp ?? 0))})`,
   },
   {
+    label: 'Average rating',
+    value: r.feedback.average === null ? '–' : `${formatRating(r.feedback.average)} / 5`,
+    delta: delta(r.feedback.average, u?.feedback.average ?? null, 'rating'),
+    hint: r.feedback.emailed
+      ? `${r.feedback.responses} answers of ${r.feedback.emailed} emailed (${pct(r.feedback.responseRate)})`
+      : `${r.feedback.responses} answers`,
+  },
+];
+const more = [
+  {
     label: 'Seats filled',
     value: pct(r.fill),
     delta: delta(r.fill, u?.fill ?? null, 'rate'),
@@ -64,14 +76,6 @@ const kpis = [
     value: pct(share(r.members)),
     delta: delta(share(r.members), u?.memberShare ?? null, 'rate'),
     hint: r.past ? `${r.members} of ${known} named attendees` : 'After the event',
-  },
-  {
-    label: 'Average rating',
-    value: r.feedback.average === null ? '–' : `${formatRating(r.feedback.average)} / 5`,
-    delta: delta(r.feedback.average, u?.feedback.average ?? null, 'rating'),
-    hint: r.feedback.emailed
-      ? `${r.feedback.responses} answers of ${r.feedback.emailed} emailed (${pct(r.feedback.responseRate)})`
-      : `${r.feedback.responses} answers`,
   },
   {
     label: 'Cancelled',
@@ -116,18 +120,21 @@ const kpis = [
       )}
     </div>
   </div>
-  {!u && (
+  {u ? (
+    <p class="mt-3 text-xs text-muted">{usualNote}.</p>
+  ) : (
     <p class="mt-3 text-xs text-muted">
       No earlier {kind} event in the 12 months before this one to compare with.
     </p>
   )}
 </section>
 
-<section aria-label="Key numbers" class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
+<section aria-label="Key numbers" class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
   {kpis.map((k) => (
-    <Kpi label={k.label} value={k.value} hint={k.hint} delta={k.delta} versus={versus} />
+    <Kpi {...k} versus={versus} />
   ))}
 </section>
+<MoreFigures figures={more} versus={versus} />
 
 <div class="mb-6 grid items-start gap-6 xl:grid-cols-2">
   <LineChart
@@ -177,7 +184,7 @@ const kpis = [
     shares
   />
   <section class="admin-panel" aria-labelledby="event-comments-title">
-    <h2 id="event-comments-title" class="font-semibold text-navy">
+    <h2 id="event-comments-title" class="text-lg">
       What people said
     </h2>
     {d.comments.length ? (

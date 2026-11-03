@@ -5,7 +5,8 @@ import ReportTabs from '../../../components/admin/ReportTabs.astro';
 import ReportFilters from '../../../components/admin/ReportFilters.astro';
 import Kpi from '../../../components/admin/Kpi.astro';
 import BarList from '../../../components/admin/BarList.astro';
-import { delta } from '../../../lib/report-period';
+import Alert from '../../../components/Alert.astro';
+import { delta, num, periodQuery } from '../../../lib/report-period';
 import { loadTrafficReport } from '../../../lib/reports';
 import {
   formatVital,
@@ -18,8 +19,7 @@ import {
 // Reports > Website traffic: visits, pages, sources and speed from Cloudflare Web Analytics, and
 // the requests this Worker served. Read from Cloudflare's API at each visit (src/lib/traffic.ts).
 const { period, beacon, connected, report: r, error } = await loadTrafficReport(Astro.url);
-const versus = period.previous ? `vs ${period.previous.label}` : undefined;
-const n = (v: number) => Math.round(v).toLocaleString('en-GB');
+const n = num;
 const day = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'short',
@@ -37,12 +37,14 @@ const kpis = p
         value: n(p.visits),
         delta: delta(p.visits, prev?.visits ?? null),
         hint: 'A visit starts when someone opens the site from elsewhere (search, link, typed)',
+        spark: p.visitsSeries,
       },
       {
         label: 'Page views',
         value: n(p.pageViews),
         delta: delta(p.pageViews, prev?.pageViews ?? null),
         hint: 'Every page opened, including several in one visit',
+        spark: p.viewsSeries,
       },
       {
         label: 'Pages per visit',
@@ -80,7 +82,23 @@ const startsLater = r ? sliced(r.pageloads.range) : null;
 
 <AdminLayout title="Reports: website traffic">
   <ReportTabs />
-  <ReportFilters period={period} />
+  <ReportFilters
+    period={period}
+    csv={
+      r && !r.pageloads.error
+        ? [
+            {
+              href: `/admin/reports/traffic.csv?${new URLSearchParams(periodQuery(period))}`,
+              label: 'Export visits CSV',
+            },
+            {
+              href: `/admin/reports/traffic.csv?${new URLSearchParams({ ...periodQuery(period), table: 'pages' })}`,
+              label: 'Export pages CSV',
+            },
+          ]
+        : []
+    }
+  />
   <p class="mb-6 max-w-3xl text-sm text-muted">
     Who visits the public website, what they read, where they come from and how fast pages load for
     them, from Cloudflare Web Analytics. It counts without cookies and doesn't track people, so the
@@ -94,14 +112,14 @@ const startsLater = r ? sliced(r.pageloads.range) : null;
   </p>
 
   {!beacon && (
-    <div class="admin-panel mb-6 border-warning">
-      <h2 class="text-lg">Visitor counting is off</h2>
-      <p class="mt-1 text-sm">
+    <Alert tone="warning" class="mb-6">
+      <h2 class="text-lg text-warning">Visitor counting is off</h2>
+      <p class="mt-1 text-sm text-ink">
         Visits are only counted while{' '}
         <a href="/admin/settings">Settings &gt; General &gt; Cloudflare Web Analytics token</a> is
         filled in. Figures start from the day it is saved.
       </p>
-    </div>
+    </Alert>
   )}
 
   {!connected && (
@@ -127,19 +145,19 @@ const startsLater = r ? sliced(r.pageloads.range) : null;
   )}
 
   {error && (
-    <div class="admin-panel mb-6 border-danger" role="alert">
-      <h2 class="text-lg">Cloudflare didn't answer</h2>
-      <p class="mt-1 text-sm">{error}</p>
-    </div>
+    <Alert tone="danger" class="mb-6">
+      <h2 class="text-lg text-danger">Cloudflare didn't answer</h2>
+      <p class="mt-1 text-sm text-ink">{error}</p>
+    </Alert>
   )}
 
   {r && (
     <>
       {r.pageloads.error ? (
-        <div class="admin-panel mb-6 border-danger" role="alert">
-          <h2 class="text-lg">Visits could not be loaded</h2>
-          <p class="mt-1 text-sm">{r.pageloads.error}</p>
-        </div>
+        <Alert tone="danger" class="mb-6">
+          <h2 class="text-lg text-danger">Visits could not be loaded</h2>
+          <p class="mt-1 text-sm text-ink">{r.pageloads.error}</p>
+        </Alert>
       ) : (
         <>
           {startsLater && (
@@ -150,12 +168,13 @@ const startsLater = r ? sliced(r.pageloads.range) : null;
           )}
           <section aria-label="Key numbers" class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {kpis.map((k) => (
-              <Kpi label={k.label} value={k.value} hint={k.hint} delta={k.delta} versus={versus} />
+              <Kpi {...k} />
             ))}
           </section>
           <div class="mb-6">
             <LineChart
               title={`Visits and page views, per ${r.unit}`}
+              wide
               labels={r.buckets.map((b) => b.label)}
               series={[
                 { name: 'Page views', values: p!.viewsSeries, tone: 'navy' },
@@ -218,9 +237,7 @@ const startsLater = r ? sliced(r.pageloads.range) : null;
           counts a site as fast when it is in the good range.
         </p>
         {r.vitals.error ? (
-          <p class="admin-panel text-sm" role="alert">
-            Speed figures could not be loaded: {r.vitals.error}
-          </p>
+          <Alert tone="danger">Speed figures could not be loaded: {r.vitals.error}</Alert>
         ) : (
           <div class="grid gap-4 sm:grid-cols-3">
             {names.map((k) => {
@@ -229,12 +246,14 @@ const startsLater = r ? sliced(r.pageloads.range) : null;
               const [good, poor] = VITAL_THRESHOLDS[k];
               return (
                 <div class="admin-panel">
-                  <p class="text-xs text-muted">{VITAL_LABELS[k]}</p>
-                  <p class="mt-1 text-3xl font-bold text-navy">{formatVital(k, v.p75)}</p>
+                  <p class="text-sm text-muted">{VITAL_LABELS[k]}</p>
+                  <p class="mt-1 font-display text-2xl font-bold text-navy md:text-3xl">
+                    {formatVital(k, v.p75)}
+                  </p>
                   {rating && (
-                    <p class={`mt-1 text-xs font-semibold ${tone[rating]}`}>{ratingText[rating]}</p>
+                    <p class={`mt-1 text-sm font-semibold ${tone[rating]}`}>{ratingText[rating]}</p>
                   )}
-                  <p class="mt-1 text-xs text-muted">
+                  <p class="mt-2 text-xs text-muted">
                     {v.good === null
                       ? 'No measurement in this period.'
                       : `${Math.round(v.good * 100)}% of ${n(v.total)} page views were good. `}
@@ -258,9 +277,7 @@ const startsLater = r ? sliced(r.pageloads.range) : null;
             ` Cloudflare keeps three months of these: from ${day.format(sliced(r.worker.range)!)}.`}
         </p>
         {r.worker.error ? (
-          <p class="admin-panel text-sm" role="alert">
-            Server figures could not be loaded: {r.worker.error}
-          </p>
+          <Alert tone="danger">Server figures could not be loaded: {r.worker.error}</Alert>
         ) : (
           <div class="grid items-start gap-6 lg:grid-cols-[1fr_2fr]">
             <div class="grid grid-cols-2 gap-4 lg:grid-cols-1">

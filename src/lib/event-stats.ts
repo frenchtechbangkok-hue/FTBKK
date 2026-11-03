@@ -17,6 +17,8 @@ export interface StatEvent {
 
 export interface StatRegistration {
   eventId: number;
+  /** For the most regular attendees. */
+  name?: string;
   /** Null for walk-ins added at the door without an email. */
   email: string | null;
   status: 'registered' | 'waitlist' | 'cancelled' | 'attended';
@@ -40,6 +42,8 @@ export interface StatFeedback {
 export interface StatMember {
   email: string;
   status: string;
+  /** First joined; confirmedAt moves to the renewal day when a member renews. */
+  memberSince?: Date | null;
   confirmedAt: Date | null;
   createdAt: Date;
 }
@@ -106,7 +110,7 @@ export function eventRows(
   const memberSince = new Map(
     members
       .filter((m) => m.status !== 'pending')
-      .map((m) => [m.email.toLowerCase(), m.confirmedAt ?? m.createdAt]),
+      .map((m) => [m.email.toLowerCase(), m.memberSince ?? m.confirmedAt ?? m.createdAt]),
   );
   const seen = new Set<string>();
   const rows = events
@@ -305,6 +309,11 @@ export function eventReport(
     .filter((r) => !r.past && r.event.status === 'published')
     .sort((a, b) => a.event.startsAt.getTime() - b.event.startsAt.getTime());
 
+  const selectedPast = selected.filter((r) => r.past);
+  const pastIds = new Set(selectedPast.map((r) => r.event.id));
+  const pastRegs = regs.filter((r) => pastIds.has(r.eventId));
+  const startOf = new Map(selectedPast.map((r) => [r.event.id, r.event.startsAt]));
+
   return {
     rows: selected,
     totals: totals(selected),
@@ -319,7 +328,120 @@ export function eventReport(
     next: upcoming[0] ?? null,
     upcomingCount: upcoming.length,
     pace: upcoming[0] ? pace(upcoming[0], rows, regs, now) : null,
+    upcoming: upcoming.slice(0, 5).map((r) => comingUp(r, rows, regs, now)),
+    leadTime: leadTime(pastRegs, startOf),
+    companies: companies(pastRegs, selectedPast),
+    regulars: regulars(pastRegs, selectedPast),
   };
+}
+
+/**
+ * How early people register for the period's past events: registrations made on this site (not
+ * walk-ins), by days before the event, and the median.
+ */
+export const LEAD_BANDS = [
+  { label: 'On the day', upTo: 1 },
+  { label: '1 to 3 days before', upTo: 4 },
+  { label: '4 to 7 days before', upTo: 8 },
+  { label: '1 to 2 weeks before', upTo: 15 },
+  { label: '2 to 4 weeks before', upTo: 29 },
+  { label: 'Earlier', upTo: Infinity },
+] as const;
+
+export function leadTime(regs: StatRegistration[], startOf: Map<number, Date>) {
+  const days: number[] = [];
+  for (const r of regs) {
+    const start = startOf.get(r.eventId);
+    if (!start || r.walkIn || r.status === 'waitlist') continue;
+    const d = (start.getTime() - r.createdAt.getTime()) / DAY_MS;
+    if (d >= 0) days.push(d);
+  }
+  days.sort((a, b) => a - b);
+  const counts = LEAD_BANDS.map(() => 0);
+  for (const d of days) counts[LEAD_BANDS.findIndex((b) => d < b.upTo)]! += 1;
+  const mid = days.length ? days[Math.floor((days.length - 1) / 2)]! : null;
+  return {
+    registrations: days.length,
+    bands: LEAD_BANDS.map((b, i) => [b.label, counts[i]!] as [string, number]),
+    /** Whole days before the event by which half the registrations were in. */
+    median: mid === null ? null : Math.floor(mid),
+    lastWeek: ratio(days.filter((d) => d < 8).length, days.length),
+  };
+}
+
+/** Who came: checked in, or registered at events where check-in wasn't used. */
+function cameRegs(regs: StatRegistration[], rows: EventRow[]) {
+  const counted = new Map(rows.map((r) => [r.event.id, r.counted]));
+  return regs.filter((r) =>
+    counted.get(r.eventId) === 'checked in' ? r.status === 'attended' : r.status === 'registered',
+  );
+}
+
+/** The companies people came from most often: people and events, top 10. */
+export function companies(regs: StatRegistration[], rows: EventRow[]) {
+  const by = new Map<string, { name: string; people: number; events: Set<number> }>();
+  for (const r of cameRegs(regs, rows)) {
+    const name = r.company?.trim();
+    if (!name || /^(n\/?a|none|-|self[- ]?employed|freelance)$/i.test(name)) continue;
+    const key = name.toLowerCase();
+    const c = by.get(key) ?? { name, people: 0, events: new Set<number>() };
+    c.people += 1;
+    c.events.add(r.eventId);
+    by.set(key, c);
+  }
+  return [...by.values()]
+    .map((c) => ({ name: c.name, people: c.people, events: c.events.size }))
+    .sort((a, b) => b.people - a.people || b.events - a.events || a.name.localeCompare(b.name))
+    .slice(0, 10);
+}
+
+/** The people who came to the most events of the period (named people, two events or more). */
+export function regulars(regs: StatRegistration[], rows: EventRow[]) {
+  const startOf = new Map(rows.map((r) => [r.event.id, r.event.startsAt]));
+  const by = new Map<string, { email: string; name: string; events: number; last: Date }>();
+  for (const r of cameRegs(regs, rows)) {
+    const email = emailOf(r.email);
+    if (!email) continue;
+    const at = startOf.get(r.eventId)!;
+    const p = by.get(email) ?? { email, name: r.name?.trim() || email, events: 0, last: at };
+    p.events += 1;
+    if (at >= p.last) {
+      p.last = at;
+      if (r.name?.trim()) p.name = r.name.trim();
+    }
+    by.set(email, p);
+  }
+  return [...by.values()]
+    .filter((p) => p.events > 1)
+    .sort((a, b) => b.events - a.events || b.last.getTime() - a.last.getTime())
+    .slice(0, 10);
+}
+
+/**
+ * An upcoming event with its seats taken, and the usual at the same number of days before: the
+ * average of its type's events in the 12 months before.
+ */
+export function comingUp(row: EventRow, rows: EventRow[], regs: StatRegistration[], now: Date) {
+  const before = row.event.startsAt.getTime() - now.getTime();
+  const daysToGo = Math.max(0, Math.ceil(before / DAY_MS));
+  const yearBefore = row.event.startsAt.getTime() - 365 * DAY_MS;
+  const peers = rows.filter(
+    (r) =>
+      r.past && r.kind === row.kind && r.registered > 0 && r.event.startsAt.getTime() >= yearBefore,
+  );
+  const seatsAt = (r: EventRow) => {
+    const at = r.event.startsAt.getTime() - before;
+    return sum(
+      regs.filter(
+        (x) =>
+          x.eventId === r.event.id &&
+          (x.status === 'registered' || x.status === 'attended') &&
+          x.createdAt.getTime() <= at,
+      ),
+    );
+  };
+  const usual = peers.length ? peers.reduce((n, r) => n + seatsAt(r), 0) / peers.length : null;
+  return { row, daysToGo, usual, usualCount: peers.length };
 }
 
 /** Seats taken day by day over the 30 days before an event, next to the previous one of its type. */

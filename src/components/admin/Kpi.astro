@@ -1,27 +1,37 @@
 ---
 import type { Delta } from '../../lib/report-period';
+import { sparkPoints } from '../../lib/dashboard';
 
-// One key figure on Reports, with an optional change against the previous period.
+// One key figure on Reports, styled like the dashboard's "Last 7 days": label, big number, the
+// change against the previous period (or the usual), and a small trend line when there is one.
 interface Props {
   label: string;
   value: string;
   hint?: string | undefined;
   delta?: Delta | null | undefined;
-  /** "vs 1 Jan – 31 Mar 2025" */
+  /** What the change compares with; defaults to "vs previous period". */
   versus?: string | undefined;
+  /** The figure over the period (per week, month or event), drawn as a sparkline. */
+  spark?: (number | null)[] | undefined;
 }
-const { label, value, hint, delta, versus } = Astro.props;
+const { label, value, hint, delta, versus = 'vs previous period', spark } = Astro.props;
 const tone = { good: 'text-success', bad: 'text-danger', flat: 'text-muted' };
+const values = (spark ?? []).filter((v): v is number => v !== null);
+const points = values.length >= 2 ? sparkPoints(values) : '';
 ---
 
 <div class="admin-panel">
-  <p class="text-xs text-muted">{label}</p>
-  <p class="mt-1 text-3xl font-bold text-navy">{value}</p>
+  <p class="text-sm text-muted">{label}</p>
+  <p class="mt-1 font-display text-2xl font-bold text-navy md:text-3xl">{value}</p>
   {delta && (
-    <p class="mt-1 text-xs">
-      <span class={`font-semibold ${tone[delta.tone]}`}>{delta.text}</span>
-      <span class="text-muted"> {versus ?? 'vs previous period'}</span>
+    <p class={`mt-1 text-sm ${tone[delta.tone]}`}>
+      {delta.text === 'same' ? `Same ${versus.replace(/^vs /, 'as ')}` : `${delta.text} ${versus}`}
     </p>
   )}
-  {hint && <p class="mt-1 text-xs text-muted">{hint}</p>}
+  {points && (
+    <svg viewBox="0 0 120 28" class="mt-2 h-7 w-full max-w-40" aria-hidden="true">
+      <polyline fill="none" class="stroke-accent" stroke-width="2" points={points} />
+    </svg>
+  )}
+  {hint && <p class="mt-2 text-xs text-muted">{hint}</p>}
 </div>

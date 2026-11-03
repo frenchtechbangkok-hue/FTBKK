@@ -6,17 +6,17 @@ import LineChart from '../../../components/admin/LineChart.astro';
 import ReportTabs from '../../../components/admin/ReportTabs.astro';
 import ReportFilters from '../../../components/admin/ReportFilters.astro';
 import Kpi from '../../../components/admin/Kpi.astro';
+import MoreFigures from '../../../components/admin/MoreFigures.astro';
 import BarList from '../../../components/admin/BarList.astro';
 import EventReportDetail from '../../../components/admin/EventReportDetail.astro';
 import { KIND_LABELS } from '../../../lib/event-stats';
 import { formatRating, RATING_LABELS } from '../../../lib/feedback';
 import { formatDate, formatEventDate } from '../../../lib/format';
-import { DAY_MS } from '../../../lib/lifecycle';
-import { delta, pct, periodQuery } from '../../../lib/report-period';
+import { delta, num, pct, periodQuery } from '../../../lib/report-period';
 import { kindOptions, loadEventReport } from '../../../lib/reports';
 
 // Reports > Events and attendance: the events of a period (and type), or one event in detail.
-const { now, period, kind, rows, report: s, detail } = await loadEventReport(Astro.url);
+const { period, kind, rows, report: s, detail, activeMembers } = await loadEventReport(Astro.url);
 const base = { ...periodQuery(period), ...(kind ? { type: kind } : {}) };
 const href = (extra: Record<string, string> = {}, path = '/admin/reports/events') =>
   `${path}?${new URLSearchParams({ ...base, ...extra })}`;
@@ -31,27 +31,41 @@ const pickerOptions = picker.map((r) => ({
 
 const t = s.totals;
 const p = s.previous;
-const versus = period.previous ? `vs ${period.previous.label}` : undefined;
-const round = (v: number | null) => (v === null ? '–' : String(Math.round(v)));
+const round = (v: number | null) => (v === null ? '–' : num(v));
+const perEvent = (pick: (r: (typeof s.trend)[number]) => number | null) => s.trend.map(pick);
+// The four figures the board asks first, then the rest in one compact panel.
 const kpis = [
   {
     label: 'Events held',
-    value: String(t.pastEvents),
+    value: num(t.pastEvents),
     delta: delta(t.pastEvents, p?.pastEvents ?? null),
     hint: t.events > t.pastEvents ? `${t.events - t.pastEvents} more coming in this period` : '',
   },
   {
     label: 'Registrations',
-    value: String(t.registered),
+    value: num(t.registered),
     delta: delta(t.registered, p?.registered ?? null),
     hint: 'Seats taken, guests included',
+    spark: s.overTime.registrations,
   },
   {
     label: 'Checked in',
-    value: String(t.attended),
+    value: num(t.attended),
     delta: delta(t.attended, p?.attended ?? null),
-    hint: `${t.walkIns} walk-ins, ${t.guests} guests`,
+    hint: `${num(t.walkIns)} walk-ins, ${num(t.guests)} guests`,
+    spark: s.overTime.checkIns,
   },
+  {
+    label: 'Average rating',
+    value: t.feedback.average === null ? '–' : `${formatRating(t.feedback.average)} / 5`,
+    delta: delta(t.feedback.average, p?.feedback.average ?? null, 'rating'),
+    hint: `${num(t.feedback.responses)} answers${
+      t.feedback.responseRate === null ? '' : `, ${pct(t.feedback.responseRate)} of those emailed`
+    }`,
+    spark: perEvent((r) => r.feedback.average),
+  },
+];
+const more = [
   {
     label: 'Show-up rate',
     value: pct(t.showUp),
@@ -59,7 +73,7 @@ const kpis = [
     hint:
       t.showUp === null
         ? 'Needs check-in at the door'
-        : `${t.noShows} no-shows (${pct(t.noShowRate)}), events where check-in was used`,
+        : `${num(t.noShows)} no-shows (${pct(t.noShowRate)}), events where check-in was used`,
   },
   {
     label: 'Average per event',
@@ -74,10 +88,16 @@ const kpis = [
     hint: 'Registrations ÷ capacity, events with a capacity',
   },
   {
+    label: 'People who came',
+    value: num(t.uniqueAttendees),
+    delta: delta(t.uniqueAttendees, p?.uniqueAttendees ?? null),
+    hint: `${num(t.cameTwice)} came to more than one event (guests not counted)`,
+  },
+  {
     label: 'First-timers',
     value: pct(t.newShare),
     delta: delta(t.newShare, p?.newShare ?? null, 'rate'),
-    hint: `${t.firstTimers} new faces, ${t.returning} came back`,
+    hint: `${num(t.firstTimers)} new faces, ${num(t.returning)} came back`,
   },
   {
     label: 'Members among attendees',
@@ -86,29 +106,27 @@ const kpis = [
     hint: 'Members on the day of the event',
   },
   {
-    label: 'People who came',
-    value: String(t.uniqueAttendees),
-    delta: delta(t.uniqueAttendees, p?.uniqueAttendees ?? null),
-    hint: `${t.cameTwice} came to more than one event (guests not counted)`,
-  },
-  {
-    label: 'Average rating',
-    value: t.feedback.average === null ? '–' : `${formatRating(t.feedback.average)} / 5`,
-    delta: delta(t.feedback.average, p?.feedback.average ?? null, 'rating'),
-    hint: `${t.feedback.responses} answers${
-      t.feedback.responseRate === null ? '' : `, ${pct(t.feedback.responseRate)} of those emailed`
-    }`,
+    label: 'Half register in the last',
+    value:
+      s.leadTime.median === null
+        ? '–'
+        : s.leadTime.median === 0
+          ? 'day'
+          : `${s.leadTime.median} day${s.leadTime.median === 1 ? '' : 's'}`,
+    hint:
+      s.leadTime.lastWeek === null
+        ? 'Registrations made on this site'
+        : `${pct(s.leadTime.lastWeek)} register in the last week before the event`,
   },
   {
     label: 'Cancellations',
     value: pct(t.cancelRate),
     delta: delta(t.cancelRate, p?.cancelRate ?? null, 'rate', false),
-    hint: `${t.cancelled} seats given back; ${t.waitlist} on waitlists`,
+    hint: `${num(t.cancelled)} seats given back; ${num(t.waitlist)} on waitlists`,
   },
 ];
 
 const next = s.next;
-const daysToGo = next ? Math.ceil((next.event.startsAt.getTime() - now.getTime()) / DAY_MS) : 0;
 const shortDate = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'short',
@@ -149,81 +167,104 @@ const csvBase = href({}, '/admin/reports/events.csv');
         detail.
       </p>
 
-      {next && (
-        <section class="admin-panel mb-6" aria-labelledby="next-title">
-          <div class="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p class="text-xs font-semibold tracking-wider text-brand uppercase">
-                Next event · in {daysToGo} day{daysToGo === 1 ? '' : 's'}
-              </p>
-              <h2 id="next-title" class="mt-1 text-xl">
-                <a href={href({ event: String(next.event.id) })}>{next.event.title}</a>
-              </h2>
-              <p class="text-sm text-muted">{formatEventDate(next.event.startsAt)}</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <Button
-                href={`/admin/registrations?event=${next.event.id}`}
-                size="sm"
-                variant="ghost"
-              >
-                Registrations
-              </Button>
-              <Button href={`/admin/events/${next.event.id}/checkin`} size="sm">
-                Open check-in
-              </Button>
-            </div>
+      {s.upcoming.length > 0 && (
+        <section class="admin-panel mb-6" aria-labelledby="coming-title">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="coming-title" class="text-lg">
+              Coming up
+            </h2>
+            {next && (
+              <div class="flex flex-wrap gap-2">
+                <Button
+                  href={`/admin/registrations?event=${next.event.id}`}
+                  size="sm"
+                  variant="ghost"
+                >
+                  Registrations
+                </Button>
+                <Button href={`/admin/events/${next.event.id}/checkin`} size="sm">
+                  Open check-in
+                </Button>
+              </div>
+            )}
           </div>
-          <dl class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div>
-              <dt class="text-xs text-muted">Registered</dt>
-              <dd class="text-2xl font-bold text-navy">
-                {next.registered}
-                {next.event.capacity !== null && (
-                  <span class="text-base font-normal text-muted"> / {next.event.capacity}</span>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt class="text-xs text-muted">Waitlist</dt>
-              <dd class="text-2xl font-bold text-navy">{next.waitlist}</dd>
-            </div>
-            <div>
-              <dt class="text-xs text-muted">Cancelled</dt>
-              <dd class="text-2xl font-bold text-navy">{next.cancelled}</dd>
-            </div>
-            <div>
-              <dt class="text-xs text-muted">Guests</dt>
-              <dd class="text-2xl font-bold text-navy">{next.guests}</dd>
-            </div>
-          </dl>
-          {next.event.capacity !== null && next.event.capacity > 0 && (
-            <div
-              class="mt-4 h-2 overflow-hidden rounded-full bg-surface"
-              role="img"
-              aria-label={`${Math.round((next.registered / next.event.capacity) * 100)}% of seats taken`}
-            >
-              <div
-                class="h-full rounded-full bg-brand"
-                style={`width:${Math.min(100, (next.registered / next.event.capacity) * 100)}%`}
-              />
-            </div>
+          <ul class="mt-4 divide-y divide-line border-t border-line">
+            {s.upcoming.map((u) => {
+              const r = u.row;
+              const cap = r.event.capacity;
+              const fillPct = cap ? Math.min(100, (r.registered / cap) * 100) : null;
+              const gap = u.usual === null ? null : r.registered - Math.round(u.usual);
+              return (
+                <li class="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
+                  <div class="min-w-0 flex-1 basis-56">
+                    <a href={href({ event: String(r.event.id) })} class="font-semibold">
+                      {r.event.title}
+                    </a>
+                    <p class="text-sm text-muted">
+                      {formatEventDate(r.event.startsAt)} · in {u.daysToGo} day
+                      {u.daysToGo === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                  <div class="w-44 text-sm">
+                    <span class="font-display text-xl font-bold text-navy">{r.registered}</span>
+                    <span class="text-muted">
+                      {cap ? ` / ${cap}` : ''} registered
+                      {r.waitlist > 0 && ` (+${r.waitlist} waitlist)`}
+                    </span>
+                    {fillPct !== null && (
+                      <div
+                        class="mt-1 h-2 overflow-hidden rounded-full bg-line"
+                        role="img"
+                        aria-label={`${Math.round(fillPct)}% of seats taken`}
+                      >
+                        <div class="h-full rounded-full bg-brand" style={`width:${fillPct}%`} />
+                      </div>
+                    )}
+                  </div>
+                  <p class="w-56 text-sm">
+                    {u.usual === null ? (
+                      <span class="text-muted">No earlier {KIND_LABELS[r.kind]} to compare</span>
+                    ) : (
+                      <>
+                        <span
+                          class={
+                            gap! > 0 ? 'text-success' : gap! < 0 ? 'text-danger' : 'text-muted'
+                          }
+                        >
+                          {gap === 0
+                            ? 'Same as usual'
+                            : `${gap! > 0 ? '+' : '−'}${Math.abs(gap!)} vs usual`}
+                        </span>
+                        <span class="block text-xs text-muted">
+                          {KIND_LABELS[r.kind]} events had {Math.round(u.usual)} at this point
+                        </span>
+                      </>
+                    )}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+          {s.upcomingCount > s.upcoming.length && (
+            <p class="mt-2 text-xs text-muted">
+              {s.upcomingCount - s.upcoming.length} more later. All in{' '}
+              <a href="/admin/events">Events</a>.
+            </p>
           )}
         </section>
       )}
 
-      <section
-        aria-label="Key numbers"
-        class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4"
-      >
+      <section aria-label="Key numbers" class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {kpis.map((k) => (
-          <Kpi label={k.label} value={k.value} hint={k.hint} delta={k.delta} versus={versus} />
+          <Kpi {...k} />
         ))}
       </section>
+      <MoreFigures figures={more} />
 
       <div class="mb-6 grid items-start gap-6 xl:grid-cols-2">
         <LineChart
           title="Registered and checked in, per event"
+          bars
           labels={trendLabels}
           ticks={trendTicks}
           series={[
@@ -240,12 +281,13 @@ const csvBase = href({}, '/admin/reports/events.csv');
           title={`New registrations and check-ins, per ${s.overTime.unit}`}
           labels={s.overTime.labels}
           series={[
-            { name: 'Registrations', values: s.overTime.registrations, tone: 'accent' },
+            { name: 'Registrations', values: s.overTime.registrations, tone: 'navy' },
             { name: 'Check-ins', values: s.overTime.checkIns, tone: 'brand' },
           ]}
         />
         <LineChart
           title="First-timers and returning people, per event"
+          bars
           labels={trendLabels}
           ticks={trendTicks}
           series={[
@@ -257,6 +299,7 @@ const csvBase = href({}, '/admin/reports/events.csv');
         />
         <LineChart
           title="Average rating, per event (out of 5)"
+          bars
           labels={rated.map((r) => `${r.event.title} (${r.feedback.responses} answers)`)}
           ticks={rated.map((r) => shortDate.format(r.event.startsAt))}
           series={[
@@ -294,6 +337,84 @@ const csvBase = href({}, '/admin/reports/events.csv');
           rows={s.howHeard}
           shares
         />
+        <BarList
+          title="When people register"
+          hint={`Days before the event, ${num(s.leadTime.registrations)} registrations on this site (walk-ins left out)`}
+          rows={s.leadTime.bands}
+          tone="navy"
+          shares
+          empty="No registrations for the past events of this period."
+        />
+      </div>
+
+      <div class="mb-6 grid items-start gap-6 xl:grid-cols-2">
+        <section class="admin-panel overflow-x-auto" aria-labelledby="regulars-title">
+          <h2 id="regulars-title" class="text-lg">
+            Most regular attendees
+          </h2>
+          {s.regulars.length ? (
+            <table class="admin-table mt-3">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Events</th>
+                  <th>Last came</th>
+                </tr>
+              </thead>
+              <tbody>
+                {s.regulars.map((p) => (
+                  <tr>
+                    <td>
+                      <a href={`/admin/contacts/view?c=${encodeURIComponent(p.email)}`}>{p.name}</a>
+                      {activeMembers.has(p.email) && (
+                        <Badge tone="success" class="ml-1">
+                          member
+                        </Badge>
+                      )}
+                    </td>
+                    <td>{p.events}</td>
+                    <td class="whitespace-nowrap">{formatDate(p.last)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p class="mt-3 text-sm text-muted">Nobody came to two events of this period yet.</p>
+          )}
+          <p class="mt-3 text-xs text-muted">
+            People who came to the most events of the period (two or more).
+          </p>
+        </section>
+        <section class="admin-panel overflow-x-auto" aria-labelledby="companies-title">
+          <h2 id="companies-title" class="text-lg">
+            Companies that come most
+          </h2>
+          {s.companies.length ? (
+            <table class="admin-table mt-3">
+              <thead>
+                <tr>
+                  <th>Company</th>
+                  <th>People</th>
+                  <th>Events</th>
+                </tr>
+              </thead>
+              <tbody>
+                {s.companies.map((c) => (
+                  <tr>
+                    <td>{c.name}</td>
+                    <td>{c.people}</td>
+                    <td>{c.events}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p class="mt-3 text-sm text-muted">Nobody gave a company at this period's events.</p>
+          )}
+          <p class="mt-3 text-xs text-muted">
+            From the registration form: people who came, and at how many events.
+          </p>
+        </section>
       </div>
 
       <div class="mb-6 grid items-start gap-6 lg:grid-cols-[1fr_2fr]">
@@ -309,7 +430,7 @@ const csvBase = href({}, '/admin/reports/events.csv');
           empty="No feedback yet."
         />
         <section class="admin-panel" aria-labelledby="comments-title">
-          <h2 id="comments-title" class="font-semibold text-navy">
+          <h2 id="comments-title" class="text-lg">
             Latest comments
           </h2>
           {s.comments.length ? (

@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
-import { eq, isNotNull } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 import { getDb } from '../db';
-import { eventFeedback, events, members, registrations } from '../db/schema';
+import { auditLog, eventFeedback, events, members, registrations } from '../db/schema';
 import { COVER_KINDS, type EventKind } from './event-covers';
 import {
   eventDetail,
@@ -49,6 +49,7 @@ export async function loadEventReport(url: URL, now = new Date()) {
     db
       .select({
         eventId: registrations.eventId,
+        name: registrations.name,
         email: registrations.email,
         status: registrations.status,
         createdAt: registrations.createdAt,
@@ -72,6 +73,7 @@ export async function loadEventReport(url: URL, now = new Date()) {
       .select({
         email: members.email,
         status: members.status,
+        memberSince: members.memberSince,
         confirmedAt: members.confirmedAt,
         createdAt: members.createdAt,
       })
@@ -104,20 +106,26 @@ export async function loadEventReport(url: URL, now = new Date()) {
     rows,
     report,
     detail: row ? eventDetail(row, rows, regs, feedback, now) : null,
+    /** Lowercased emails of active members, to mark the regulars who are members. */
+    activeMembers: new Set(
+      memberList.filter((m) => m.status === 'active').map((m) => m.email.toLowerCase()),
+    ),
   };
 }
 
 export async function loadMemberReport(url: URL, now = new Date()) {
   const db = getDb();
-  const [memberRows, eventRowsList, regRows, feedbackRows] = await Promise.all([
+  const [memberRows, eventRowsList, regRows, feedbackRows, renewalRows] = await Promise.all([
     db
       .select({
+        id: members.id,
         email: members.email,
         name: members.name,
         status: members.status,
         profileType: members.profileType,
         interests: members.interests,
         howHeard: members.howHeard,
+        memberSince: members.memberSince,
         confirmedAt: members.confirmedAt,
         createdAt: members.createdAt,
         renewalDueAt: members.renewalDueAt,
@@ -134,6 +142,7 @@ export async function loadMemberReport(url: URL, now = new Date()) {
     db
       .select({
         eventId: registrations.eventId,
+        name: registrations.name,
         email: registrations.email,
         status: registrations.status,
       })
@@ -147,6 +156,16 @@ export async function loadMemberReport(url: URL, now = new Date()) {
       .from(eventFeedback)
       .innerJoin(registrations, eq(registrations.id, eventFeedback.registrationId))
       .where(isNotNull(eventFeedback.rating)),
+    // Years that ended (lapsed) or were renewed, from the actions log.
+    db
+      .select({ memberId: auditLog.entityId, action: auditLog.action, at: auditLog.at })
+      .from(auditLog)
+      .where(
+        and(
+          eq(auditLog.entity, 'member'),
+          inArray(auditLog.action, ['member_lapsed', 'member_renew']),
+        ),
+      ),
   ]);
   const period = parsePeriod(
     url.searchParams,
@@ -170,6 +189,13 @@ export async function loadMemberReport(url: URL, now = new Date()) {
       period,
       period.previous,
       now,
+      renewalRows
+        .filter((x) => x.memberId !== null)
+        .map((x) => ({
+          memberId: x.memberId!,
+          action: x.action as 'member_lapsed' | 'member_renew',
+          at: x.at,
+        })),
     ),
   };
 }
