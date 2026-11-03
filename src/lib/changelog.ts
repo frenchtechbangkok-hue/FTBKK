@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.95',
+    date: '2026-11-03',
+    pr: 110,
+    title: 'Clearer dashboard',
+    summary:
+      'The admin dashboard greets you, lists only what is waiting for the team, shows the last 7 days (visits, registrations, new members, emails), how full the next events are, the latest activity and the newest change to the site.',
+  },
+  {
     version: '1.94',
     date: '2026-11-03',
     pr: 109,

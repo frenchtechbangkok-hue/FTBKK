@@ -178,6 +178,18 @@ export async function loadMemberReport(url: URL, now = new Date()) {
  * Reports > Website traffic, from Cloudflare. Without the API token, says so and the page shows how
  * to connect it; `beacon` is false while Settings has no Web Analytics token (nothing collected).
  */
+/** Cloudflare access for the traffic figures (Reports > Website traffic and the dashboard). */
+export function trafficConfig(token: string, beaconToken: string) {
+  return {
+    token,
+    accountId: env.CF_ACCOUNT_ID ?? '',
+    siteTag: env.CF_WEB_ANALYTICS_SITE_TAG ?? '',
+    beaconToken,
+    host: siteOrigin().host,
+    script: 'ft-bkk-site',
+  };
+}
+
 export async function loadTrafficReport(url: URL, now = new Date()) {
   const period = parsePeriod(url.searchParams, now, oldestTraffic(now));
   const settings = await getSettings();
@@ -187,18 +199,7 @@ export async function loadTrafficReport(url: URL, now = new Date()) {
   let error: string | null = null;
   if (token) {
     try {
-      report = await loadTraffic(
-        {
-          token,
-          accountId: env.CF_ACCOUNT_ID ?? '',
-          siteTag: env.CF_WEB_ANALYTICS_SITE_TAG ?? '',
-          beaconToken: settings.analyticsToken,
-          host: siteOrigin().host,
-          script: 'ft-bkk-site',
-        },
-        period,
-        now,
-      );
+      report = await loadTraffic(trafficConfig(token, settings.analyticsToken), period, now);
     } catch (e) {
       error = (e as Error).message;
     }

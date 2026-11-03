@@ -97,10 +97,17 @@ Public pages:
   (`renewal_due_at`): a daily cron job emails a one-click reminder 30 and 7 days before
   (`member_renew` link, `/member/renew`), then marks the member **lapsed** with a last email;
   a lapsed member renews in one click from that email or their member page.
-- **Admin dashboard** (`/admin`): six quick-action tiles with icons at the top (create an event,
-  write a post, email the community, check in guests, add an organisation, edit the home page),
-  then the counts that need the team (directory queue, unread messages, drafts, listings, members,
-  contacts), then the next five events with their registrations and a Check in link on the day.
+- **Admin dashboard** (`/admin`, helpers in `src/lib/dashboard.ts`): a greeting with the admin's
+  first name (from their member record) and the days to the next event; six quick-action tiles
+  (create an event, write a post, email the community, check in guests, add an organisation, edit
+  the home page); **Waiting for you**, a list that only shows what needs the team (directory queue
+  with its oldest item, unread messages, members to review, social media posts that failed in the
+  last 14 days, renewals in the next 30 days, draft posts) or "All clear"; **Last 7 days**
+  (website visits from Cloudflare, loaded after the page by `/api/admin/dashboard-traffic`;
+  registrations and new members with the change from the week before and a daily sparkline;
+  emails sent this month against the plan) with the totals of members, contacts and listings;
+  the next five events with a date block, days to go and a fill bar; **Latest activity**
+  (registrations, new members, submitted listings, messages); and the latest Change history entry.
 - **Reports** (`/admin/reports/events`, `/admin/reports/members`, loaded by `src/lib/reports.ts`):
   a period picker (last 30/90 days, 12 months, this or last year, all time, custom dates;
   `src/lib/report-period.ts`) with changes against the previous period, an event type filter, a

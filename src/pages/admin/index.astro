@@ -2,7 +2,7 @@
 import { and, asc, count, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import Alert from '../../components/Alert.astro';
-import { usingTestSender } from '../../lib/email';
+import { emailProvider, usingTestSender } from '../../lib/email';
 import Badge from '../../components/Badge.astro';
 import Icon from '../../components/Icon.astro';
 import { getDb } from '../../db';
@@ -11,7 +11,21 @@ import { registrationCount } from '../../lib/registrations';
 import { loadContacts } from '../../lib/contacts';
 import { moderationQueue } from '../../lib/cron-directory';
 import { MODERATION_TARGET_DAYS, ageDays } from '../../lib/lifecycle';
-import { formatEventDate } from '../../lib/format';
+import { TZ, formatDate, formatTime } from '../../lib/format';
+import { planUsage } from '../../lib/email-metrics';
+import { RELEASES } from '../../lib/changelog';
+import {
+  adminFirstName,
+  ago,
+  daysUntil,
+  failedSocialPosts,
+  greeting,
+  loadActivity,
+  loadWeek,
+  sparkPoints,
+  waitingItems,
+  weekChange,
+} from '../../lib/dashboard';
 
 const db = getDb();
 const now = new Date();
@@ -25,6 +39,11 @@ const [
   contacts,
   [active],
   [unreviewed],
+  socialFailed,
+  week,
+  activity,
+  usage,
+  name,
 ] = await Promise.all([
   moderationQueue(),
   db
@@ -60,44 +79,60 @@ const [
     .select({ n: count() })
     .from(members)
     .where(and(eq(members.status, 'active'), isNull(members.reviewedAt))),
+  failedSocialPosts(now),
+  loadWeek(now),
+  loadActivity(6),
+  // Before migration 0041 runs (a preview sharing the production database) there is no count.
+  planUsage(emailProvider(), now).catch(() => null),
+  adminFirstName(Astro.locals.adminEmail),
 ]);
+
 const queueAges = [
   ...queue.pendingOrgs.map((o) => o.submittedAt ?? o.updatedAt),
   ...queue.changes.map((c) => c.change.createdAt),
   ...queue.pendingClaims.map((c) => c.claim.createdAt),
   ...queue.applications.map((a) => a.app.createdAt),
 ].map((d) => ageDays(d, now));
-const queueSize = queueAges.length;
-const oldest = queueSize ? Math.max(...queueAges) : 0;
-const stats = [
+const oldest = queueAges.length ? Math.max(...queueAges) : 0;
+const waiting = waitingItems({
+  directory: queueAges.length,
+  directoryOldest: oldest,
+  directoryLate: oldest > MODERATION_TARGET_DAYS,
+  messages: unread!.n,
+  members: unreviewed!.n,
+  socialFailed,
+  renewals: renewSoon!.n,
+  drafts: drafts!.n,
+});
+
+// Greeting and the line under it.
+const heading = name ? `${greeting(now)}, ${name}` : greeting(now);
+const today = formatDate(now, { weekday: 'long', year: undefined });
+const next = upcoming.find((e) => e.status === 'published' && e.startsAt > now);
+const intro = next
+  ? `${today}. Next event ${daysUntil(next.startsAt, now)}: ${next.title}.`
+  : `${today}. No upcoming event published yet.`;
+
+const n = (v: number) => v.toLocaleString('en-US');
+const figures = [
   {
-    label: 'To review in the directory',
-    value: queueSize,
-    href: '/admin/ecosystem',
-    note: queueSize ? `Oldest: ${oldest} day${oldest === 1 ? '' : 's'}` : 'All clear',
-    alert: oldest > MODERATION_TARGET_DAYS,
+    label: 'Event registrations',
+    value: n(week.registrations.total),
+    change: weekChange(week.registrations.total, week.registrations.previous),
+    points: sparkPoints(week.registrations.series),
+    href: '/admin/reports/events?period=30d',
   },
-  { label: 'Unread messages', value: unread!.n, href: '/admin/submissions' },
-  { label: 'Draft posts', value: drafts!.n, href: '/admin/posts' },
   {
-    label: 'Listed organisations',
-    value: listed!.n,
-    href: '/admin/ecosystem?tab=all',
-    note: `${renewSoon!.n} renewals in the next 30 days`,
-  },
-  {
-    label: 'Members',
-    value: active!.n,
-    href: '/admin/members',
-    note: unreviewed!.n ? `${unreviewed!.n} to review` : 'All reviewed',
-  },
-  {
-    label: 'Contacts',
-    value: contacts.length,
-    href: '/admin/contacts',
-    note: `${contacts.filter((c) => c.attended > 0).length} came to an event`,
+    label: 'New members',
+    value: n(week.members.total),
+    change: weekChange(week.members.total, week.members.previous),
+    points: sparkPoints(week.members.series),
+    href: '/admin/reports/members?period=30d',
   },
 ];
+const monthPct =
+  usage && usage.monthlyLimit ? Math.min(100, (usage.month / usage.monthlyLimit) * 100) : null;
+
 // The things the team does most, first on the page.
 const actions = [
   { label: 'Create an event', href: '/admin/events/new', icon: 'calendar' },
@@ -109,9 +144,20 @@ const actions = [
 ] as const;
 // Same window as the Check-in screen: started in the last day or starts in the next one.
 const happeningNow = (startsAt: Date) => Math.abs(startsAt.getTime() - now.getTime()) < 86400_000;
+const month = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, month: 'short' });
+const day = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, day: 'numeric' });
+const weekday = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, weekday: 'short' });
+const dot = {
+  registration: 'bg-brand',
+  member: 'bg-accent',
+  listing: 'bg-success',
+  message: 'bg-muted',
+} as const;
+const latest = RELEASES[0];
+const changeTone = { up: 'text-success', down: 'text-danger', same: 'text-muted' } as const;
 ---
 
-<AdminLayout title="Dashboard">
+<AdminLayout title="Dashboard" heading={heading} intro={intro}>
   {usingTestSender() && (
     <Alert tone="warning" class="mb-4">
       Emails only reach the Resend account owner: the sender is still Resend's test address
@@ -140,62 +186,261 @@ const happeningNow = (startsAt: Date) => Math.abs(startsAt.getTime() - now.getTi
     </ul>
   </section>
 
-  <div class="mt-6 grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3">
-    {stats.map((s) => (
-      <a href={s.href} class="admin-panel block no-underline hover:border-accent">
-        <p class="text-sm text-muted">{s.label}</p>
-        <p class="mt-1 font-display text-2xl font-bold text-navy md:text-3xl">{s.value}</p>
-        {s.note && <p class={`mt-1 text-sm ${s.alert ? 'text-danger' : 'text-muted'}`}>{s.note}</p>}
-      </a>
-    ))}
-  </div>
-
-  <section class="admin-panel mt-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h2 class="text-lg">Upcoming events</h2>
-      <a href="/admin/events" class="text-sm font-semibold">
-        All events
-      </a>
-    </div>
-    {upcoming.length ? (
-      <ul class="mt-4 divide-y divide-line border-t border-line">
-        {upcoming.map((e) => (
-          <li class="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
-            <div class="min-w-0 flex-1 basis-64">
-              <a href={`/admin/events/${e.id}`} class="font-semibold">
-                {e.title}
-              </a>
-              <p class="text-sm text-muted">{formatEventDate(e.startsAt, e.endsAt)}</p>
-            </div>
-            <p class="text-sm whitespace-nowrap">
-              {e.registered}
-              {e.capacity ? ` / ${e.capacity}` : ''} registered
-              {e.waitlist > 0 && <span class="text-muted"> (+{e.waitlist} waitlist)</span>}
-            </p>
-            <Badge
-              tone={
-                e.status === 'published'
-                  ? 'success'
-                  : e.status === 'cancelled'
-                    ? 'danger'
-                    : 'neutral'
-              }
+  <section class="admin-panel mt-6" aria-labelledby="waiting">
+    <h2 id="waiting" class="text-lg">
+      Waiting for you
+    </h2>
+    {waiting.length ? (
+      <ul class="mt-3 divide-y divide-line border-t border-line">
+        {waiting.map((w) => (
+          <li class="flex flex-wrap items-center gap-x-3 gap-y-1 py-3">
+            <span
+              class={`grid h-7 min-w-8 place-items-center rounded-full px-2 text-sm font-bold ${w.tone === 'now' ? 'bg-brand/10 text-brand-dark' : 'bg-warning/10 text-warning'}`}
             >
-              {e.status}
-            </Badge>
-            <p class="flex gap-3 text-sm whitespace-nowrap">
-              <a href={`/admin/registrations?event=${e.id}`}>Registrations</a>
-              {happeningNow(e.startsAt) && e.status !== 'cancelled' && (
-                <a href={`/admin/events/${e.id}/checkin`} class="font-semibold">
-                  Check in
-                </a>
+              {w.count}
+            </span>
+            <span class="min-w-0 flex-1">
+              {w.label}
+              {w.note && (
+                <span class={`ml-2 text-sm ${w.noteAlert ? 'text-danger' : 'text-muted'}`}>
+                  {w.note}
+                </span>
               )}
-            </p>
+            </span>
+            <a href={w.href} class="text-sm font-semibold whitespace-nowrap">
+              {w.action}
+            </a>
           </li>
         ))}
       </ul>
     ) : (
-      <p class="mt-4 text-muted">No upcoming events.</p>
+      <p class="mt-3 flex items-center gap-2 text-success">
+        <Icon name="check" class="size-5" /> All clear, nothing waiting.
+      </p>
     )}
   </section>
+
+  <section class="admin-panel mt-6" aria-labelledby="last-week">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h2 id="last-week" class="text-lg">
+        Last 7 days
+      </h2>
+      <a href="/admin/reports/events" class="text-sm font-semibold">
+        All reports
+      </a>
+    </div>
+    <div class="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 lg:grid-cols-4">
+      <a href="/admin/reports/traffic?period=30d" class="block no-underline" data-traffic>
+        <p class="text-sm text-muted">Website visits</p>
+        <p class="mt-1 font-display text-2xl font-bold text-navy md:text-3xl" data-value>
+          …
+        </p>
+        <p class="mt-1 text-sm text-muted" data-change>
+          Loading from Cloudflare
+        </p>
+        <svg viewBox="0 0 120 28" class="mt-2 h-7 w-full max-w-40" aria-hidden="true">
+          <polyline data-spark fill="none" class="stroke-accent" stroke-width="2" points="" />
+        </svg>
+      </a>
+      {figures.map((f) => (
+        <a href={f.href} class="block no-underline">
+          <p class="text-sm text-muted">{f.label}</p>
+          <p class="mt-1 font-display text-2xl font-bold text-navy md:text-3xl">{f.value}</p>
+          {f.change && <p class={`mt-1 text-sm ${changeTone[f.change.tone]}`}>{f.change.text}</p>}
+          <svg viewBox="0 0 120 28" class="mt-2 h-7 w-full max-w-40" aria-hidden="true">
+            <polyline fill="none" class="stroke-accent" stroke-width="2" points={f.points} />
+          </svg>
+        </a>
+      ))}
+      <a href="/admin/reports/emails" class="block no-underline">
+        <p class="text-sm text-muted">Emails sent this month</p>
+        {usage ? (
+          <>
+            <p class="mt-1 font-display text-2xl font-bold text-navy md:text-3xl">
+              {n(usage.month)}
+              {usage.monthlyLimit > 0 && (
+                <span class="font-sans text-sm font-normal text-muted">
+                  {' '}
+                  / {n(usage.monthlyLimit)}
+                </span>
+              )}
+            </p>
+            <p class="mt-1 text-sm text-muted">
+              Today {n(usage.today)}
+              {usage.dailyLimit > 0 && ` / ${n(usage.dailyLimit)}`}
+            </p>
+            {monthPct !== null && (
+              <div
+                class="mt-3 h-2 max-w-40 overflow-hidden rounded-full bg-line"
+                role="img"
+                aria-label={`${Math.round(monthPct)}% of the monthly plan used`}
+              >
+                <div
+                  class={`h-full rounded-full ${monthPct >= 90 ? 'bg-danger' : 'bg-accent'}`}
+                  style={`width:${monthPct}%`}
+                />
+              </div>
+            )}
+          </>
+        ) : (
+          <p class="mt-1 text-sm text-muted">No figures yet.</p>
+        )}
+      </a>
+    </div>
+    <p class="mt-5 border-t border-line pt-3 text-sm text-muted">
+      In total: <a href="/admin/members?tab=all">{n(active!.n)} members</a> ·{' '}
+      <a href="/admin/contacts">{n(contacts.length)} contacts</a> ·{' '}
+      <a href="/admin/ecosystem?tab=all">{n(listed!.n)} listed organisations</a>
+    </p>
+  </section>
+
+  <div class="mt-6 grid gap-6 xl:grid-cols-5">
+    <section class="admin-panel xl:col-span-3" aria-labelledby="upcoming">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="upcoming" class="text-lg">
+          Upcoming events
+        </h2>
+        <a href="/admin/events" class="text-sm font-semibold">
+          All events
+        </a>
+      </div>
+      {upcoming.length ? (
+        <ul class="mt-4 divide-y divide-line border-t border-line">
+          {upcoming.map((e) => {
+            const pct = e.capacity ? Math.min(100, (e.registered / e.capacity) * 100) : null;
+            return (
+              <li class="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
+                <div
+                  class="w-12 shrink-0 rounded-lg border border-line py-1 text-center"
+                  aria-hidden="true"
+                >
+                  <span class="block text-xs font-bold text-brand-dark uppercase">
+                    {month.format(e.startsAt)}
+                  </span>
+                  <span class="block font-display text-xl leading-tight font-bold text-navy">
+                    {day.format(e.startsAt)}
+                  </span>
+                </div>
+                <div class="min-w-0 flex-1 basis-48">
+                  <a href={`/admin/events/${e.id}`} class="font-semibold">
+                    {e.title}
+                  </a>
+                  <p class="text-sm text-muted">
+                    {`${weekday.format(e.startsAt)} ${formatTime(e.startsAt)}${e.endsAt ? ` – ${formatTime(e.endsAt)}` : ''} · ${daysUntil(e.startsAt, now)}`}
+                  </p>
+                </div>
+                <div class="w-40 text-sm">
+                  <a href={`/admin/registrations?event=${e.id}`} class="text-ink no-underline">
+                    {e.registered}
+                    {e.capacity ? ` / ${e.capacity}` : ''} registered
+                  </a>
+                  {e.waitlist > 0 && <span class="text-muted"> (+{e.waitlist} waitlist)</span>}
+                  {pct !== null && (
+                    <div class="mt-1 h-2 overflow-hidden rounded-full bg-line" aria-hidden="true">
+                      <div class="h-full rounded-full bg-brand" style={`width:${pct}%`} />
+                    </div>
+                  )}
+                </div>
+                <Badge
+                  tone={
+                    e.status === 'published'
+                      ? 'success'
+                      : e.status === 'cancelled'
+                        ? 'danger'
+                        : 'neutral'
+                  }
+                >
+                  {e.status}
+                </Badge>
+                {happeningNow(e.startsAt) && e.status !== 'cancelled' && (
+                  <a href={`/admin/events/${e.id}/checkin`} class="text-sm font-semibold">
+                    Check in
+                  </a>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p class="mt-4 text-muted">No upcoming events.</p>
+      )}
+    </section>
+
+    <section class="admin-panel xl:col-span-2" aria-labelledby="activity">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="activity" class="text-lg">
+          Latest activity
+        </h2>
+        <a href="/admin/actions-log" class="text-sm font-semibold">
+          Actions log
+        </a>
+      </div>
+      {activity.length ? (
+        <ul class="mt-4 divide-y divide-line border-t border-line">
+          {activity.map((a) => (
+            <li class="flex items-start gap-3 py-2.5 text-sm">
+              <span
+                class={`mt-1.5 size-2 shrink-0 rounded-full ${dot[a.kind]}`}
+                aria-hidden="true"
+              />
+              <a href={a.href} class="min-w-0 flex-1 text-ink no-underline hover:underline">
+                {a.text}
+              </a>
+              <span class="shrink-0 text-xs whitespace-nowrap text-muted">{ago(a.at, now)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="mt-4 text-muted">Nothing yet.</p>
+      )}
+    </section>
+  </div>
+
+  {latest && (
+    <p class="mt-6 rounded-card border border-dashed border-accent/50 bg-paper px-4 py-3 text-sm">
+      <span class="font-semibold text-accent">New on the site · v{latest.version}</span>{' '}
+      <span class="font-semibold text-navy">{latest.title}:</span> {latest.summary}{' '}
+      <a href="/admin/changes" class="whitespace-nowrap">
+        Change history
+      </a>
+    </p>
+  )}
 </AdminLayout>
+
+<script>
+  // Website visits come from Cloudflare: loaded after the page so it never slows the dashboard.
+  const box = document.querySelector<HTMLElement>('[data-traffic]');
+  if (box) {
+    const value = box.querySelector('[data-value]')!;
+    const change = box.querySelector('[data-change]')!;
+    const spark = box.querySelector('[data-spark]')!;
+    const tones = { up: 'text-success', down: 'text-danger', same: 'text-muted' } as const;
+    fetch('/api/admin/dashboard-traffic')
+      .then(
+        (r) =>
+          r.json() as Promise<{
+            connected: boolean;
+            error?: string;
+            visits?: number;
+            change?: { text: string; tone: keyof typeof tones } | null;
+            points?: string;
+          }>,
+      )
+      .then((d) => {
+        if (!d.connected) {
+          value.textContent = '–';
+          change.textContent = 'Not connected yet: see Reports';
+          return;
+        }
+        if (d.visits === undefined) throw new Error(d.error);
+        value.textContent = d.visits.toLocaleString('en-US');
+        change.textContent = d.change?.text ?? '';
+        change.className = `mt-1 text-sm ${tones[d.change?.tone ?? 'same']}`;
+        spark.setAttribute('points', d.points ?? '');
+      })
+      .catch(() => {
+        value.textContent = '–';
+        change.textContent = 'Cloudflare did not answer';
+      });
+  }
+</script>
