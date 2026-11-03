@@ -90,8 +90,8 @@ export const VISA_SOURCES = {
 export type VisaSourceKey = keyof typeof VISA_SOURCES;
 
 /**
- * The official French government websites, shown as a band right under the page header: this page
- * is a summary in English, the procedures themselves happen there.
+ * The official French government websites and Business France, in "Official websites and
+ * support": this page is a summary in English, the procedures themselves happen there.
  */
 export const OFFICIAL_SITES: {
   name: string;
@@ -179,11 +179,6 @@ export const RESOURCES: { title: string; text: string; source: VisaSourceKey }[]
     title: 'The fastest-growing startups',
     text: 'French Tech Next40/120 and French Tech 2030 companies get extra help from the Mission French Tech and Business France to recruit international talent.',
     source: 'next40',
-  },
-  {
-    title: 'Welcome by Business France',
-    text: 'The official site for companies and talent moving to France: setting up a business, tax, employment law, social security, visas, with official simulators and guides.',
-    source: 'welcome',
   },
   {
     title: 'Recruiting international talent',
@@ -372,8 +367,8 @@ export const FAQ: { q: string; a: string }[] = [
     a: 'Yes. The French Tech Visa is open to nationals of every country outside the EU, the EEA and Switzerland, Algeria excepted, so Thai citizens and people of other nationalities living in Thailand can apply.',
   },
   {
-    q: 'Is the French Tech Visa a separate visa?',
-    a: 'No. It is a simplified, faster route to the multi-year “Talent” residence permit (formerly “Passeport Talent”) for people joining, founding or investing in French tech companies.',
+    q: 'What exactly is the French Tech Visa?',
+    a: 'A dedicated, simplified procedure that leads to the multi-year “Talent” residence permit (formerly “Passeport Talent”), for people joining, founding or investing in French tech companies. You apply for a long-stay “Talent” visa, then get the permit in France.',
   },
   {
     q: 'Does the company need to meet all three innovation criteria?',

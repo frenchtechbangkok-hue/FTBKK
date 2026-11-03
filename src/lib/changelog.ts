@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.102',
+    date: '2026-11-03',
+    pr: 117,
+    title: 'Clearer Come work in France page',
+    summary:
+      'On Come work in France, the French Tech Visa section now presents it plainly as France\'s dedicated visa route for tech talent, with who it is for, and the official websites and Business France have their own section, "Official websites and support", after the steps to apply.',
+  },
+  {
     version: '1.101',
     date: '2026-11-03',
     pr: 116,
