@@ -117,6 +117,15 @@ Until this is done, no email is sent (confirmations, reminders and listing links
    Email the community warns when an audience is bigger than what is left today. Set it to the
    new plan's cap after an upgrade, or to `""` when there is none (Amazon SES in production).
 
+7. **Email report** (Admin > Reports > Emails). Resend has no statistics API, so it tells the
+   site about each email through a webhook. In Resend > Webhooks > Add webhook: Endpoint URL
+   `<SITE_URL>/api/resend-events` (the report shows the full address), events: all the `email.*`
+   ones. Open the webhook, copy its **Signing secret** (`whsec_…`) and add it as the Worker secret
+   `RESEND_WEBHOOK_SECRET`. For opens and clicks, Resend > Domains > the sending domain > turn on
+   **Open tracking** and **Click tracking** (Resend then rewrites links and adds a tiny image).
+   Figures start from that day. When the domain moves, edit the webhook's URL (Resend allows one
+   webhook on the free plan).
+
 ## 6b. Email with Amazon SES (replaces Resend)
 
 Resend Free stops at 100 emails a day; one community email is about 1,200. Amazon SES costs
@@ -160,6 +169,13 @@ suppression list, SNS topic) is per region, so all of it lives in Sydney.
 7. **Switch**: in `wrangler.jsonc`, `EMAIL_PROVIDER` `"ses"`, `EMAIL_DAILY_LIMIT` `""`, and
    `SES_SEND_RATE` to the "Maximum send rate" SES shows (14 is common). Deploy. Back to Resend:
    `EMAIL_PROVIDER` `"resend"` and `EMAIL_DAILY_LIMIT` `"100"`.
+
+8. **Email report with SES** (Admin > Reports > Emails): Configuration > Configuration sets >
+   Create set `ft-bkk-site`. In the set, Event destinations > Add destination: event types Sends,
+   Deliveries, Hard bounces, Complaints, Delivery delays, Rejects, Opens and Clicks (Opens and
+   Clicks add tracking to the emails), destination **Amazon SNS**, the topic of step 5. Put
+   `"SES_CONFIGURATION_SET": "ft-bkk-site"` in `wrangler.jsonc` and deploy: every email is then sent
+   with that set and reported. Bounces and complaints keep feeding the blocked list as before.
 
 Moving to the French Tech domain later: verify the new domain in SES (step 1), then change
 `EMAIL_FROM`. Production access, keys and the SNS topic stay; add the new identity to the feedback

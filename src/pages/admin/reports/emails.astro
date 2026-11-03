@@ -1,0 +1,221 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import LineChart from '../../../components/admin/LineChart.astro';
+import ReportTabs from '../../../components/admin/ReportTabs.astro';
+import ReportFilters from '../../../components/admin/ReportFilters.astro';
+import Kpi from '../../../components/admin/Kpi.astro';
+import BarList from '../../../components/admin/BarList.astro';
+import { PROVIDER_NAMES } from '../../../lib/email';
+import { delta, pct } from '../../../lib/report-period';
+import { loadEmailReport } from '../../../lib/reports';
+import { siteUrl } from '../../../lib/site';
+
+// Reports > Emails: what happened to the emails the site sent (delivered, bounced, opened,
+// clicked), from the providers' webhooks (src/lib/email-metrics.ts).
+const { period, setup, span, report: r, error } = await loadEmailReport(Astro.url);
+const versus = period.previous ? `vs ${period.previous.label}` : undefined;
+const n = (v: number) => Math.round(v).toLocaleString('en-GB');
+const rate = (a: number, b: number) => (b ? a / b : null);
+const day = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'Asia/Bangkok',
+});
+const when = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'Asia/Bangkok',
+});
+const t = r?.totals;
+const p = r?.previous ?? null;
+const kpis = t
+  ? [
+      {
+        label: 'Emails sent',
+        value: n(t.sent),
+        delta: delta(t.sent, p?.sent ?? null),
+        hint: t.failed ? `${n(t.failed)} more refused by the provider (not sent)` : undefined,
+      },
+      {
+        label: 'Delivered',
+        value: pct(rate(t.delivered, t.sent)),
+        delta: delta(rate(t.delivered, t.sent), p ? rate(p.delivered, p.sent) : null, 'rate'),
+        hint: `${n(t.delivered)} reached the inbox server`,
+      },
+      {
+        label: 'Opened',
+        value: pct(rate(t.opened, t.delivered)),
+        delta: delta(rate(t.opened, t.delivered), p ? rate(p.opened, p.delivered) : null, 'rate'),
+        hint: `${n(t.opened)} of the delivered emails were opened at least once`,
+      },
+      {
+        label: 'Clicked',
+        value: pct(rate(t.clicked, t.delivered)),
+        delta: delta(rate(t.clicked, t.delivered), p ? rate(p.clicked, p.delivered) : null, 'rate'),
+        hint: `${n(t.clicked)} had a link clicked`,
+      },
+      {
+        label: 'Bounced',
+        value: pct(rate(t.bounced, t.sent)),
+        delta: delta(rate(t.bounced, t.sent), p ? rate(p.bounced, p.sent) : null, 'rate', false),
+        hint: `${n(t.bounced)} emails, ${n(t.permanentBounces)} to addresses that don't exist (now on the do-not-email list)`,
+      },
+      {
+        label: 'Marked as spam',
+        value: n(t.complained),
+        delta: delta(t.complained, p?.complained ?? null, 'count', false),
+        hint: t.sent
+          ? `${((t.complained / t.sent) * 100).toFixed(2)}% of emails sent. Keep it under 0.1%.`
+          : undefined,
+      },
+    ]
+  : [];
+const providerRows: [string, number][] = (r?.providers ?? []).map((x) => [
+  PROVIDER_NAMES[x.provider] ?? x.provider,
+  x.sent,
+]);
+const webhookUrl = siteUrl('/api/resend-events');
+const connected = setup.provider === 'ses' ? setup.sesEvents : setup.resendWebhook;
+---
+
+<AdminLayout title="Reports: emails">
+  <ReportTabs />
+  <ReportFilters period={period} />
+  <p class="mb-6 max-w-3xl text-sm text-muted">
+    What happened to the emails the site sent (confirmations, reminders, community emails, team
+    notifications), as reported by {PROVIDER_NAMES[setup.provider]}. Each email counts in the period
+    it was sent. Opens are estimates: some mail apps open every email by themselves (Apple Mail),
+    others block the tracking image.
+    {span.last && ` Last update received ${when.format(span.last)}.`}
+  </p>
+
+  {!connected && (
+    <div class="admin-panel mb-6 max-w-3xl">
+      {setup.provider === 'resend' ? (
+        <>
+          <h2 class="text-lg">Connect Resend to start counting</h2>
+          <p class="mt-1 text-sm">
+            Resend tells the site what happens to each email through a webhook. Figures start on the
+            day it is set up (Resend keeps no history the site can import).
+          </p>
+          <ol class="mt-2 list-decimal space-y-1 pl-5 text-sm">
+            <li>
+              In Resend, open Webhooks &gt; Add webhook. Endpoint URL:{' '}
+              <code class="break-all">{webhookUrl}</code>. Events: all the <strong>email.*</strong>{' '}
+              ones. Add it.
+            </li>
+            <li>
+              Open the webhook and copy its <strong>Signing secret</strong> (starts with
+              <code>whsec_</code>).
+            </li>
+            <li>
+              In Cloudflare: Workers &amp; Pages &gt; ft-bkk-site &gt; Settings &gt; Variables and
+              Secrets &gt; Add, type <strong>Secret</strong>, name
+              <code>RESEND_WEBHOOK_SECRET</code>, paste it, and deploy.
+            </li>
+            <li>
+              For opens and clicks: in Resend, Domains &gt; the sending domain &gt; turn on
+              <strong>Open tracking</strong> and <strong>Click tracking</strong>.
+            </li>
+          </ol>
+        </>
+      ) : (
+        <>
+          <h2 class="text-lg">Connect Amazon SES to start counting</h2>
+          <p class="mt-1 text-sm">
+            Only bounces and spam complaints come back from SES until a configuration set publishes
+            every send, delivery, open and click to the same SNS topic. Steps in docs/deploy.md,
+            “Email with Amazon SES”, step 8.
+          </p>
+        </>
+      )}
+    </div>
+  )}
+
+  {error && (
+    <div class="admin-panel mb-6 border-danger" role="alert">
+      <h2 class="text-lg">Email figures could not be loaded</h2>
+      <p class="mt-1 text-sm">{error}</p>
+    </div>
+  )}
+
+  {r && t && (
+    <>
+      {span.first && span.first > period.from && (
+        <p class="mb-4 text-sm text-muted">Figures start on {day.format(span.first)}.</p>
+      )}
+      <section aria-label="Key numbers" class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
+        {kpis.map((k) => (
+          <Kpi label={k.label} value={k.value} hint={k.hint} delta={k.delta} versus={versus} />
+        ))}
+      </section>
+      <div class="mb-6">
+        <LineChart
+          title={`Emails sent, delivered, opened and clicked, per ${r.unit}`}
+          labels={r.buckets.map((b) => b.label)}
+          series={[
+            { name: 'Sent', values: r.sentSeries, tone: 'muted', dashed: true },
+            { name: 'Delivered', values: r.deliveredSeries, tone: 'navy' },
+            { name: 'Opened', values: r.openedSeries, tone: 'brand' },
+            { name: 'Clicked', values: r.clickedSeries, tone: 'accent' },
+          ]}
+          empty="No emails recorded in this period."
+        />
+      </div>
+
+      {providerRows.length > 1 && (
+        <div class="mb-6 max-w-xl">
+          <BarList title="By provider" hint="Emails sent" rows={providerRows} shares tone="navy" />
+        </div>
+      )}
+
+      <section class="admin-panel overflow-x-auto" aria-labelledby="subjects-title">
+        <h2 id="subjects-title" class="mb-1 text-lg">
+          By email
+        </h2>
+        <p class="mb-3 text-sm text-muted">
+          Grouped by subject: one community email, one event's reminders… The 25 most sent.
+        </p>
+        {r.subjects.length ? (
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Subject</th>
+                <th>First sent</th>
+                <th>Sent</th>
+                <th>Delivered</th>
+                <th>Opened</th>
+                <th>Clicked</th>
+                <th>Bounced</th>
+                <th>Spam</th>
+              </tr>
+            </thead>
+            <tbody>
+              {r.subjects.map((s) => (
+                <tr>
+                  <td class="max-w-md">{s.subject}</td>
+                  <td class="whitespace-nowrap">{day.format(s.firstSent)}</td>
+                  <td>{n(s.sent)}</td>
+                  <td>{pct(rate(s.delivered, s.sent))}</td>
+                  <td>{pct(rate(s.opened, s.delivered))}</td>
+                  <td>{pct(rate(s.clicked, s.delivered))}</td>
+                  <td>{n(s.bounced)}</td>
+                  <td>{n(s.complained)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p class="text-sm text-muted">No emails recorded in this period.</p>
+        )}
+        <p class="mt-3 text-xs text-muted">
+          Addresses that bounced for good or marked an email as spam are listed in{' '}
+          <a href="/admin/email-delivery">Email delivery</a>; the site no longer emails them.
+        </p>
+      </section>
+    </>
+  )}
+</AdminLayout>

@@ -158,6 +158,7 @@ const sesConfig = (): SesConfig | null =>
         accessKeyId: env.AWS_SES_ACCESS_KEY_ID,
         secretAccessKey: env.AWS_SES_SECRET_ACCESS_KEY,
         region: env.AWS_REGION || 'ap-southeast-2',
+        configurationSet: env.SES_CONFIGURATION_SET || undefined,
       }
     : null;
 

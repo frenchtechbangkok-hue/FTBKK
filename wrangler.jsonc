@@ -54,6 +54,10 @@
     // SNS topic that brings SES bounces and complaints to /api/ses-events (empty = any topic, the
     // secret SES_EVENTS_KEY in the subscription URL still has to match).
     "SES_EVENTS_TOPIC_ARN": "",
+    // SES configuration set whose event publishing sends every send, delivery, open and click to
+    // that SNS topic too, for Reports > Emails (docs/deploy.md 6b, step 8). Empty = only bounces
+    // and complaints come back.
+    "SES_CONFIGURATION_SET": "",
     // Social media (Admin > Social media). Empty = not connected: scheduled posts arrive by email
     // to post by hand. The page tokens are the secrets LINKEDIN_ACCESS_TOKEN and
     // FACEBOOK_PAGE_TOKEN (docs/deploy.md, "Connect LinkedIn and Facebook").

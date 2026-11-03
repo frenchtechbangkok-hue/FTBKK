@@ -9,6 +9,8 @@ AWS_SES_ACCESS_KEY_ID=
 AWS_SES_SECRET_ACCESS_KEY=
 # Secret part of the bounce notifications URL (/api/ses-events?key=...): any long random string.
 SES_EVENTS_KEY=
+# Signing secret of Resend's webhook (/api/resend-events), for Reports > Emails: "whsec_...".
+RESEND_WEBHOOK_SECRET=
 # Local only: overrides the production Access audience in wrangler.jsonc so that
 # requireAdmin() accepts DEV_ADMIN_EMAIL instead of a Cloudflare Access login.
 ACCESS_AUD=

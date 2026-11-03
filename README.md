@@ -121,6 +121,19 @@ Public pages:
   site `CF_WEB_ANALYTICS_SITE_TAG`, or the one whose beacon token is in Settings when the token may
   list sites); long periods are split into the spans Cloudflare allows and clamped to what it keeps (about six
   months of visits, three of Worker requests). Each part loads on its own and shows its error.
+- **Email report** (`/admin/reports/emails`, `src/lib/email-metrics.ts`): the fourth Reports
+  tab shows what happened to the emails the site sent, with the same period picker: emails sent,
+  delivered, opened and clicked (rates against delivered), bounced and marked as spam, each with
+  the change against the previous period, a chart per week or month, a split per provider while
+  both are used, and a table per subject (one community email, one event's reminders…). Neither
+  provider has a statistics API (Resend's email list only gives each email's latest status and
+  keeps 30 days), so the figures come from their webhooks into the `email_messages` table
+  (migration 0041; one row per email with the first time each step happened, no recipient
+  address): Resend's webhook posts to `/api/resend-events`, checked against the Svix signature
+  with the Worker secret `RESEND_WEBHOOK_SECRET`; Amazon SES events (with a configuration set,
+  `SES_CONFIGURATION_SET`) arrive through the same SNS topic as its bounces, at `/api/ses-events`.
+  Resend permanent bounces and spam complaints also go on the do-not-email list. Figures start the
+  day the webhook is set up; opens and clicks need tracking turned on for the sending domain.
 - **Member admin and reports**: Members > All members filters on status, profile,
   sector, joined dates, events attended, no-show rate and newsletter, and exports the filtered
   list as CSV (`/admin/members.csv`, `src/lib/member-list.ts`). Reports > Membership
