@@ -149,3 +149,40 @@ export async function emailRecordSpan() {
     last: row?.last ? new Date(row.last * 1000) : null,
   };
 }
+
+/**
+ * Plan usage for Reports > Emails: emails the current provider sent today and this month (UTC
+ * days and months, as Resend counts), each recipient counting once, against EMAIL_DAILY_LIMIT and
+ * EMAIL_MONTHLY_LIMIT. Only what the webhook reported is counted, so `since` says when counting
+ * started when that is after the start of the month.
+ */
+export async function planUsage(provider: 'resend' | 'ses', now = new Date()) {
+  const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const row = await env.DB.prepare(
+    `SELECT
+       COALESCE(SUM(CASE WHEN sent_at >= ?2 THEN recipients ELSE 0 END), 0) AS today,
+       COALESCE(SUM(recipients), 0) AS month,
+       MIN(sent_at) AS first
+     FROM email_messages WHERE provider = ?1 AND failed_at IS NULL AND sent_at >= ?3`,
+  )
+    .bind(provider, secs(day), secs(month))
+    .first<{ today: number; month: number; first: number | null }>();
+  const span = await env.DB.prepare(
+    'SELECT MIN(sent_at) AS first FROM email_messages WHERE provider = ?1',
+  )
+    .bind(provider)
+    .first<{ first: number | null }>();
+  const first = span?.first ? new Date(span.first * 1000) : null;
+  return {
+    today: Number(row?.today ?? 0),
+    month: Number(row?.month ?? 0),
+    dailyLimit: Number(env.EMAIL_DAILY_LIMIT ?? 0) || 0,
+    monthlyLimit: Number(env.EMAIL_MONTHLY_LIMIT ?? 0) || 0,
+    /** Counting started after the start of this month: the month figure is too low. */
+    since: first && first > month ? first : null,
+    /** When today's and this month's counts start again. */
+    dayResets: new Date(day.getTime() + 86_400_000),
+    monthResets: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)),
+  };
+}

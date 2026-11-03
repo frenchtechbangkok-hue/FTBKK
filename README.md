@@ -132,7 +132,9 @@ Public pages:
   address): Resend's webhook posts to `/api/resend-events`, checked against the Svix signature
   with the Worker secret `RESEND_WEBHOOK_SECRET`; Amazon SES events (with a configuration set,
   `SES_CONFIGURATION_SET`) arrive through the same SNS topic as its bounces, at `/api/ses-events`.
-  Resend permanent bounces and spam complaints also go on the do-not-email list. Figures start the
+  Resend permanent bounces and spam complaints also go on the do-not-email list. A **plan usage** box
+  compares the emails sent today and this month (UTC, recipients counted) with `EMAIL_DAILY_LIMIT`
+  and `EMAIL_MONTHLY_LIMIT` (Resend Free: 100 and 3,000; empty with SES hides it). Figures start the
   day the webhook is set up; opens and clicks need tracking turned on for the sending domain.
 - **Member admin and reports**: Members > All members filters on status, profile,
   sector, joined dates, events attended, no-show rate and newsletter, and exports the filtered

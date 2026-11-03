@@ -78,6 +78,18 @@ const providerRows: [string, number][] = (r?.providers ?? []).map((x) => [
   x.sent,
 ]);
 const webhookUrl = siteUrl('/api/resend-events');
+// Plan usage: today and this month against the provider's caps (Resend Free: 100 / 3,000).
+const u = r?.usage;
+const meters = u
+  ? [
+      { label: 'Today', used: u.today, limit: u.dailyLimit, resets: u.dayResets },
+      { label: 'This month', used: u.month, limit: u.monthlyLimit, resets: u.monthResets },
+    ].filter((m) => m.limit > 0)
+  : [];
+const level = (used: number, limit: number) =>
+  used >= limit ? 'danger' : used >= limit * 0.8 ? 'warning' : 'ok';
+const bar = { ok: 'bg-navy', warning: 'bg-warning', danger: 'bg-danger' };
+const note = { ok: 'text-muted', warning: 'text-warning', danger: 'text-danger' };
 const connected = setup.provider === 'ses' ? setup.sesEvents : setup.resendWebhook;
 ---
 
@@ -147,6 +159,63 @@ const connected = setup.provider === 'ses' ? setup.sesEvents : setup.resendWebho
       {span.first && span.first > period.from && (
         <p class="mb-4 text-sm text-muted">Figures start on {day.format(span.first)}.</p>
       )}
+      {meters.length > 0 && (
+        <section class="admin-panel mb-6" aria-labelledby="usage-title">
+          <h2 id="usage-title" class="text-lg">
+            {PROVIDER_NAMES[setup.provider]} plan usage
+          </h2>
+          <p class="mb-4 text-sm text-muted">
+            Emails sent against the plan's caps (each recipient counts once). Days and months run on
+            UTC time, as {PROVIDER_NAMES[setup.provider]} counts: a new day starts at 7:00 in
+            Bangkok. Over the cap, {PROVIDER_NAMES[setup.provider]} refuses further emails until it
+            resets.
+          </p>
+          <div class="grid gap-6 sm:grid-cols-2">
+            {meters.map((m) => {
+              const lv = level(m.used, m.limit);
+              const share = Math.min(1, m.used / m.limit);
+              return (
+                <div>
+                  <p class="flex items-baseline justify-between gap-2 text-sm">
+                    <span class="font-semibold text-navy">{m.label}</span>
+                    <span>
+                      <strong class="text-xl text-navy">{n(m.used)}</strong>
+                      <span class="text-muted"> of {n(m.limit)}</span>
+                    </span>
+                  </p>
+                  <div
+                    class="mt-2 h-3 overflow-hidden rounded-full bg-surface"
+                    role="meter"
+                    aria-label={`${m.label}: emails sent`}
+                    aria-valuemin={0}
+                    aria-valuemax={m.limit}
+                    aria-valuenow={Math.min(m.used, m.limit)}
+                  >
+                    <span
+                      class={`block h-full rounded-full ${bar[lv]}`}
+                      style={`width:${share * 100}%`}
+                    />
+                  </div>
+                  <p class={`mt-1 text-xs ${note[lv]}`}>
+                    {lv === 'danger'
+                      ? 'Cap reached: emails are refused until '
+                      : `${n(Math.max(0, m.limit - m.used))} left, resets `}
+                    {when.format(m.resets)} (Bangkok time).
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+          {u?.since && (
+            <p class="mt-3 text-xs text-muted">
+              Counted since {day.format(u.since)}, when the webhook was set up: emails sent earlier
+              this month are not included, so the month figure is lower than{' '}
+              {PROVIDER_NAMES[setup.provider]}'s own (Resend &gt; Usage).
+            </p>
+          )}
+        </section>
+      )}
+
       <section aria-label="Key numbers" class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
         {kpis.map((k) => (
           <Kpi label={k.label} value={k.value} hint={k.hint} delta={k.delta} versus={versus} />

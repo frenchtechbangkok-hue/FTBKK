@@ -18,6 +18,7 @@ import {
   emailsBySubject,
   emailTimeline,
   emailTotals,
+  planUsage,
 } from './email-metrics';
 import { parsePeriod, periodBuckets } from './report-period';
 import { getSettings } from './settings';
@@ -231,12 +232,13 @@ export async function loadEmailReport(url: URL, now = new Date()) {
   }
   const period = parsePeriod(url.searchParams, now, span.first ?? now);
   const { unit, buckets } = periodBuckets(period);
-  const [totals, previous, timeline, subjects, providers] = await Promise.all([
+  const [totals, previous, timeline, subjects, providers, usage] = await Promise.all([
     emailTotals(period),
     period.previous ? emailTotals(period.previous) : Promise.resolve(null),
     emailTimeline(period),
     emailsBySubject(period),
     emailsByProvider(period),
+    planUsage(provider, now),
   ]);
   const series = (pick: (t: (typeof timeline)[number]) => boolean) =>
     buckets.map(
@@ -258,6 +260,7 @@ export async function loadEmailReport(url: URL, now = new Date()) {
       clickedSeries: series((t) => t.clicked),
       subjects,
       providers,
+      usage,
     },
   };
 }
