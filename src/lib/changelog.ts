@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.108',
+    date: '2026-11-03',
+    pr: 123,
+    title: 'General image when sharing the site',
+    summary:
+      'Sharing the home page or any page without its own picture on WhatsApp, LinkedIn or Facebook now shows the La French Tech Bangkok logo over the Bangkok skyline instead of the French Tech Connect visual; events and posts keep their own image.',
+  },
+  {
     version: '1.107',
     date: '2026-11-03',
     pr: 122,

@@ -281,6 +281,11 @@ screen by screen for the team.
   button. WhatsApp has no API for groups, so WhatsApp posts are always that email. A reminder
   whose event moved to another day, or a post about a cancelled or unpublished event or post, is
   cancelled instead of posted.
+  Pages without their own image (Home, About, Ecosystem, Events and Blog lists, guides) share
+  `public/brand/share-default.jpg`: the official logo and "La French Tech Bangkok" on navy next to
+  the Bangkok skyline, 1200x630. It replaced the French Tech Connect visual from the Wix site. To
+  redo it, edit the file and give it a new name (WhatsApp, LinkedIn and Facebook cache previews by
+  image URL); LinkedIn's Post Inspector and Facebook's Sharing Debugger refresh a cached preview.
   The **Connected pages** box says per network whether it is connected and which Worker value is
   missing (`networkSetup()` in `lib/social.ts`: `LINKEDIN_ORGANIZATION_ID` /
   `LINKEDIN_ACCESS_TOKEN`, `FACEBOOK_PAGE_ID` / `FACEBOOK_PAGE_TOKEN`), with a folding **How to

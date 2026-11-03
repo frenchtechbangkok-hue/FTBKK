@@ -24,6 +24,8 @@ https://ft-bkk-site.edelattre.workers.dev until the domain moves over.
   yearly renewal.
 - **Privacy** (Thailand's PDPA): anyone can see or delete their data at `/my-data`.
 - Every old Wix URL redirects to its new page.
+- **Link previews**: events and posts share their own image; every other page shares a general La
+  French Tech Bangkok image (logo and Bangkok skyline).
 
 **Admin** at `/admin`, behind Cloudflare Access. Anyone who can sign in can do everything; there
 are no roles. The menu:
