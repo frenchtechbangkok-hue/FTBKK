@@ -11,7 +11,15 @@ import {
   type StatRegistration,
 } from './event-stats';
 import { memberReports } from './member-reports';
-import { parsePeriod } from './report-period';
+import { emailProvider } from './email';
+import {
+  emailRecordSpan,
+  emailsByProvider,
+  emailsBySubject,
+  emailTimeline,
+  emailTotals,
+} from './email-metrics';
+import { parsePeriod, periodBuckets } from './report-period';
 import { getSettings } from './settings';
 import { siteOrigin } from './site';
 import { loadTraffic, oldestTraffic, type TrafficReport } from './traffic';
@@ -195,4 +203,61 @@ export async function loadTrafficReport(url: URL, now = new Date()) {
     }
   }
   return { period, beacon, connected: !!token, report, error };
+}
+
+/**
+ * Reports > Emails, from the email_messages table filled by the providers' webhooks (Resend:
+ * /api/resend-events; Amazon SES: /api/ses-events). Figures count the emails sent in the period.
+ */
+export async function loadEmailReport(url: URL, now = new Date()) {
+  const provider = emailProvider();
+  const setup = {
+    provider,
+    resendWebhook: !!env.RESEND_WEBHOOK_SECRET,
+    sesEvents: !!env.SES_EVENTS_KEY && !!env.SES_CONFIGURATION_SET,
+  };
+  let span: { first: Date | null; last: Date | null } = { first: null, last: null };
+  try {
+    span = await emailRecordSpan();
+  } catch (e) {
+    // Before migration 0041 runs (a preview sharing the production database).
+    return {
+      period: parsePeriod(url.searchParams, now, now),
+      setup,
+      span,
+      report: null,
+      error: String(e),
+    };
+  }
+  const period = parsePeriod(url.searchParams, now, span.first ?? now);
+  const { unit, buckets } = periodBuckets(period);
+  const [totals, previous, timeline, subjects, providers] = await Promise.all([
+    emailTotals(period),
+    period.previous ? emailTotals(period.previous) : Promise.resolve(null),
+    emailTimeline(period),
+    emailsBySubject(period),
+    emailsByProvider(period),
+  ]);
+  const series = (pick: (t: (typeof timeline)[number]) => boolean) =>
+    buckets.map(
+      (b) => timeline.filter((t) => pick(t) && t.sentAt >= b.from && t.sentAt < b.to).length,
+    );
+  return {
+    period,
+    setup,
+    span,
+    error: null,
+    report: {
+      totals,
+      previous,
+      unit,
+      buckets,
+      sentSeries: series((t) => t.sent),
+      deliveredSeries: series((t) => t.delivered),
+      openedSeries: series((t) => t.opened),
+      clickedSeries: series((t) => t.clicked),
+      subjects,
+      providers,
+    },
+  };
 }

@@ -593,6 +593,38 @@ export const emailSuppressions = sqliteTable('email_suppressions', {
 });
 
 /**
+ * Reports > Emails: one row per email the provider reported on (Resend webhook, Amazon SES event
+ * publishing), with the first time each step happened. No recipient address is kept.
+ */
+export const emailMessages = sqliteTable(
+  'email_messages',
+  {
+    provider: text('provider', { enum: ['resend', 'ses'] }).notNull(),
+    messageId: text('message_id').notNull(),
+    subject: text('subject'),
+    recipients: integer('recipients').notNull().default(1),
+    sentAt: ts('sent_at').notNull(),
+    deliveredAt: ts('delivered_at'),
+    delayedAt: ts('delayed_at'),
+    bouncedAt: ts('bounced_at'),
+    /** "permanent" or "temporary". */
+    bounceType: text('bounce_type'),
+    complainedAt: ts('complained_at'),
+    openedAt: ts('opened_at'),
+    clickedAt: ts('clicked_at'),
+    /** The provider refused or dropped it (never sent). */
+    failedAt: ts('failed_at'),
+    updatedAt: ts('updated_at')
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    primaryKey({ columns: [t.provider, t.messageId] }),
+    index('email_messages_sent_at_idx').on(t.sentAt),
+  ],
+);
+
+/**
  * Wording of the site's emails, edited in /admin/emails. One row per edited email, keyed by its id
  * in lib/email-templates.ts; no row = the built-in default text.
  */

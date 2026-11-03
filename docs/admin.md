@@ -6,16 +6,16 @@ pages refresh within a minute) and recorded in Settings > Actions log.
 
 The menu has a group per kind of work, then the figures, then the switches:
 
-| Group                       | What is in it                                                                                                                                                                                                                                    |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Events**                  | All events, Registrations, Check-in                                                                                                                                                                                                              |
-| **Community**               | Members, Contacts, Tags and groups, Messages, Board and speakers                                                                                                                                                                                 |
-| **Ecosystem**               | To review, All listings, Partners, Renewals                                                                                                                                                                                                      |
-| **Blog**                    | Posts, PDFs and files                                                                                                                                                                                                                            |
-| **Website pages**           | The texts and photos of each public page: Home, About, Join, Tech Pulse, Thai page, Code of conduct and privacy (one screen each, with its own Save button)                                                                                      |
-| **Emails and social media** | Email the community, Social media posts (share and schedule events and posts), Automatic emails, Email delivery                                                                                                                                  |
-| **Reports**                 | Events and attendance, Membership, Website traffic (tabs of the same Reports screen, for the board)                                                                                                                                              |
-| **Settings**                | General (site name, contact email, admin notifications, analytics), Membership (the sign-up switches), Default event covers, Social links (the footer links to our pages), Change history (versions of the site), Actions log (who changed what) |
+| Group                       | What is in it                                                                                                                                                                             |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Events**                  | All events, Registrations, Check-in                                                                                                                                                       |
+| **Community**               | Members, Contacts, Tags and groups, Messages, Board and speakers                                                                                                                          |
+| **Ecosystem**               | To review, All listings, Partners, Renewals                                                                                                                                               |
+| **Blog**                    | Posts, PDFs and files                                                                                                                                                                     |
+| **Website pages**           | The texts and photos of each public page: Home, About, Join, Tech Pulse, Thai page, Code of conduct and privacy (one screen each, with its own Save button)                               |
+| **Emails and social media** | Email the community, Social media posts (share and schedule events and posts), Automatic emails, Email delivery                                                                           |
+| **Reports**                 | Events and attendance, Membership, Website traffic, Emails (tabs of the same Reports screen, for the board)                                                                               |
+| **Settings**                | General (site name, contact email, admin notifications, analytics), Membership (the sign-up switches), Default event covers, Social links (the footer links to our pages), Change history |
 
 As a rule: what visitors read is under **Website pages**, what we post or send is under **Emails
 and social media**, and switches and site-wide values are under **Settings**. Click a group's
@@ -496,6 +496,15 @@ enrolment at check-in.
   so). Visits are only counted while Settings > General > Cloudflare Web Analytics token is
   filled in, and the tab needs the Cloudflare connection once (see docs/deploy.md); until then it
   explains what to do.
+- **Emails**: what happened to the emails the site sent (confirmations, reminders, community
+  emails, team notifications): how many went out, the share delivered, opened and clicked, the
+  share that bounced and how many people marked one as spam, with the change against the period
+  before, a chart per week or month, and a table per subject, so you can compare one community
+  email with another. Open rates are estimates: Apple Mail opens every email by itself and some
+  apps block the tracking. Keep spam complaints under 0.1%. Addresses that bounced for good or
+  complained are skipped from then on (Emails and social media > Email delivery). The figures come
+  from Resend (or Amazon SES) as each email is delivered or opened, and start on the day that
+  connection was set up (docs/deploy.md); until then the tab explains what to do.
 - **Export CSV** downloads what is shown: on Events, one line per event (or, with one event
   picked, its figures and comments); on Membership, the growth table or the members at each event.
 

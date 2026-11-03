@@ -1,5 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { z } from 'zod';
+import { readSesEvent } from './email-events';
+import { recordEmailEvent } from './email-metrics';
 import { recordFeedback } from './email-suppressions';
 import { isSnsUrl, readSesFeedback } from './ses';
 
@@ -66,6 +68,15 @@ export async function handleSesEvents(request: Request) {
   if (feedback?.emails.length) {
     await recordFeedback(feedback);
     console.log(`[ses-events] ${feedback.kind}: ${feedback.emails.length} address(es) suppressed`);
+  }
+  // Reports > Emails. Never fails the notification: a missing table (before migrations) is logged.
+  const metric = readSesEvent(event);
+  if (metric) {
+    try {
+      await recordEmailEvent(metric);
+    } catch (e) {
+      console.error('[ses-events] could not record for Reports', e);
+    }
   }
   return text(200, 'OK');
 }
