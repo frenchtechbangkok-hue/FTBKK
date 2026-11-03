@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.94',
+    date: '2026-11-03',
+    pr: 109,
+    title: 'Email plan usage',
+    summary:
+      'Reports > Emails shows how many emails went out today and this month against the Resend plan limits, with what is left.',
+  },
+  {
     version: '1.93',
     date: '2026-11-03',
     pr: 107,
