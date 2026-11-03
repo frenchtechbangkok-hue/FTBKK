@@ -580,6 +580,19 @@ export const blockedSenders = sqliteTable('blocked_senders', {
 });
 
 /**
+ * Addresses the site no longer emails: hard bounces and spam complaints reported by Amazon SES
+ * (src/lib/email-suppressions.ts). Removed by hand in Admin > Email delivery.
+ */
+export const emailSuppressions = sqliteTable('email_suppressions', {
+  /** Lowercased. */
+  email: text('email').primaryKey(),
+  reason: text('reason', { enum: ['bounce', 'complaint'] }).notNull(),
+  /** What the receiving server or SES said, for the admin list. */
+  detail: text('detail'),
+  createdAt: createdAt(),
+});
+
+/**
  * Wording of the site's emails, edited in /admin/emails. One row per edited email, keyed by its id
  * in lib/email-templates.ts; no row = the built-in default text.
  */
@@ -730,3 +743,4 @@ export type Member = typeof members.$inferSelect;
 export type CommunityEmail = typeof communityEmails.$inferSelect;
 export type EmailTemplateRow = typeof emailTemplates.$inferSelect;
 export type SocialPost = typeof socialPosts.$inferSelect;
+export type EmailSuppression = typeof emailSuppressions.$inferSelect;

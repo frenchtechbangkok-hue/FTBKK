@@ -153,6 +153,12 @@ Public pages:
   `{{post: slug}}`, rendered with tables for email clients by `src/lib/email-markdown.ts`). Test
   send, duplicate guard, a warning when the audience exceeds the provider's daily cap
   (`EMAIL_DAILY_LIMIT`, 100 on Resend Free) and the list of what was sent (`community_emails`).
+- **Email delivery** (`/admin/email-delivery`): emails go through Resend or Amazon SES
+  (`EMAIL_PROVIDER`, `src/lib/email.ts`; SES raw MIME messages signed with `aws4fetch` in
+  `src/lib/ses.ts`, sent at `SES_SEND_RATE` per second). Test send through either provider. SES
+  bounces and complaints arrive from SNS at `/api/ses-events?key=…` (handled in `src/worker.ts`
+  before Astro), fill `email_suppressions` (migration 0040), and every send skips those
+  addresses; the page lists them with a Remove button. Setup: docs/deploy.md, section 6b.
 - **Member page** at `/member?token=…` (a reusable `member` link, 30 days, sent in every member
   email; no passwords): membership dates, the WhatsApp button, their events (coming up and past),
   their profile to edit, and **Leave**, which deletes the member row (event history stays until

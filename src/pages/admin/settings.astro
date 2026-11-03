@@ -1,7 +1,7 @@
 ---
 import { z } from 'zod';
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { sendEmail, usingTestSender } from '../../lib/email';
+import { emailProvider, PROVIDER_NAMES, sendEmail, usingTestSender } from '../../lib/email';
 import FormField from '../../components/FormField.astro';
 import Button from '../../components/Button.astro';
 import Alert from '../../components/Alert.astro';
@@ -87,7 +87,7 @@ const GUIDE_SWITCHES = Object.entries(GUIDES).map(([path, g]) => ({ path, ...g }
 
 const asPhoto = (key: string | null) => (key ? { key } : null);
 
-// "Send a test" next to Admin notifications: one email to the saved addresses, and Resend's
+// "Send a test" next to Admin notifications: one email to the saved addresses, and the provider's
 // answer on screen, so the team can check the whole chain without waiting for a real message.
 const notifyTo = await adminNotifyEmails(current);
 let testResult: { ok: boolean; error?: string } | null = null;
@@ -153,13 +153,14 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
 <AdminLayout title={SECTIONS[section]}>
   {testResult?.ok && (
     <Alert tone="success" class="mb-6">
-      Test sent to {notifyTo.join(', ')}. Resend accepted it; if it isn't in the inbox within a few
-      minutes, look in spam, then in Resend under Emails for that address.
+      Test sent to {notifyTo.join(', ')}. {PROVIDER_NAMES[emailProvider()]} accepted it; if it isn't
+      in the inbox within a few minutes, look in spam, then in Admin &gt; Email delivery.
     </Alert>
   )}
   {testResult && !testResult.ok && (
     <Alert tone="danger" class="mb-6">
-      The test could not be sent to {notifyTo.join(', ')}. Resend said: {testResult.error}
+      The test could not be sent to {notifyTo.join(', ')}. {PROVIDER_NAMES[emailProvider()]} said:{' '}
+      {testResult.error}
     </Alert>
   )}
   {Object.keys(errors).length > 0 && (

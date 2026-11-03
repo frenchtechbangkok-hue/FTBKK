@@ -13,7 +13,7 @@ The menu has a group per kind of work, then the figures, then the switches:
 | **Ecosystem**               | To review, All listings, Partners, Renewals                                                                                                                                               |
 | **Blog**                    | Posts, PDFs and files                                                                                                                                                                     |
 | **Website pages**           | The texts and photos of each public page: Home, About, Join, Tech Pulse, Thai page, Code of conduct and privacy (one screen each, with its own Save button)                               |
-| **Emails and social media** | Email the community, Social media posts (share and schedule events and posts), Automatic emails                                                                                           |
+| **Emails and social media** | Email the community, Social media posts (share and schedule events and posts), Automatic emails, Email delivery                                                                           |
 | **Reports**                 | Events and attendance, Membership, Website traffic (tabs of the same Reports screen, for the board)                                                                                       |
 | **Settings**                | General (site name, contact email, admin notifications, analytics), Membership (the sign-up switches), Default event covers, Social links (the footer links to our pages), Change history |
 
@@ -656,6 +656,21 @@ item. After Preview or a test, the page says "Not saved yet" and warns you befor
 The date and venue rows, logos, the ticket, the calendar invite, the links and the "Manage or
 delete my data" footer are added by the site and can't be edited here. "Email registrants" (on an
 event's page) is written each time, so it is only listed. Every save and reset is in the history.
+
+## Email delivery
+
+**Emails and social media > Email delivery** shows which service sends the site's emails (Resend
+or Amazon SES, set by `EMAIL_PROVIDER` in `wrangler.jsonc`) and whether each one has its key.
+
+- **Send a test** emails any address through the service you pick, so Amazon SES can be tried
+  before the switch while Resend keeps sending everything else. While SES is in its sandbox, it
+  only delivers to addresses verified in SES.
+- **Addresses no longer emailed**: addresses Amazon SES reported as non-existent (bounced) or
+  whose owner marked an email as spam. Every email the site sends skips them, including Email the
+  community and Email registrants, which then say how many people were skipped. **Remove** one
+  only when you know the address works again.
+- **Address for SES notifications** is the URL to paste in the SNS subscription
+  (docs/deploy.md, section 6b).
 
 ## For developers
 

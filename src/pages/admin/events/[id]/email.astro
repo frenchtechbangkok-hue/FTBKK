@@ -116,19 +116,23 @@ if (Astro.request.method === 'POST') {
         const res = await sendEmailBatch(
           to.map((r) => eventBroadcast(event, r, d, { replyTo: settings.contactEmail })),
         );
-        if (res.sent > 0) {
+        const delivered = res.sent - res.suppressed;
+        if (delivered > 0) {
           await db
             .update(eventEmails)
-            .set({ recipients: res.sent })
+            .set({ recipients: delivered })
             .where(eq(eventEmails.id, row!.id));
           await audit(actor, 'email_registrants', 'event', event.id, null, {
             emailId: row!.id,
             audience: d.audience,
             subject: d.subject,
-            recipients: res.sent,
+            recipients: delivered,
           });
         } else await db.delete(eventEmails).where(eq(eventEmails.id, row!.id));
-        if (res.ok) return Astro.redirect(`/admin/events/${event.id}/email?sent=${res.sent}`);
+        if (res.ok)
+          return Astro.redirect(
+            `/admin/events/${event.id}/email?sent=${delivered}&skipped=${res.suppressed}`,
+          );
         // Emails go out in order, so the ones not reached are the end of the list.
         unreached = to.slice(res.sent).map((r) => r.email);
         error = res.sent
@@ -147,6 +151,7 @@ const history = await db
   .where(eq(eventEmails.eventId, event.id))
   .orderBy(desc(eventEmails.createdAt), desc(eventEmails.id));
 const sent = Number(Astro.url.searchParams.get('sent'));
+const skipped = Number(Astro.url.searchParams.get('skipped'));
 const str = (k: string) => (values[k] === null || values[k] === undefined ? '' : String(values[k]));
 const audience = (AUDIENCE_KEYS as string[]).includes(str('audience'))
   ? (str('audience') as Audience)
@@ -163,9 +168,16 @@ const plural = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`;
     {formatEventDate(event.startsAt, event.endsAt)}
     {event.venue && <> · {event.venue}</>}
   </p>
-  {sent > 0 && (
+  {(sent > 0 || skipped > 0) && (
     <Alert tone="success" class="mb-6">
       Sent to {plural(sent)}.
+      {skipped > 0 && (
+        <>
+          {' '}
+          {plural(skipped)} skipped: their address bounced or marked an earlier email as spam (Admin
+          &gt; Email delivery).
+        </>
+      )}
     </Alert>
   )}
   {notice && (
