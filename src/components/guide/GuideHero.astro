@@ -12,8 +12,19 @@ interface Props {
   other?: { href: string; question: string; label: string } | null;
   /** The guide is offline and an admin is looking at it (lib/guides.ts). */
   preview?: boolean;
+  /** Replaces the default "rules change often" warning after "Last checked on …". */
+  notice?: string;
 }
-const { eyebrow, title, intro, checked, toc, other, preview = false } = Astro.props;
+const {
+  eyebrow,
+  title,
+  intro,
+  checked,
+  toc,
+  other,
+  preview = false,
+  notice = 'Rules on visas, tax and foreign ownership change often: this guide is a starting point, not legal or tax advice. Confirm with a lawyer or accountant before you act.',
+} = Astro.props;
 ---
 
 {preview && (
@@ -29,7 +40,7 @@ const { eyebrow, title, intro, checked, toc, other, preview = false } = Astro.pr
   </div>
 )}
 
-<!-- The navy header of the two Thailand guides: title, warning, other guide and the page index. -->
+<!-- The navy header of the guide pages: title, warning, other guide and the page index. -->
 <section class="relative isolate overflow-hidden bg-navy text-paper">
   <div
     aria-hidden="true"
@@ -49,9 +60,7 @@ const { eyebrow, title, intro, checked, toc, other, preview = false } = Astro.pr
       <p class="mt-8 flex max-w-2xl items-start gap-3 rounded-card border border-paper/15 bg-paper/5 p-4 text-sm text-paper/85">
         <Icon name="bulb" class="mt-0.5 size-5 shrink-0 text-accent-soft" />
         <span>
-          Last checked on {checked}. Rules on visas, tax and foreign ownership change often: this
-          guide is a starting point, not legal or tax advice. Confirm with a lawyer or accountant
-          before you act.
+          Last checked on {checked}. {notice}
         </span>
       </p>
       {other && (

@@ -51,9 +51,10 @@ export interface Settings {
   techPulseIntro: string;
   /** The Thai page /th (Markdown, "## " starts a section); empty = DEFAULT_THAI_PAGE. */
   thaiPage: string;
-  /** The Thailand guides are online (lib/guides.ts); off = 404 for the public, preview for admins. */
+  /** The guide pages are online (lib/guides.ts); off = 404 for the public, preview for admins. */
   foundersGuideOnline: boolean;
   expansionGuideOnline: boolean;
+  frenchTechVisaOnline: boolean;
   /** /code-of-conduct page (Markdown); {contactEmail} is replaced by the contact email. */
   codeOfConduct: string;
   /** /privacy page (Markdown); {contactEmail} is replaced by the contact email. */
@@ -102,6 +103,7 @@ export const defaultSettings: Settings = {
   thaiPage: '',
   foundersGuideOnline: false,
   expansionGuideOnline: false,
+  frenchTechVisaOnline: false,
   codeOfConduct: DEFAULT_CODE_OF_CONDUCT,
   privacyNotice: DEFAULT_PRIVACY_NOTICE,
   membershipOpen: false,
