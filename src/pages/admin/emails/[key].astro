@@ -128,10 +128,7 @@ const preview = renderEmail(sampleEmail(def, values)).html;
 const hasButton = def.buttonLabel !== undefined;
 ---
 
-<AdminLayout title={`Email: ${def.label}`}>
-  <div class="mb-4 text-sm">
-    <a href="/admin/emails">← Automatic emails</a>
-  </div>
+<AdminLayout title={def.label} trail={[{ href: '/admin/emails', label: 'Automatic emails' }]}>
   <dl class="mb-6 grid max-w-3xl gap-1 text-sm sm:grid-cols-[8rem_1fr]">
     <dt class="text-muted">Sent to</dt>
     <dd>{def.audience}</dd>

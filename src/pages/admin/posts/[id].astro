@@ -265,6 +265,9 @@ const autoImage = share?.imageUrl ?? (post?.coverKey ? mediaUrl(post.coverKey) :
           <Button href="/admin/posts" variant="ghost">
             Back
           </Button>
+          <span data-unsaved-note hidden class="self-center text-sm font-semibold text-warning">
+            Unsaved changes
+          </span>
         </div>
       </div>
 
@@ -542,7 +545,7 @@ const autoImage = share?.imageUrl ?? (post?.coverKey ? mediaUrl(post.coverKey) :
 
   {post && (
     <form method="post" data-confirm="Delete this post for good?" class="mt-8">
-      <Button type="submit" name="action" value="delete" variant="ghost" class="text-danger">
+      <Button type="submit" name="action" value="delete" variant="danger" class="text-danger">
         Delete this post
       </Button>
     </form>

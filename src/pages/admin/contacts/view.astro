@@ -1,4 +1,7 @@
 ---
+import { and, desc, eq, lt } from 'drizzle-orm';
+import { getDb } from '../../../db';
+import { events } from '../../../db/schema';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import Badge from '../../../components/Badge.astro';
 import Button from '../../../components/Button.astro';
@@ -6,6 +9,7 @@ import Alert from '../../../components/Alert.astro';
 import ContactForm from '../../../components/admin/ContactForm.astro';
 import {
   ContactSchema,
+  contactSummary,
   cardFor,
   contactExists,
   contactInput,
@@ -81,6 +85,19 @@ if (Astro.request.method === 'POST') {
 const contact = (await loadContacts(now)).find((c) => c.key === key);
 if (!contact) return Astro.redirect('/admin/contacts');
 const c = contact;
+// The latest past events (published), for "Came to 7 of the last 10 events".
+const recentEvents = await getDb()
+  .select({ id: events.id })
+  .from(events)
+  .where(and(eq(events.status, 'published'), lt(events.startsAt, now)))
+  .orderBy(desc(events.startsAt))
+  .limit(10);
+const summary = contactSummary(
+  c,
+  recentEvents.map((e) => e.id),
+  now,
+  (d) => formatDate(d, { day: undefined }),
+);
 const walkIn = key.startsWith('name:');
 const whatsapp = whatsappUrl(c.phone);
 const actions = [
@@ -138,24 +155,23 @@ const stats = [
 ];
 ---
 
-<AdminLayout title={c.name}>
-  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-    <a href="/admin/contacts">← All contacts</a>
-    {actions.length > 0 && (
-      <div class="flex flex-wrap gap-2">
-        {actions.map((a) => (
-          <Button
-            href={a.href}
-            size="sm"
-            variant="secondary"
-            {...(a.href.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {})}
-          >
-            {a.label}
-          </Button>
-        ))}
-      </div>
-    )}
-  </div>
+<AdminLayout
+  title={c.name}
+  intro={summary}
+  trail={[{ href: '/admin/contacts', label: 'Contacts' }]}
+>
+  <Fragment slot="actions">
+    {actions.map((a) => (
+      <Button
+        href={a.href}
+        size="sm"
+        variant="secondary"
+        {...(a.href.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {})}
+      >
+        {a.label}
+      </Button>
+    ))}
+  </Fragment>
   <div class="grid gap-4 lg:grid-cols-[2fr_3fr]">
     <div class="grid content-start gap-4">
       <section class="admin-panel">

@@ -46,6 +46,41 @@ The **Dashboard** greets you and says when the next event is. Then, from top to 
 - **Latest activity**: the last registrations, new members, listings and messages.
 - **New on the site**: the latest line of History > Change history.
 
+### How every admin page is laid out
+
+- The title, one line saying what the page is for, and the page's buttons at the top right (the
+  main one in red, the others outlined). Longer explanations sit under **How this works**, folded.
+- Sub-pages show where they belong above the title (Contacts › Possible duplicates); click it to
+  go back.
+- An event has the same tabs on each of its screens: **Details**, **Registrations**, **Email
+  registrants**, **Share on social media** and, once it has happened, **Feedback**, with **View on
+  the site** and **Duplicate** on the right. A blog post has **Details** and **Share on social
+  media**.
+- Filters apply as soon as you pick in a dropdown; search boxes apply on Enter.
+- Actions that delete or cancel are in red text and always ask first.
+- An empty list says what goes there and offers a button to add the first one.
+- Forms show **Unsaved changes** next to Save once you type, and warn before you leave the page.
+- Team notes (Members, Ecosystem > All listings) show as one grey line; **Add a note** opens the
+  box.
+
+### Figures on everyday pages
+
+- **Events**: each event's fill bar; upcoming events show **+N vs usual** (seats taken against
+  the average of the same type of event at the same number of days before); past events, grouped
+  by year with a search box, show the check-ins, the show-up rate and the first-timers.
+- **Registrations** of an event not over yet: **Who's coming** (first-timers, people who came
+  before, members, companies with several people).
+- **Contact page**: one line at the top: how many of the last 10 events they came to, when they
+  last came, member since, first seen.
+- **Members > Quiet**: active members who came to no event in the last 6 months (oldest first),
+  to invite them back.
+- **Email the community > Sent**: delivered, opened and clicked for each email (from the delivery
+  reports, so only for emails sent once those were set up).
+- **Blog posts**: page views per post over the last 30 days (Cloudflare Web Analytics, same token
+  as Reports > Website traffic; a dash when not connected).
+- **Ecosystem > All listings**: published listings with no logo, no description, no website or
+  no update in 12 months say **To complete**; the status filter has a **To complete** choice.
+
 ## Posts
 
 - **New post**: title, text (Markdown), then **Save**. Leave it as _Draft_ until it is ready.

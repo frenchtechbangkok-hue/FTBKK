@@ -1,6 +1,7 @@
 ---
 import { z } from 'zod';
 import { asc, count, eq } from 'drizzle-orm';
+import EmptyState from '../../components/admin/EmptyState.astro';
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import Button from '../../components/Button.astro';
 import Alert from '../../components/Alert.astro';
@@ -124,7 +125,12 @@ const input = 'w-full rounded-lg border border-line bg-paper px-2 py-1 text-sm';
       <section class="admin-panel mb-6">
         <h2 class="text-lg">{g.label}</h2>
         <p class="mt-1 mb-4 text-sm text-muted">{g.note}</p>
-        {list.length === 0 && <p class="text-sm text-muted">Nobody yet.</p>}
+        {list.length === 0 && (
+          <EmptyState
+            text="Nobody yet."
+            hint="Add a person with the form at the bottom of the page."
+          />
+        )}
         <ul class="grid gap-3">
           {list.map((p, i) => (
             <li class="rounded-lg border border-line p-3">

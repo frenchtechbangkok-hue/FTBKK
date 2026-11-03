@@ -22,9 +22,9 @@ export const RELEASES: Release[] = [
     version: '1.97',
     date: '2026-11-03',
     pr: 112,
-    title: 'Simpler admin menu',
+    title: 'Clearer admin',
     summary:
-      'The admin menu has a Website group (blog posts, files, page texts, board and speakers, guide pages), Settings keeps only switches plus Email delivery, and a History group holds the Actions log and Change history. Red numbers show what is waiting, page texts are one screen with a tab per page, and a search box at the top finds a person, event, post or listing.',
+      'The admin menu is regrouped (Website, Settings for switches, History for the logs) with red numbers for what is waiting and a search box. Every page has the same header, buttons and empty lists, an event has the same tabs on all its screens, and everyday pages show a useful figure: event pace and show-up, who is coming, a summary per contact, quiet members, opens and clicks per community email, post views and listings to complete.',
   },
   {
     version: '1.96',

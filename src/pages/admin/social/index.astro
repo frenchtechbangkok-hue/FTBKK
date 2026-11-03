@@ -1,6 +1,7 @@
 ---
 import { and, asc, desc, eq, gte, inArray, ne } from 'drizzle-orm';
 import { z } from 'zod';
+import EmptyState from '../../../components/admin/EmptyState.astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import Alert from '../../../components/Alert.astro';
 import Button from '../../../components/Button.astro';
@@ -140,7 +141,10 @@ const missing = items.filter((i) => !i.imageUrl).length;
       )}
     </div>
     {items.length === 0 ? (
-      <p class="text-sm text-muted">No upcoming event or published post.</p>
+      <EmptyState
+        text="No upcoming event or published post."
+        hint="Events and posts show here once published, ready to share."
+      />
     ) : (
       <ul class="divide-y divide-line">
         {items.map((i) => (

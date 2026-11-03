@@ -141,12 +141,16 @@ const chip =
   'rounded-full border border-line bg-paper px-4 py-1.5 text-sm no-underline aria-[current=page]:border-navy aria-[current=page]:bg-navy aria-[current=page]:text-paper';
 ---
 
-<AdminLayout title="Actions log">
-  <p class="mb-6 max-w-3xl text-sm text-muted">
-    Everything done in the admin, and what the site did on its own or what people did from their
-    links, newest first. What changed in the website itself, version by version, is in{' '}
-    <a href="/admin/changes">Change history</a>.
-  </p>
+<AdminLayout
+  title="Actions log"
+  intro="Everything done in the admin, by the site on its own, or by people from their links, newest first."
+>
+  <Fragment slot="help">
+    <p>
+      What changed in the website itself, version by version, is in{' '}
+      <a href="/admin/changes">Change history</a>.
+    </p>
+  </Fragment>
 
   <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
     <nav aria-label="Area" class="flex flex-wrap gap-2">

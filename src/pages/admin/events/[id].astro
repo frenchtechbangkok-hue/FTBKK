@@ -686,6 +686,9 @@ const inviteLink =
           <Button href="/admin/events" variant="ghost">
             Back
           </Button>
+          <span data-unsaved-note hidden class="self-center text-sm font-semibold text-warning">
+            Unsaved changes
+          </span>
         </div>
       </div>
 
@@ -1379,7 +1382,7 @@ const inviteLink =
         </form>
       )}
       <form method="post" data-confirm="Delete this event and all its registrations for good?">
-        <Button type="submit" name="action" value="delete" variant="ghost" class="text-danger">
+        <Button type="submit" name="action" value="delete" variant="danger" class="text-danger">
           Delete
         </Button>
       </form>

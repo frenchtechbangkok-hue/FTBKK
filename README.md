@@ -303,7 +303,13 @@ pages), **Emails and social media** (email the community, social media posts, au
 one `/admin/settings?section=` screen each, plus email delivery) and **History** (**Actions log**
 at `/admin/actions-log`, **Change history** at `/admin/changes`). Red badges show what is waiting
 (members to review, unread messages, directory queue, failed social posts) and a search box at the
-top of the menu opens `/admin/search` (contacts, members, events, posts, listings by name). Old admin addresses redirect
+top of the menu opens `/admin/search` (contacts, members, events, posts, listings by name). Every admin page uses the same header (`AdminLayout`: title, one-line `intro`, `actions` and `help`
+slots, `trail` above the title), tabs (`PageTabs`, `EventTabs` for an event's or a post's screens),
+figure rows (`StatRow`), empty boxes (`EmptyState`) and red `danger` buttons for deletes. Everyday
+pages carry a figure each: events pace against the usual and show-up rate, "Who's coming" on
+registrations, a summary line on each contact, Members > Quiet, opens and clicks per community
+email (`sendFigures`), post views (`/api/admin/post-views`, Cloudflare) and listings to complete
+(`listingGaps`). Old admin addresses redirect
 (`src/lib/redirects.ts`). The groups fold and unfold, the current one open. Anyone who can sign in
 to the admin can do everything; there are no roles. See
 [docs/admin.md](docs/admin.md).

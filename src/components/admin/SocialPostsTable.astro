@@ -1,4 +1,5 @@
 ---
+import EmptyState from './EmptyState.astro';
 // Scheduled and past social media posts, with Cancel / Post now / Remove buttons. The forms post
 // to the current page, which calls socialPostAction (lib/social.ts).
 import type { SocialPost } from '../../db/schema';
@@ -20,7 +21,7 @@ const STATUS = {
 ---
 
 {rows.length === 0 ? (
-  <p class="text-sm text-muted">Nothing yet.</p>
+  <EmptyState text="Nothing yet." />
 ) : (
   <div class="overflow-x-auto">
     <table class="admin-table">

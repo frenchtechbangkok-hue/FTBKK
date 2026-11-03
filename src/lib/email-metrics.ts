@@ -186,3 +186,28 @@ export async function planUsage(provider: 'resend' | 'ses', now = new Date()) {
     monthResets: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)),
   };
 }
+
+/**
+ * Delivered, opened and clicked for each community email sent (Email the community > Sent): the
+ * emails with the same subject sent within 3 hours of it. Null where nothing was recorded (sent
+ * before the delivery reports started, or the provider never reported).
+ */
+export async function sendFigures(sends: { subject: string; at: Date }[]) {
+  if (!sends.length) return [];
+  try {
+    const stmt = env.DB.prepare(
+      `SELECT ${TOTALS} FROM email_messages
+       WHERE subject = ?1 AND sent_at >= ?2 AND sent_at < ?3`,
+    );
+    const rows = await env.DB.batch(
+      sends.map((s) => stmt.bind(s.subject, secs(s.at) - 600, secs(s.at) + 3 * 3600)),
+    );
+    return rows.map((r) => {
+      const t = asTotals((r.results?.[0] as Record<string, unknown>) ?? null);
+      return t.sent ? t : null;
+    });
+  } catch {
+    // Before migration 0041 (a preview sharing the production database): no figures.
+    return sends.map(() => null);
+  }
+}

@@ -1,5 +1,7 @@
 ---
 import { and, desc, eq, gt, lt } from 'drizzle-orm';
+import EmptyState from '../../components/admin/EmptyState.astro';
+import { sendFigures } from '../../lib/email-metrics';
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import FormField from '../../components/FormField.astro';
 import MarkdownEditor from '../../components/admin/MarkdownEditor.astro';
@@ -222,6 +224,8 @@ const [history, choices, allowance] = await Promise.all([
   cardChoices(),
   dailyAllowance(),
 ]);
+const figures = await sendFigures(history.map((h) => ({ subject: h.subject, at: h.createdAt })));
+const rate = (n: number, of: number) => (of ? `${Math.round((n / of) * 100)}%` : '–');
 const left = Math.max(0, allowance.limit - allowance.sentToday);
 const sent = Number(Astro.url.searchParams.get('sent'));
 const skipped = Number(Astro.url.searchParams.get('skipped'));
@@ -630,7 +634,7 @@ const groups = [
     </h2>
     {history.length ? (
       <ul class="mt-3 grid gap-3 lg:grid-cols-2">
-        {history.map((h) => (
+        {history.map((h, i) => (
           <li class="rounded-lg bg-surface p-3">
             <details>
               <summary class="cursor-pointer font-semibold">{h.subject}</summary>
@@ -649,11 +653,30 @@ const groups = [
               {plural(h.recipients)} · {formatDate(h.createdAt)} {formatTime(h.createdAt)} ·{' '}
               {h.sentBy}
             </p>
+            {figures[i] && (
+              <p class="mt-1 text-xs">
+                <span class="font-semibold text-navy">
+                  {rate(figures[i]!.delivered, figures[i]!.sent)}
+                </span>{' '}
+                delivered ·{' '}
+                <span class="font-semibold text-navy">
+                  {rate(figures[i]!.opened, figures[i]!.delivered)}
+                </span>{' '}
+                opened ·{' '}
+                <span class="font-semibold text-navy">
+                  {rate(figures[i]!.clicked, figures[i]!.delivered)}
+                </span>{' '}
+                clicked
+                {figures[i]!.bounced > 0 && <> · {figures[i]!.bounced} bounced</>}
+              </p>
+            )}
           </li>
         ))}
       </ul>
     ) : (
-      <p class="mt-3 text-sm text-muted">Nothing sent yet from this page.</p>
+      <div class="mt-3">
+        <EmptyState text="Nothing sent yet from this page." />
+      </div>
     )}
   </section>
 </AdminLayout>

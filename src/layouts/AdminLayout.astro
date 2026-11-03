@@ -246,8 +246,19 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
       const dirty = new Set<HTMLFormElement>();
       document.querySelectorAll<HTMLFormElement>('form[data-warn-unsaved]').forEach((f) => {
         // <form data-unsaved>: re-rendered with text that isn't saved yet (e.g. after a preview).
-        if (f.hasAttribute('data-unsaved')) dirty.add(f);
-        f.addEventListener('input', () => dirty.add(f));
+        // Its "Unsaved changes" note, if it has one, shows once something is typed.
+        const note = () =>
+          f
+            .querySelectorAll<HTMLElement>('[data-unsaved-note]')
+            .forEach((el) => (el.hidden = false));
+        if (f.hasAttribute('data-unsaved')) {
+          dirty.add(f);
+          note();
+        }
+        f.addEventListener('input', () => {
+          dirty.add(f);
+          note();
+        });
         f.addEventListener('submit', (e) => {
           if (e.defaultPrevented) return;
           const others = [...dirty].filter((o) => o !== f);
@@ -259,6 +270,12 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
           }
           dirty.clear();
         });
+      });
+      // Filter bars: picking in a dropdown applies it straight away (search boxes apply on Enter).
+      document.querySelectorAll<HTMLFormElement>('form[role="search"]').forEach((f) => {
+        f.querySelectorAll('select').forEach((sel) =>
+          sel.addEventListener('change', () => f.requestSubmit()),
+        );
       });
       addEventListener('beforeunload', (e) => {
         if (dirty.size) e.preventDefault();

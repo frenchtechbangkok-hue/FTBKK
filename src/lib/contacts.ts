@@ -1171,3 +1171,38 @@ export function whatsappUrl(phone: string | null) {
   digits = digits.replace(/^660/, '66'); // "+66 (0)81…"
   return digits.length >= 8 ? `https://wa.me/${digits}` : null;
 }
+
+/**
+ * One line at the top of a contact's page: "Came to 7 of the last 10 events · last came 4 October
+ * 2026 · member since July 2026 · first seen March 2025". `recent` = ids of the latest past events.
+ */
+export function contactSummary(
+  c: Pick<Contact, 'history' | 'member' | 'firstSeen'>,
+  recent: number[],
+  now: Date,
+  fmt: (d: Date) => string,
+): string {
+  const came = c.history.filter(
+    (r) =>
+      r.status === 'attended' ||
+      (r.status === 'registered' && (r.event.endsAt ?? r.event.startsAt) < now),
+  );
+  const cameIds = new Set(came.map((r) => r.event.id));
+  const last = came.reduce<Date | null>(
+    (d, r) => (!d || r.event.startsAt > d ? r.event.startsAt : d),
+    null,
+  );
+  const inRecent = recent.filter((id) => cameIds.has(id)).length;
+  return [
+    recent.length
+      ? `Came to ${inRecent} of the last ${recent.length} ${recent.length === 1 ? 'event' : 'events'}`
+      : null,
+    last ? `last came ${fmt(last)}` : came.length === 0 ? 'never came to an event' : null,
+    c.member?.status === 'active' && c.member.memberSince
+      ? `member since ${fmt(c.member.memberSince)}`
+      : null,
+    Number.isFinite(c.firstSeen.getTime()) ? `first seen ${fmt(c.firstSeen)}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
