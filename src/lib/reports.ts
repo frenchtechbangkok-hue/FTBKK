@@ -247,7 +247,7 @@ export async function loadTrafficReport(url: URL, now = new Date()) {
  * /api/resend-events; Amazon SES: /api/ses-events). Figures count the emails sent in the period.
  */
 export async function loadEmailReport(url: URL, now = new Date()) {
-  const provider = emailProvider();
+  const provider = await emailProvider();
   const setup = {
     provider,
     resendWebhook: !!env.RESEND_WEBHOOK_SECRET,

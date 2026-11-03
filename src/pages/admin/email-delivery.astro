@@ -6,6 +6,7 @@ import Alert from '../../components/Alert.astro';
 import Button from '../../components/Button.astro';
 import FormField from '../../components/FormField.astro';
 import {
+  defaultEmailProvider,
   emailProvider,
   PROVIDER_NAMES,
   providerReady,
@@ -15,13 +16,21 @@ import {
 import { listSuppressions, unsuppress } from '../../lib/email-suppressions';
 import { audit, siteUrl } from '../../lib/orgs';
 import { formatDate } from '../../lib/format';
+import { saveSettings } from '../../lib/settings';
 
-// Settings > Email delivery: which service sends the site's emails, a test send
+// Settings > Email delivery: which service sends the site's emails (chosen here, stored in the
+// settings table; EMAIL_PROVIDER in wrangler.jsonc until then), a test send
 // through either one (to try Amazon SES before switching), and the addresses no longer emailed
 // because they bounced or marked an email as spam.
 const actor = Astro.locals.adminEmail ?? 'admin';
-const current = emailProvider();
+let current = await emailProvider();
 const PROVIDERS = Object.keys(PROVIDER_NAMES) as EmailProvider[];
+// Only a service with its key can be chosen; the one in use always shows.
+const choosable = PROVIDERS.filter((p) => providerReady(p) || p === current);
+const PROVIDER_NOTES: Record<EmailProvider, string> = {
+  resend: 'Free plan: 100 emails a day, 3,000 a month. A community email stops at the daily cap.',
+  ses: 'No daily cap once AWS grants production access. Until then (sandbox) it only delivers to addresses verified in SES, 200 a day: switch only after AWS approves.',
+};
 
 const Action = z.discriminatedUnion('intent', [
   z.object({
@@ -30,6 +39,7 @@ const Action = z.discriminatedUnion('intent', [
     provider: z.enum(['resend', 'ses']),
   }),
   z.object({ intent: z.literal('unsuppress'), email: z.email() }),
+  z.object({ intent: z.literal('provider'), provider: z.enum(['resend', 'ses']) }),
 ]);
 
 let notice = '';
@@ -63,6 +73,17 @@ if (Astro.request.method === 'POST') {
     } else if (res.ok) {
       notice = `${PROVIDER_NAMES[provider]} accepted the test for ${to}. It should arrive within a minute; if not, look in spam.`;
     } else error = `${PROVIDER_NAMES[provider]} refused the test: ${res.error ?? 'unknown error'}`;
+  } else if (parsed.data.intent === 'provider') {
+    const { provider } = parsed.data;
+    if (!providerReady(provider)) {
+      error = `${PROVIDER_NAMES[provider]} has no key yet, so it can't send. Add it first (docs/deploy.md).`;
+    } else if (provider !== current) {
+      await saveSettings({ emailProvider: provider });
+      await audit(actor, 'email-provider', 'settings', null, { provider: current }, { provider });
+      notice = `Every email now goes through ${PROVIDER_NAMES[provider]}. Send a test below to check.`;
+      current = provider;
+      testProvider = provider;
+    }
   } else {
     await unsuppress(parsed.data.email);
     await audit(actor, 'unsuppress', 'email', null, { email: parsed.data.email }, null);
@@ -111,9 +132,44 @@ const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
           </li>
         ))}
       </ul>
+      <form method="post" class="grid gap-3">
+        <input type="hidden" name="intent" value="provider" />
+        <fieldset class="grid gap-2">
+          <legend class="mb-1 text-sm font-semibold">Send every email through</legend>
+          {choosable.map((p) => (
+            <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-line p-3 has-checked:border-accent has-checked:bg-accent/5">
+              <input
+                type="radio"
+                name="provider"
+                value={p}
+                checked={p === current}
+                class="mt-1 size-4 accent-brand"
+              />
+              <span class="grid gap-0.5">
+                <span class="font-semibold">
+                  {PROVIDER_NAMES[p]}
+                  {p === current && <span class="font-normal text-muted"> (in use)</span>}
+                </span>
+                <span class="text-sm text-muted">{PROVIDER_NOTES[p]}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        <div>
+          <Button
+            type="submit"
+            variant="secondary"
+            size="sm"
+            data-confirm="Send every email of the site (registrations, reminders, community emails) through this service?"
+          >
+            Use this service
+          </Button>
+        </div>
+      </form>
       <p class="text-sm text-muted">
-        The service is chosen by EMAIL_PROVIDER in wrangler.jsonc ("resend" or "ses"); switching
-        back is the same one-line change. Steps in docs/deploy.md, "Amazon SES".
+        Switching takes effect at once and can be undone here at any time. A service shows only once
+        its key is set (docs/deploy.md, "Amazon SES"). Until a choice is saved, the site uses{' '}
+        {PROVIDER_NAMES[defaultEmailProvider()]} (EMAIL_PROVIDER in wrangler.jsonc).
       </p>
     </section>
 

@@ -27,6 +27,8 @@ type Section = keyof typeof SECTIONS;
 const sectionParam = Astro.url.searchParams.get('section') ?? 'general';
 const section: Section = sectionParam in SECTIONS ? (sectionParam as Section) : 'general';
 const actor = Astro.locals.adminEmail ?? 'admin';
+const provider = await emailProvider();
+const testSender = await usingTestSender();
 const current = await getSettings();
 
 const lines = (s: string) =>
@@ -153,13 +155,13 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
 <AdminLayout title={SECTIONS[section]} intro={INTROS[section]}>
   {testResult?.ok && (
     <Alert tone="success" class="mb-6">
-      Test sent to {notifyTo.join(', ')}. {PROVIDER_NAMES[emailProvider()]} accepted it; if it isn't
-      in the inbox within a few minutes, look in spam, then in Admin &gt; Email delivery.
+      Test sent to {notifyTo.join(', ')}. {PROVIDER_NAMES[provider]} accepted it; if it isn't in the
+      inbox within a few minutes, look in spam, then in Admin &gt; Email delivery.
     </Alert>
   )}
   {testResult && !testResult.ok && (
     <Alert tone="danger" class="mb-6">
-      The test could not be sent to {notifyTo.join(', ')}. {PROVIDER_NAMES[emailProvider()]} said:{' '}
+      The test could not be sent to {notifyTo.join(', ')}. {PROVIDER_NAMES[provider]} said:{' '}
       {testResult.error}
     </Alert>
   )}
@@ -289,7 +291,7 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
 
     {section === 'membership' && (
       <section class="admin-panel grid gap-4">
-        {usingTestSender() && (
+        {testSender && (
           <Alert tone="warning">
             Emails only reach the Resend account owner: the sender is still Resend's test address
             (onboarding@resend.dev). Verify the domain in Resend and set EMAIL_FROM to it (see

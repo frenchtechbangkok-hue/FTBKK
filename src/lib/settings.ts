@@ -65,6 +65,8 @@ export interface Settings {
   analyticsToken: string;
   /** Partner groups (Admin > Ecosystem > Partners); empty = DEFAULT_PARTNER_GROUPS. */
   partnerGroups: PartnerGroup[];
+  /** Admin > Email delivery: the service that sends every email; '' = EMAIL_PROVIDER (lib/email.ts). */
+  emailProvider: '' | 'resend' | 'ses';
   /** Contacts > Possible duplicates: pairs marked "not the same person" (see pairKey). */
   notDuplicates: string[];
 }
@@ -108,6 +110,7 @@ export const defaultSettings: Settings = {
   analyticsToken: '',
   notDuplicates: [],
   partnerGroups: [],
+  emailProvider: '',
 };
 
 export type Card = { title: string; text: string; link?: string };

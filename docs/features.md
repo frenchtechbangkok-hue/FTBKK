@@ -183,10 +183,14 @@ screen by screen for the team.
   picker that inserts published events and blog posts as cards (`{{event: slug}}`,
   `{{post: slug}}`, rendered with tables for email clients by `src/lib/email-markdown.ts`). Test
   send, duplicate guard, a warning when the audience exceeds the provider's daily cap
-  (`EMAIL_DAILY_LIMIT`, 100 on Resend Free) and the list of what was sent (`community_emails`).
-- **Email delivery** (`/admin/email-delivery`): emails go through Resend or Amazon SES
-  (`EMAIL_PROVIDER`, `src/lib/email.ts`; SES raw MIME messages signed with `aws4fetch` in
-  `src/lib/ses.ts`, sent at `SES_SEND_RATE` per second). Test send through either provider. SES
+  (`EMAIL_DAILY_LIMIT`, 100 on Resend Free; ignored while SES sends) and the list of what was sent (`community_emails`).
+- **Email delivery** (`/admin/email-delivery`): emails go through Resend or Amazon SES, picked
+  on the page under **Sending service** (settings key `emailProvider`, read by `emailProvider()` in
+  `src/lib/email.ts`; only services whose key is set are offered; `EMAIL_PROVIDER` in
+  `wrangler.jsonc` is the default until a choice is saved, and the fallback if the chosen key is
+  removed; each switch is in the Actions log). `EMAIL_DAILY_LIMIT` and `EMAIL_MONTHLY_LIMIT` only
+  apply while Resend sends. SES messages are raw MIME signed with `aws4fetch` in `src/lib/ses.ts`,
+  sent at `SES_SEND_RATE` per second. Test send through either provider. SES
   bounces and complaints arrive from SNS at `/api/ses-events?key=…` (handled in `src/worker.ts`
   before Astro), fill `email_suppressions` (migration 0040), and every send skips those
   addresses; the page lists them with a Remove button. Setup: docs/deploy.md, section 6b.

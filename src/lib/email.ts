@@ -141,7 +141,7 @@ ${details}${logos}${ticket}${choices}${button}${links}
   return { html, text };
 }
 
-// ---------- sending: Resend or Amazon SES (EMAIL_PROVIDER) ----------
+// ---------- sending: Resend or Amazon SES (Admin > Email delivery, else EMAIL_PROVIDER) ----------
 
 export type EmailProvider = 'resend' | 'ses';
 export const PROVIDER_NAMES: Record<EmailProvider, string> = {
@@ -149,8 +149,41 @@ export const PROVIDER_NAMES: Record<EmailProvider, string> = {
   ses: 'Amazon SES',
 };
 
-/** The provider every email goes through: EMAIL_PROVIDER in wrangler.jsonc, Resend by default. */
-export const emailProvider = (): EmailProvider => (env.EMAIL_PROVIDER === 'ses' ? 'ses' : 'resend');
+/** EMAIL_PROVIDER in wrangler.jsonc ("resend" by default): used until a service is chosen in the admin. */
+export const defaultEmailProvider = (): EmailProvider =>
+  env.EMAIL_PROVIDER === 'ses' ? 'ses' : 'resend';
+
+/**
+ * The provider every email goes through: the one chosen in Admin > Email delivery (settings key
+ * `emailProvider`), else EMAIL_PROVIDER. A chosen service whose key was removed falls back too.
+ */
+export async function emailProvider(): Promise<EmailProvider> {
+  let chosen: unknown = null;
+  try {
+    const row = await env.DB.prepare(
+      "SELECT value FROM settings WHERE key = 'emailProvider'",
+    ).first<{
+      value: string;
+    }>();
+    chosen = row ? JSON.parse(row.value) : null;
+  } catch {
+    // No database (tests) or table not migrated yet.
+  }
+  if ((chosen === 'resend' || chosen === 'ses') && providerReady(chosen)) return chosen;
+  return defaultEmailProvider();
+}
+
+/**
+ * The plan's caps: EMAIL_DAILY_LIMIT and EMAIL_MONTHLY_LIMIT are Resend's free plan (100 a day,
+ * 3,000 a month), so they only count while Resend sends. 0 = no cap.
+ */
+export const providerLimits = (p: EmailProvider) =>
+  p === 'resend'
+    ? {
+        daily: Number(env.EMAIL_DAILY_LIMIT ?? 0) || 0,
+        monthly: Number(env.EMAIL_MONTHLY_LIMIT ?? 0) || 0,
+      }
+    : { daily: 0, monthly: 0 };
 
 const sesConfig = (): SesConfig | null =>
   env.AWS_SES_ACCESS_KEY_ID && env.AWS_SES_SECRET_ACCESS_KEY
@@ -174,8 +207,8 @@ const sesRate = () => Number(env.SES_SEND_RATE) || 10;
  * delivers to the Resend account's own email, so members and attendees get nothing until the
  * domain is verified in Resend and EMAIL_FROM uses it.
  */
-export const usingTestSender = () =>
-  emailProvider() === 'resend' &&
+export const usingTestSender = async () =>
+  (await emailProvider()) === 'resend' &&
   !!env.RESEND_API_KEY &&
   /@resend\.dev>?\s*$/i.test(env.EMAIL_FROM ?? '');
 
@@ -228,7 +261,7 @@ async function resendSend(m: EmailMessage, to: string[]) {
 }
 
 /**
- * Sends one email (to one or a few people) through EMAIL_PROVIDER, or through `provider` for an
+ * Sends one email (to one or a few people) through emailProvider(), or through `provider` for an
  * admin's test. Addresses on the suppression list (bounced, marked as spam) are left out; when
  * nobody is left, nothing is sent and the result says so.
  */
@@ -236,7 +269,7 @@ export async function sendEmail(
   m: EmailMessage,
   opts: { provider?: EmailProvider } = {},
 ): Promise<{ ok: boolean; error?: string; suppressed?: string[] }> {
-  const provider = opts.provider ?? emailProvider();
+  const provider = opts.provider ?? (await emailProvider());
   const all = recipients(m);
   if (!all.length) return { ok: true };
   const blocked = await suppressedAmong(all);
@@ -289,7 +322,7 @@ export async function sendEmailBatch(
   };
   if (!outgoing.length) return { ok: true, sent: messages.length, suppressed: skipped };
 
-  if (emailProvider() === 'ses') {
+  if ((await emailProvider()) === 'ses') {
     const cfg = sesConfig();
     if (!cfg) return done(false, 0, 'Amazon SES has no access key (AWS_SES_ACCESS_KEY_ID).');
     const res = await sesSendMany(

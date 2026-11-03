@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers';
 import type { EmailEvent, EmailEventKind } from './email-events';
+import { providerLimits } from './email';
 
 /**
  * The email_messages table behind Reports > Emails: each provider event fills in the first time
@@ -177,8 +178,8 @@ export async function planUsage(provider: 'resend' | 'ses', now = new Date()) {
   return {
     today: Number(row?.today ?? 0),
     month: Number(row?.month ?? 0),
-    dailyLimit: Number(env.EMAIL_DAILY_LIMIT ?? 0) || 0,
-    monthlyLimit: Number(env.EMAIL_MONTHLY_LIMIT ?? 0) || 0,
+    dailyLimit: providerLimits(provider).daily,
+    monthlyLimit: providerLimits(provider).monthly,
     /** Counting started after the start of this month: the month figure is too low. */
     since: first && first > month ? first : null,
     /** When today's and this month's counts start again. */
