@@ -128,7 +128,11 @@ project files.
 **Workers plan.** Through SES each email is its own request. Workers Free allows 50 requests per
 run, so an email to more than about 40 people needs **Workers Paid** ($5/month, 10,000 per run).
 
-In the AWS console, region **Asia Pacific (Singapore) ap-southeast-1** (`AWS_REGION`):
+In the AWS console, region **Asia Pacific (Sydney) ap-southeast-2** (`AWS_REGION`). The account
+was opened from Thailand with the new AWS plans, which only allow Sydney plus us-east-1 and
+us-west-2: SES in another region (Singapore included) answers 403 "not authorized to perform
+ses:SendRawEmail" whatever the IAM policy says. Everything below (identities, production access,
+suppression list, SNS topic) is per region, so all of it lives in Sydney.
 
 1. **Domain**: SES > Configuration > Identities > Create identity > Domain (`mail.delattre.me`
    today, the French Tech mail subdomain later), Easy DKIM RSA 2048, custom MAIL FROM

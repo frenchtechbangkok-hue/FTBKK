@@ -46,10 +46,10 @@
     // AWS_SES_ACCESS_KEY_ID and AWS_SES_SECRET_ACCESS_KEY, docs/deploy.md "Amazon SES"). Switching
     // to "ses": also empty EMAIL_DAILY_LIMIT. Back to Resend at any time by setting "resend" again.
     "EMAIL_PROVIDER": "resend",
-    // Amazon SES region (Singapore) and its maximum send rate per second for bulk sends: 1 while
-    // the account is in the SES sandbox, 14 once production access is granted (SES > Account
-    // dashboard > Sending limits).
-    "AWS_REGION": "ap-southeast-1",
+    // Amazon SES region (Sydney: the AWS account only allows its home region) and its maximum send
+    // rate per second for bulk sends: 1 while the account is in the SES sandbox, 14 once
+    // production access is granted (SES > Account dashboard > Sending limits).
+    "AWS_REGION": "ap-southeast-2",
     "SES_SEND_RATE": "10",
     // SNS topic that brings SES bounces and complaints to /api/ses-events (empty = any topic, the
     // secret SES_EVENTS_KEY in the subscription URL still has to match).
