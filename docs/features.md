@@ -260,7 +260,9 @@ screen by screen for the team.
   photo gallery (with a lightbox), slides to download, the video (YouTube and Vimeo play on the
   page, cookie-free) and a card linking to the blog write-up. Past events with a recap get a
   "Recap" badge in the events list.
-- **Blog**: posts with categories, authors, images and PDF downloads. RSS at `/rss.xml`. Each
+- **Blog**: posts with categories, authors, images and PDF downloads. RSS at `/rss.xml`. Authors
+  are typed by hand or picked from the board (Board and speakers): picking fills the name, French
+  Tech role (else job title) and LinkedIn; the post page matches the name to show their photo. Each
   post has editable SEO fields (title, meta description, keywords, social image, hide from search
   engines), pre-filled with automatic values from the post (`src/lib/seo.ts`); only overrides are
   stored.

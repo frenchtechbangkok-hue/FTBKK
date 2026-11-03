@@ -90,6 +90,9 @@ The **Dashboard** greets you and says when the next event is. Then, from top to 
   file and adds it to the post's list. **Insert** places a download button at the cursor as a tag,
   `{{download: report.pdf | Download the full report}}`; the words after `|` are the button text.
 - **Authors**: one row per author (name, role, LinkedIn link); **+ Add an author** for co-authors.
+  **Pick a board member** at the top of a row fills in their name, French Tech role (or job title)
+  and LinkedIn from Board and speakers, and their photo shows on the post. Leave it on **Someone
+  else** to type any other author by hand; you can still edit the filled fields.
   A byline typed at the top of the text (By … / role / La French Tech Bangkok) moves to these rows
   when you open or save the post; the Posts list has a button to do it for every post at once.
 - A **publication date** in the future schedules the post. Empty means now.

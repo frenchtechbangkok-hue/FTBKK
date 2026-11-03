@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.103',
+    date: '2026-11-03',
+    pr: 118,
+    title: 'Pick a board member as blog author',
+    summary:
+      'In the post editor, each author row has a "Pick a board member" list that fills in their name, French Tech role and LinkedIn (with their photo), and you can still type any other author by hand.',
+  },
+  {
     version: '1.102',
     date: '2026-11-03',
     pr: 117,
