@@ -199,3 +199,53 @@ describe('member list filters', () => {
     });
   });
 });
+
+describe('renewalsIn', () => {
+  it('counts years that ended, renewals and members who lapsed and stayed out', async () => {
+    const { renewalsIn } = await import('../src/lib/member-reports');
+    const r = { from: new Date('2026-01-01T00:00:00Z'), to: new Date('2026-12-31T00:00:00Z') };
+    const at = new Date('2026-06-01T00:00:00Z');
+    const status = new Map([
+      [1, 'lapsed' as const],
+      [2, 'active' as const],
+      [3, 'active' as const],
+    ]);
+    const y = renewalsIn(
+      [
+        { memberId: 1, action: 'member_lapsed', at },
+        { memberId: 2, action: 'member_lapsed', at },
+        { memberId: 2, action: 'member_renew', at },
+        { memberId: 3, action: 'member_renew', at },
+        { memberId: 3, action: 'member_renew', at: new Date('2025-06-01T00:00:00Z') },
+      ],
+      status,
+      r,
+    );
+    expect(y).toEqual({ due: 3, renewed: 2, lapsed: 1, rate: 2 / 3 });
+  });
+});
+
+describe('memberReports joined date', () => {
+  it('uses the first joining date, not the renewal day', () => {
+    const r = memberReports(
+      [
+        {
+          email: 'r@x.io',
+          status: 'active',
+          profileType: 'founder',
+          interests: [],
+          memberSince: new Date('2024-03-01T00:00:00Z'),
+          confirmedAt: new Date('2026-09-01T00:00:00Z'),
+          createdAt: new Date('2024-03-01T00:00:00Z'),
+        },
+      ],
+      [],
+      [],
+      [],
+      { from: new Date('2026-01-01T00:00:00Z'), to: now },
+      null,
+      now,
+    );
+    expect(r.totals.newMembers).toBe(0);
+  });
+});

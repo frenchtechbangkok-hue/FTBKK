@@ -115,7 +115,18 @@ Public pages:
   the door, companies, feedback and comments), first-timers vs returning, member share, feedback
   ratings and comments, and CSV exports of what is shown (`/admin/reports/*.csv`). Figures are
   computed in memory (`src/lib/event-stats.ts`, `src/lib/member-reports.ts`); charts are
-  server-rendered SVG, no chart library.
+  server-rendered SVG, no chart library (`LineChart` draws per-event figures as columns with
+  `bars`). All four tabs share one layout: four key-figure tiles styled like the dashboard
+  (`Kpi`: change against the previous period and a sparkline), the other figures in one compact
+  **More figures** panel (`MoreFigures`), then charts, breakdowns and tables, and CSV exports
+  (`/admin/reports/{events,members,traffic,emails}.csv`). Events adds **Coming up** (the next
+  five events with seats taken against the usual for their type at the same number of days
+  before), **When people register** (days before the event, and the median), the most regular
+  attendees and the companies that come most. Membership adds the net change (joined minus lapsed
+  members who stayed out), the renewal rate (from the `member_lapsed` and `member_renew` entries
+  of the actions log), joined and lapsed per week or month, the path from attendee to member and
+  **Regulars who aren't members yet**. A member's joining date is `member_since` (renewing resets
+  `confirmed_at`, which no longer counts as a new member).
 - **Website traffic report** (`/admin/reports/traffic`, `src/lib/traffic.ts`): the third Reports
   tab reads Cloudflare's GraphQL Analytics API from the server (Cloudflare dashboards can't be
   embedded) with the Worker secret `CF_ANALYTICS_TOKEN` (Account Analytics: Read). Same period

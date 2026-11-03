@@ -7,12 +7,15 @@ import { inPeriod, periodBuckets } from './report-period';
 // the events. Pure functions over rows the page loads.
 
 export interface ReportMember {
+  id?: number;
   email: string;
   name?: string;
   status: 'pending' | 'active' | 'suspended' | 'lapsed';
   profileType: string;
   interests: string[];
   howHeard?: string | null;
+  /** First joined; confirmedAt moves to the renewal day when a member renews. */
+  memberSince?: Date | null;
   confirmedAt: Date | null;
   createdAt: Date;
   renewalDueAt?: Date | null;
@@ -25,6 +28,7 @@ export interface ReportEvent {
 }
 export interface ReportRegistration {
   eventId: number;
+  name?: string;
   email: string | null;
   status: 'registered' | 'waitlist' | 'cancelled' | 'attended';
 }
@@ -32,6 +36,13 @@ export interface ReportFeedback {
   eventId: number;
   email: string | null;
   rating: number;
+}
+
+/** A member's year ending (member_lapsed) or renewed (member_renew), from the actions log. */
+export interface ReportRenewal {
+  memberId: number;
+  action: 'member_lapsed' | 'member_renew';
+  at: Date;
 }
 
 export interface EventShare {
@@ -58,6 +69,28 @@ function tally(keys: string[], labels: Record<string, string>): [string, number]
 const ratio = (a: number, b: number) => (b > 0 ? a / b : null);
 const lower = (e: string | null | undefined) => e?.trim().toLowerCase() ?? '';
 
+/**
+ * Years that ended in a range: members who renewed (before or after their year ended) and those
+ * who lapsed and are still out. Net change = joined - lapsed and not back.
+ */
+export function renewalsIn(
+  renewals: ReportRenewal[],
+  statusOf: Map<number, ReportMember['status']>,
+  r: Range,
+) {
+  const inR = renewals.filter((x) => inPeriod(x.at, r));
+  const renewed = new Set(inR.filter((x) => x.action === 'member_renew').map((x) => x.memberId));
+  const lapsed = new Set(inR.filter((x) => x.action === 'member_lapsed').map((x) => x.memberId));
+  const due = new Set([...renewed, ...lapsed]);
+  const gone = [...lapsed].filter((id) => !renewed.has(id) && statusOf.get(id) !== 'active');
+  return {
+    due: due.size,
+    renewed: renewed.size,
+    lapsed: gone.length,
+    rate: ratio(renewed.size, due.size),
+  };
+}
+
 export function memberReports(
   members: ReportMember[],
   events: ReportEvent[],
@@ -66,12 +99,17 @@ export function memberReports(
   period: Range,
   previous: Range | null,
   now: Date,
+  renewals: ReportRenewal[] = [],
 ) {
-  // Joined = confirmed their email (pending sign-ups never became members); members the team
-  // added by hand have no confirmation date, so their creation date counts.
+  // Joined = first confirmed their email (pending sign-ups never became members); members the
+  // team added by hand have no confirmation date, so their creation date counts.
   const joined = members
     .filter((m) => m.status !== 'pending')
-    .map((m) => ({ ...m, email: lower(m.email), joinedAt: m.confirmedAt ?? m.createdAt }));
+    .map((m) => ({
+      ...m,
+      email: lower(m.email),
+      joinedAt: m.memberSince ?? m.confirmedAt ?? m.createdAt,
+    }));
   const active = joined.filter((m) => m.status === 'active');
   const newIn = (r: Range) => joined.filter((m) => inPeriod(m.joinedAt, r));
   const fresh = newIn(period);
@@ -79,10 +117,17 @@ export function memberReports(
   // New members per week/month/year of the period, and the running total.
   const { unit, buckets } = periodBuckets(period);
   let running = joined.filter((m) => m.joinedAt < (buckets[0]?.from ?? period.from)).length;
+  const lapses = renewals.filter((x) => x.action === 'member_lapsed');
   const growth = buckets.map((b) => {
     const added = joined.filter((m) => inPeriod(m.joinedAt, b)).length;
     running += added;
-    return { key: b.key, label: b.label, added, total: running };
+    return {
+      key: b.key,
+      label: b.label,
+      added,
+      total: running,
+      lapsed: lapses.filter((x) => inPeriod(x.at, b)).length,
+    };
   });
 
   // Who came to which past event: checked in, or registered where check-in wasn't used.
@@ -169,6 +214,35 @@ export function memberReports(
   }
   const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
+  // From attendee to member: people who came in the period, how many came back, how many joined.
+  const names = new Map<string, string>();
+  for (const r of regs) if (r.email && r.name?.trim()) names.set(lower(r.email), r.name.trim());
+  const visitors = [...visits.keys()];
+  const lastVisit = new Map<string, Date>();
+  for (const c of cameTo) {
+    if (!inPeriod(c.event.startsAt, period)) continue;
+    for (const e of c.emails) if (e && !lastVisit.has(e)) lastVisit.set(e, c.event.startsAt);
+  }
+  const path = {
+    came: visitors.length,
+    cameTwice: visitors.filter((e) => visits.get(e)! > 1).length,
+    members: visitors.filter((e) => activeNow.has(e)).length,
+  };
+  const notYet = visitors
+    .filter((e) => !activeNow.has(e) && visits.get(e)! > 1)
+    .map((e) => ({
+      email: e,
+      name: names.get(e) ?? e,
+      events: visits.get(e)!,
+      last: lastVisit.get(e)!,
+      lapsed: joined.some((m) => m.email === e && m.status === 'lapsed'),
+    }))
+    .sort((a, b) => b.events - a.events || b.last.getTime() - a.last.getTime());
+
+  const statusOf = new Map(members.filter((m) => m.id !== undefined).map((m) => [m.id!, m.status]));
+  const years = renewalsIn(renewals, statusOf, period);
+  const yearsBefore = previous ? renewalsIn(renewals, statusOf, previous) : null;
+
   const in30 = new Date(now.getTime() + 30 * DAY_MS);
   return {
     totals: {
@@ -189,7 +263,13 @@ export function memberReports(
       nonMemberAttendees: guestsThen.size,
       converted,
       conversion: ratio(converted, guestsThen.size),
+      years,
+      yearsBefore,
+      net: fresh.length - years.lapsed,
+      netBefore: previous && yearsBefore ? newIn(previous).length - yearsBefore.lapsed : null,
     },
+    path,
+    notYet: { count: notYet.length, rows: notYet.slice(0, 10) },
     growth: { unit, rows: growth },
     byProfile: tally(
       active.map((m) => m.profileType),

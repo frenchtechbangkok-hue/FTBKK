@@ -6,6 +6,7 @@ import ReportFilters from '../../../components/admin/ReportFilters.astro';
 import Kpi from '../../../components/admin/Kpi.astro';
 import MoreFigures from '../../../components/admin/MoreFigures.astro';
 import BarList from '../../../components/admin/BarList.astro';
+import Badge from '../../../components/Badge.astro';
 import { formatRating } from '../../../lib/feedback';
 import { formatDate } from '../../../lib/format';
 import { delta, num, pct, periodQuery } from '../../../lib/report-period';
@@ -23,11 +24,14 @@ const fb = r.feedback;
 const share = (part: number, of: number) => (of ? Math.round((part / of) * 100) : null);
 const chrono = [...r.perEvent].reverse();
 // The four figures the board asks first, then the rest in one compact panel.
+const y = t.years;
+const yb = t.yearsBefore;
+const signed = (v: number) => (v > 0 ? `+${num(v)}` : v < 0 ? `−${num(-v)}` : '0');
 const kpis = [
   {
     label: 'Active members',
     value: num(t.active),
-    hint: `Today. ${num(t.lapsed)} lapsed`,
+    hint: `Today. ${num(t.lapsed)} lapsed in all`,
     spark: r.growth.rows.map((m) => m.total),
   },
   {
@@ -38,6 +42,22 @@ const kpis = [
     spark: r.growth.rows.map((m) => m.added),
   },
   {
+    label: 'Net change',
+    value: signed(t.net),
+    delta: delta(t.net, t.netBefore),
+    hint: `${num(t.newMembers)} joined, ${num(y.lapsed)} lapsed and did not come back`,
+  },
+  {
+    label: 'Renewal rate',
+    value: pct(y.rate),
+    delta: delta(y.rate, yb?.rate ?? null, 'rate'),
+    hint: y.due
+      ? `${num(y.renewed)} of the ${num(y.due)} members whose year ended renewed`
+      : 'No membership year ended in this period',
+  },
+];
+const more = [
+  {
     label: 'Members who came to an event',
     value: pct(t.cameShare),
     hint: `${num(t.activeWhoCame)} active members came in this period; ${num(t.neverCame)} never came to any event`,
@@ -46,10 +66,7 @@ const kpis = [
     label: 'Attendees who are members',
     value: pct(r.attendeeShare.then),
     hint: `Members on the day, out of ${num(r.attendeeShare.people)} attendees (${pct(r.attendeeShare.now)} are members today)`,
-    spark: chrono.map((e) => share(e.membersThen, e.people)),
   },
-];
-const more = [
   {
     label: 'New members who knew us',
     value: pct(t.newMembers ? t.cameBefore / t.newMembers : null),
@@ -103,17 +120,22 @@ const shortDate = new Intl.DateTimeFormat('en-GB', {
 
   <div class="mb-6 grid items-start gap-6 xl:grid-cols-2">
     <LineChart
-      title={`Members, per ${r.growth.unit}`}
+      title={`Members in total, per ${r.growth.unit}`}
       labels={r.growth.rows.map((m) => m.label)}
       series={[
         { name: 'Members in total', values: r.growth.rows.map((m) => m.total), tone: 'navy' },
-        {
-          name: `New that ${r.growth.unit}`,
-          values: r.growth.rows.map((m) => m.added),
-          tone: 'brand',
-        },
       ]}
       empty="No members yet."
+    />
+    <LineChart
+      title={`Joined and lapsed, per ${r.growth.unit}`}
+      bars
+      labels={r.growth.rows.map((m) => m.label)}
+      series={[
+        { name: 'Joined', values: r.growth.rows.map((m) => m.added), tone: 'brand' },
+        { name: 'Lapsed', values: r.growth.rows.map((m) => m.lapsed), tone: 'muted' },
+      ]}
+      empty="Nobody joined or lapsed in this period."
     />
     <LineChart
       title="Share of attendees who are members, per event (%)"
@@ -122,19 +144,68 @@ const shortDate = new Intl.DateTimeFormat('en-GB', {
       ticks={chrono.map((e) => shortDate.format(e.event.startsAt))}
       series={[
         {
-          name: 'Members today',
-          values: chrono.map((e) => share(e.membersNow, e.people)),
-          tone: 'navy',
-        },
-        {
           name: 'Members on the day',
           values: chrono.map((e) => share(e.membersThen, e.people)),
           tone: 'brand',
         },
+        {
+          name: 'Members today',
+          values: chrono.map((e) => share(e.membersNow, e.people)),
+          tone: 'navy',
+        },
       ]}
       empty="No past event with attendees in this period."
     />
+    <BarList
+      title="From attendee to member"
+      hint="Named people who came to the period's events"
+      rows={[
+        ['Came to an event', r.path.came],
+        ['Came twice or more', r.path.cameTwice],
+        ['Members today', r.path.members],
+      ]}
+      tone="navy"
+      empty="No past event with attendees in this period."
+    />
   </div>
+
+  <section class="admin-panel mb-6 overflow-x-auto" aria-labelledby="not-yet-title">
+    <h2 id="not-yet-title" class="text-lg">
+      Regulars who aren't members yet
+    </h2>
+    <p class="mt-1 text-sm text-muted">
+      {r.notYet.count
+        ? `${num(r.notYet.count)} people came to two events or more of the period without being members today: good people to invite to join.`
+        : 'Everyone who came to two events or more of the period is a member.'}
+    </p>
+    {r.notYet.rows.length > 0 && (
+      <table class="admin-table mt-3">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Events</th>
+            <th>Last came</th>
+          </tr>
+        </thead>
+        <tbody>
+          {r.notYet.rows.map((p) => (
+            <tr>
+              <td>
+                <a href={`/admin/contacts/view?c=${encodeURIComponent(p.email)}`}>{p.name}</a>
+                {p.lapsed && (
+                  <Badge tone="warning" class="ml-1">
+                    lapsed
+                  </Badge>
+                )}
+              </td>
+              <td>{p.events}</td>
+              <td class="whitespace-nowrap">{formatDate(p.last)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </section>
 
   <div class="mb-6 grid gap-6 lg:grid-cols-3">
     <BarList

@@ -16,9 +16,10 @@ export const GET: APIRoute = async ({ url }) => {
         [
           r.growth.unit[0]!.toUpperCase() + r.growth.unit.slice(1),
           'New members',
+          'Lapsed',
           'Members in total',
         ],
-        ...r.growth.rows.map((g) => [g.key, g.added, g.total]),
+        ...r.growth.rows.map((g) => [g.key, g.added, g.lapsed, g.total]),
       ]
     : [
         [
