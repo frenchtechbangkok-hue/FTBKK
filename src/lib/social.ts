@@ -36,6 +36,17 @@ import {
   type ShareSpec,
 } from './share';
 
+/** Which of the two Worker values each network needs are set (shown on Admin > Social media). */
+export function networkSetup(): Record<'linkedin' | 'facebook', { id: boolean; token: boolean }> {
+  return {
+    linkedin: {
+      id: Boolean(env.LINKEDIN_ORGANIZATION_ID),
+      token: Boolean(env.LINKEDIN_ACCESS_TOKEN),
+    },
+    facebook: { id: Boolean(env.FACEBOOK_PAGE_ID), token: Boolean(env.FACEBOOK_PAGE_TOKEN) },
+  };
+}
+
 /** Networks the site can post to by itself right now. */
 export function connectedNetworks(): Record<'linkedin' | 'facebook', boolean> {
   return {

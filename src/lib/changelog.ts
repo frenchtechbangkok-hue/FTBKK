@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.105',
+    date: '2026-11-03',
+    pr: 120,
+    title: 'How to connect LinkedIn and Facebook',
+    summary:
+      'Social media posts > Connected pages now says for each network whether it is connected and what is still missing, with a "How to connect" step-by-step guide for getting the page ID and token and adding them in Cloudflare.',
+  },
+  {
     version: '1.104',
     date: '2026-11-03',
     pr: 119,

@@ -14,6 +14,7 @@ import { getSettings } from '../../../lib/settings';
 import {
   connectedNetworks,
   eventShareItem,
+  networkSetup,
   postShareItem,
   socialPostAction,
 } from '../../../lib/social';
@@ -84,6 +85,15 @@ for (const e of eventTitles)
 for (const p of postTitles)
   about.set(`post:${p.id}`, { title: p.title, href: `/admin/social/post/${p.id}` });
 const connected = connectedNetworks();
+const setup = networkSetup();
+// What still has to be added in Cloudflare for a network, in plain words.
+const missingParts = (s: { id: boolean; token: boolean }, idName: string, tokenName: string) =>
+  [!s.id && `the page ID (${idName})`, !s.token && `the token (${tokenName})`].filter(Boolean);
+const status = {
+  linkedin: missingParts(setup.linkedin, 'LINKEDIN_ORGANIZATION_ID', 'LINKEDIN_ACCESS_TOKEN'),
+  facebook: missingParts(setup.facebook, 'FACEBOOK_PAGE_ID', 'FACEBOOK_PAGE_TOKEN'),
+};
+const workerSettings = 'Workers & Pages > ft-bkk-site > Settings > Variables and Secrets';
 const missing = items.filter((i) => !i.imageUrl).length;
 ---
 
@@ -106,24 +116,139 @@ const missing = items.filter((i) => !i.imageUrl).length;
 
   <section class="admin-panel mb-6">
     <h2 class="mb-2 text-lg">Connected pages</h2>
-    <ul class="grid gap-1 text-sm">
-      <li>
-        <strong>LinkedIn:</strong>{' '}
-        {connected.linkedin
-          ? 'connected, posts go out automatically.'
-          : 'not connected. Due posts arrive by email to post by hand.'}
+    <p class="mb-3 text-sm text-muted">
+      Once a page is connected, scheduled posts go out on it by themselves. Until then they arrive
+      by email to post by hand. Connecting is done once, in Cloudflare: open "How to connect" under
+      each network.
+    </p>
+    <ul class="grid gap-4 text-sm">
+      <li data-network="linkedin">
+        <p>
+          <strong>LinkedIn:</strong>{' '}
+          {connected.linkedin ? (
+            <span class="font-semibold text-success">connected</span>
+          ) : (
+            <span class="font-semibold text-warning">not connected</span>
+          )}
+          {connected.linkedin
+            ? ', posts go out automatically.'
+            : `. Still missing: ${status.linkedin.join(' and ')}.`}
+        </p>
+        <details class="mt-1">
+          <summary class="cursor-pointer text-accent">How to connect LinkedIn</summary>
+          <ol class="mt-2 grid list-decimal gap-2 pl-5">
+            <li>
+              Go to{' '}
+              <a
+                href="https://www.linkedin.com/developers/apps"
+                rel="noopener"
+                class="text-accent underline"
+              >
+                linkedin.com/developers
+              </a>{' '}
+              and create an app linked to the La French Tech Bangkok page. A page admin has to
+              verify the link.
+            </li>
+            <li>
+              In the app's <strong>Products</strong> tab, request the{' '}
+              <strong>Community Management API</strong>. LinkedIn reviews the request; it can take a
+              few days.
+            </li>
+            <li>
+              Once granted, open <strong>Auth &gt; OAuth 2.0 tools</strong>, create a token with the{' '}
+              <code>w_organization_social</code> scope while signed in as a page admin, and copy it.
+            </li>
+            <li>
+              Find the page's number: open the page as admin, the address is{' '}
+              <code>linkedin.com/company/&lt;number&gt;/admin</code>.
+            </li>
+            <li>
+              In the Cloudflare dashboard, open <strong>{workerSettings}</strong>, click{' '}
+              <strong>Add</strong>, choose type <strong>Secret</strong>, name{' '}
+              <code>LINKEDIN_ACCESS_TOKEN</code>, paste the token and click <strong>Deploy</strong>.
+              Secrets stay through every update of the site.
+            </li>
+            <li>
+              The page number goes in the site's settings file, not in the dashboard (the dashboard
+              value is reset by the next update): set <code>LINKEDIN_ORGANIZATION_ID</code> in{' '}
+              <code>wrangler.jsonc</code> on GitHub, or ask Claude to do it. It is live after the
+              next deploy.
+            </li>
+            <li>
+              Come back here: LinkedIn shows <strong>connected</strong>. The token lasts 60 days.
+              When it expires, posts arrive by email again with a note to renew it: repeat step 3
+              and replace the secret's value (step 5).
+            </li>
+          </ol>
+        </details>
       </li>
-      <li>
-        <strong>Facebook:</strong>{' '}
-        {connected.facebook
-          ? 'connected, posts go out automatically.'
-          : 'not connected. Due posts arrive by email to post by hand.'}
+      <li data-network="facebook">
+        <p>
+          <strong>Facebook:</strong>{' '}
+          {connected.facebook ? (
+            <span class="font-semibold text-success">connected</span>
+          ) : (
+            <span class="font-semibold text-warning">not connected</span>
+          )}
+          {connected.facebook
+            ? ', posts go out automatically.'
+            : `. Still missing: ${status.facebook.join(' and ')}.`}
+        </p>
+        <details class="mt-1">
+          <summary class="cursor-pointer text-accent">How to connect Facebook</summary>
+          <ol class="mt-2 grid list-decimal gap-2 pl-5">
+            <li>
+              Go to{' '}
+              <a
+                href="https://developers.facebook.com/apps"
+                rel="noopener"
+                class="text-accent underline"
+              >
+                developers.facebook.com
+              </a>
+              , create an app of type <strong>Business</strong> and add the{' '}
+              <strong>Pages API</strong>.
+            </li>
+            <li>
+              Open the <strong>Graph API Explorer</strong>, pick the app, add the permissions{' '}
+              <code>pages_manage_posts</code> and <code>pages_read_engagement</code>, then choose
+              <strong> Get Page Access Token</strong> for La French Tech Bangkok's page.
+            </li>
+            <li>
+              Make it last: in the <strong>Access Token Debugger</strong>, click{' '}
+              <strong>Extend Access Token</strong>. A page token made from a long-lived token does
+              not expire. Copy it.
+            </li>
+            <li>
+              Find the page ID: on the Facebook page, <strong>About &gt; Page transparency</strong>,
+              or in the Graph API Explorer next to the page name.
+            </li>
+            <li>
+              In the Cloudflare dashboard, open <strong>{workerSettings}</strong>, click{' '}
+              <strong>Add</strong>, choose type <strong>Secret</strong>, name{' '}
+              <code>FACEBOOK_PAGE_TOKEN</code>, paste the token and click <strong>Deploy</strong>.
+            </li>
+            <li>
+              The page ID goes in the site's settings file: set <code>FACEBOOK_PAGE_ID</code> in{' '}
+              <code>wrangler.jsonc</code> on GitHub, or ask Claude to do it. It is live after the
+              next deploy.
+            </li>
+            <li>
+              Come back here: Facebook shows <strong>connected</strong>.
+            </li>
+          </ol>
+        </details>
       </li>
       <li>
         <strong>WhatsApp:</strong> no automatic posting to groups exists. Due posts arrive by email
         with a button that opens WhatsApp with the text.
       </li>
     </ul>
+    <p class="mt-4 text-sm text-muted">
+      Link previews on LinkedIn, Facebook and WhatsApp need the public pages to open without the
+      Cloudflare Access login (Access only on <code>/admin</code> and <code>/api/admin</code>, which
+      is the case today). Full technical steps: <code>docs/deploy.md</code>, section 7.
+    </p>
   </section>
 
   <section class="admin-panel mb-6">

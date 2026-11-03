@@ -697,6 +697,13 @@ make the missing ones for upcoming events and recent posts at once.
   for an event, the reminder the day before (09:00 by default, text). Times are Bangkok time;
   posts go out on the hour.
 
+**Connected pages** (top of Social media posts) shows, for LinkedIn and Facebook, **connected** or
+**not connected** with what is still missing in Cloudflare (the page ID, the token, or both). Under
+each network, **How to connect** opens the steps: create the app on the network's developer site,
+get the page token and the page ID, add the token in Cloudflare (Workers & Pages > ft-bkk-site >
+Settings > Variables and Secrets > Add > Secret) and set the page ID in `wrangler.jsonc`. The
+LinkedIn token lasts 60 days and has to be renewed the same way.
+
 When a post is due, LinkedIn and Facebook are posted on the pages automatically once connected
 (`docs/deploy.md`, section 7). Otherwise, and always for WhatsApp, you get an email with the text,
 the link and, for WhatsApp, a button that opens WhatsApp with the text ready. If an automatic post
