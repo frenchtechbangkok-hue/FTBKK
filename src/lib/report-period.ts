@@ -252,3 +252,6 @@ export function delta(
 }
 
 export const pct = (v: number | null) => (v === null ? '–' : `${Math.round(v * 100)}%`);
+
+/** Whole numbers the same way on every Reports tab and the dashboard: 1,234. */
+export const num = (v: number) => Math.round(v).toLocaleString('en-US');

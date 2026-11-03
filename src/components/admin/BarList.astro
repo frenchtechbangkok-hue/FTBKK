@@ -16,9 +16,9 @@ const bar = { accent: 'bg-accent', brand: 'bg-brand', navy: 'bg-navy' };
 ---
 
 <figure class="admin-panel">
-  <figcaption class="font-semibold text-navy">
+  <figcaption class="font-display text-lg font-bold text-navy">
     {title}
-    {hint && <span class="block text-xs font-normal text-muted">{hint}</span>}
+    {hint && <span class="block font-sans text-xs font-normal text-muted">{hint}</span>}
   </figcaption>
   {rows.length ? (
     <ul class="mt-4 grid gap-3">

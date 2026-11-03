@@ -16,21 +16,47 @@ interface Props {
   /** Short x-axis labels (defaults to labels). */
   ticks?: string[];
   empty?: string;
+  /**
+   * Columns instead of lines, for separate events: a line between two events suggests a trend
+   * between dates that don't exist. Dashed series stay a line drawn over the columns.
+   */
+  bars?: boolean;
+  /** A chart alone on its row: a wider drawing so its text keeps the same size. */
+  wide?: boolean;
 }
-const { title, labels, series, ticks = labels, empty = 'No data yet.' } = Astro.props;
+const {
+  title,
+  labels,
+  series,
+  ticks = labels,
+  empty = 'No data yet.',
+  bars = false,
+  wide = false,
+} = Astro.props;
 
-const W = 640;
+const W = wide ? 1280 : 640;
 const H = 240;
 const pad = { top: 16, right: 32, bottom: 36, left: 36 };
 const all = series.flatMap((s) => s.values.filter((v): v is number => v !== null));
 const hasData = all.some((v) => v > 0);
-// A round maximum so the grid lines land on whole numbers.
+// Round grid lines: about four steps of 1, 2 or 5 times a power of ten (0, 20, 40, 60, 80).
 const raw = Math.max(1, ...all);
-const step = 10 ** Math.floor(Math.log10(raw));
+const rough = raw / 4;
+const pow = 10 ** Math.floor(Math.log10(rough));
+const step = [1, 2, 5, 10].find((m) => m * pow >= rough)! * pow;
 const max = Math.ceil(raw / step) * step;
-const grid = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(max * f));
+const grid = Array.from(
+  { length: Math.round(max / step) + 1 },
+  (_, i) => Math.round(i * step * 100) / 100,
+);
 const n = labels.length;
-const x = (i: number) => pad.left + (n <= 1 ? 0.5 : i / (n - 1)) * (W - pad.left - pad.right);
+const inner = W - pad.left - pad.right;
+const band = inner / Math.max(1, n);
+const x = (i: number) =>
+  bars ? pad.left + (i + 0.5) * band : pad.left + (n <= 1 ? 0.5 : i / (n - 1)) * inner;
+const columns = bars ? series.filter((s) => !s.dashed) : [];
+const colWidth = (band * 0.72) / Math.max(1, columns.length);
+const colX = (i: number, k: number) => x(i) - (colWidth * columns.length) / 2 + k * colWidth;
 const y = (v: number) => pad.top + (1 - v / max) * (H - pad.top - pad.bottom);
 const every = Math.max(1, Math.ceil(n / 8));
 const path = (values: (number | null)[]) => {
@@ -58,11 +84,13 @@ const swatch = { brand: 'bg-brand', accent: 'bg-accent', navy: 'bg-navy', muted:
 
 <figure class="admin-panel relative">
   <figcaption class="flex flex-wrap items-baseline justify-between gap-2">
-    <span class="font-semibold text-navy">{title}</span>
+    <span class="font-display text-lg font-bold text-navy">{title}</span>
     <span class="flex flex-wrap gap-3 text-xs text-muted" aria-hidden="true">
       {series.map((s) => (
         <span class="inline-flex items-center gap-1">
-          <span class={`inline-block h-1 w-4 rounded ${swatch[s.tone]}`} />
+          <span
+            class={`inline-block w-4 rounded ${bars && !s.dashed ? 'h-2.5' : 'h-1'} ${swatch[s.tone]}`}
+          />
           {s.name}
         </span>
       ))}
@@ -97,27 +125,47 @@ const swatch = { brand: 'bg-brand', accent: 'bg-accent', navy: 'bg-navy', muted:
           </text>
         ) : null,
       )}
-      {series.map((s) => (
+      {columns.map((s, k) => (
         <g>
-          <path
-            d={path(s.values)}
-            fill="none"
-            class={stroke[s.tone]}
-            stroke-width="2.5"
-            stroke-linejoin="round"
-            stroke-linecap="round"
-            stroke-dasharray={s.dashed ? '6 5' : undefined}
-          />
-          {n <= 40 &&
-            s.values.map((v, i) =>
-              v === null ? null : (
-                <circle cx={x(i)} cy={y(v)} r="3.5" class={fill[s.tone]}>
-                  <title>{`${labels[i]}: ${v} ${s.name.toLowerCase()}`}</title>
-                </circle>
-              ),
-            )}
+          {s.values.map((v, i) =>
+            v === null ? null : (
+              <rect
+                x={colX(i, k) + 1}
+                y={y(v)}
+                width={Math.max(1, colWidth - 2)}
+                height={Math.max(0, y(0) - y(v))}
+                rx="2"
+                class={fill[s.tone]}
+              >
+                <title>{`${labels[i]}: ${v} ${s.name.toLowerCase()}`}</title>
+              </rect>
+            ),
+          )}
         </g>
       ))}
+      {series
+        .filter((s) => !columns.includes(s))
+        .map((s) => (
+          <g>
+            <path
+              d={path(s.values)}
+              fill="none"
+              class={stroke[s.tone]}
+              stroke-width="2.5"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+              stroke-dasharray={s.dashed ? '6 5' : undefined}
+            />
+            {n <= 40 &&
+              s.values.map((v, i) =>
+                v === null ? null : (
+                  <circle cx={x(i)} cy={y(v)} r="3.5" class={fill[s.tone]}>
+                    <title>{`${labels[i]}: ${v} ${s.name.toLowerCase()}`}</title>
+                  </circle>
+                ),
+              )}
+          </g>
+        ))}
     </svg>
   ) : (
     <p class="mt-6 mb-4 text-sm text-muted">{empty}</p>

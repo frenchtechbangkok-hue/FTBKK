@@ -1,0 +1,48 @@
+---
+import type { Delta } from '../../lib/report-period';
+
+// Reports: the figures after the four main ones, in one compact panel instead of a wall of tiles.
+interface Figure {
+  label: string;
+  value: string;
+  hint?: string | undefined;
+  delta?: Delta | null | undefined;
+}
+interface Props {
+  figures: Figure[];
+  /** What the changes compare with; defaults to "vs previous period". */
+  versus?: string | undefined;
+  title?: string;
+}
+const { figures, versus = 'vs previous period', title = 'More figures' } = Astro.props;
+const tone = { good: 'text-success', bad: 'text-danger', flat: 'text-muted' };
+const id = `more-${title.toLowerCase().replace(/[^a-z]+/g, '-')}`;
+---
+
+{figures.length > 0 && (
+  <section class="admin-panel mb-6" aria-labelledby={id}>
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <h2 id={id} class="text-lg">
+        {title}
+      </h2>
+      {figures.some((f) => f.delta) && <p class="text-xs text-muted">Changes {versus}</p>}
+    </div>
+    <dl class="mt-4 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-line pt-4 lg:grid-cols-4">
+      {figures.map((f) => (
+        <div>
+          <dt class="text-sm text-muted">{f.label}</dt>
+          <dd class="mt-0.5">
+            <span class="font-display text-xl font-bold text-navy">{f.value}</span>
+            {f.delta && (
+              <span class={`ml-1 text-sm ${tone[f.delta.tone]}`}>
+                {f.delta.text}
+                <span class="sr-only"> {versus}</span>
+              </span>
+            )}
+            {f.hint && <span class="mt-0.5 block text-xs text-muted">{f.hint}</span>}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+)}
