@@ -17,6 +17,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply ftbkk --remote",
     "capture": "tsx migration/capture.ts",
     "deploy:ci": "wrangler deploy && wrangler d1 migrations apply ftbkk --remote",
+    "upload:ci": "tsx scripts/upload-ci.ts",
     "import": "tsx scripts/import.ts",
     "import:guests": "tsx scripts/import-guests.ts",
     "check:redirects": "tsx scripts/check-redirects.ts"

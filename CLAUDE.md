@@ -57,7 +57,11 @@ npm run check:redirects -- <url>  # every old Wix URL must end on a 200
 The GitHub repo is connected to Workers Builds. Dashboard settings (Worker > Settings > Build):
 
 - Build command: `npm run build`
-- Deploy command: `npm run deploy:ci` (deploys, then applies D1 migrations remotely)
+- Deploy command: `npm run upload:ci` (applies D1 migrations remotely, then uploads a new version
+  with the preview alias `dev`; it goes live only when promoted in the dashboard > Deployments,
+  docs/deploy.md "Validate, then promote"). New migrations must only add tables and columns: the
+  live, older version runs on the migrated database until promotion. A drop or rename needs a
+  `-- safe-for-live-version: <why>` line (checked by `upload:ci` and `npm test`).
 - Non-production branch deploy command: `npx wrangler versions upload` (preview URL per branch;
   previews share the production D1 and migrations are only applied from `main`)
 - Root directory: `/`

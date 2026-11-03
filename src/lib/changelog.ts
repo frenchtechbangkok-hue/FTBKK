@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.106',
+    date: '2026-11-03',
+    pr: 121,
+    title: 'Test a new version before it goes live',
+    summary:
+      'Changes merged on GitHub no longer go live by themselves: each one first opens on a test address (dev-ft-bkk-site.edelattre.workers.dev), and goes live when it is promoted in Cloudflare > ft-bkk-site > Deployments, where an earlier version can also be put back in one click.',
+  },
+  {
     version: '1.105',
     date: '2026-11-03',
     pr: 120,

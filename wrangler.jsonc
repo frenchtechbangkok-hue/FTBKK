@@ -10,6 +10,11 @@
     "binding": "ASSETS",
   },
   "observability": { "enabled": true },
+  // The live site is on workers.dev until the domain moves. Preview URLs give each uploaded version
+  // its own address; production builds upload versions that are promoted by hand in Cloudflare
+  // (docs/deploy.md, "Validate, then promote").
+  "workers_dev": true,
+  "preview_urls": true,
   "d1_databases": [
     {
       "binding": "DB",

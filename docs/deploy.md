@@ -19,29 +19,85 @@ Set the build command on **both** tabs, Production and Previews Base.
 | Setting                              | Value                          |
 | ------------------------------------ | ------------------------------ |
 | Build command                        | `npm run build`                |
-| Deploy command                       | `npm run deploy:ci`            |
+| Deploy command                       | `npm run upload:ci`            |
 | Builds for non-production branches   | on                             |
 | Non-production branch deploy command | `npx wrangler versions upload` |
 | Root directory                       | `/`                            |
 
 Do not use `npx wrangler preview`: it needs a separate `previews` config and skips the build.
 
-Merging to `main` deploys to production and then applies the D1 migrations (`deploy:ci`). The
-first deploy creates the `ftbkk` D1 database automatically (the R2 bucket comes from step 1).
-Other branches upload a preview version with its own URL (shown on the PR check). Previews share
-the production database, and migrations only run from `main`.
+A merge to `main` no longer goes live by itself. It applies the D1 migrations, then uploads the
+build as a new **version** with a test address; you check it there and make it live in Cloudflare
+when you are happy (next section). The first build creates the `ftbkk` D1 database automatically
+(the R2 bucket comes from step 1). Other branches upload a version too, with their own test address
+shown on the PR check, but never run migrations: a branch that adds a migration fails on its own
+address (`no such column`) until it is merged, so test such changes on the `dev-…` address.
 
-A branch that adds migrations (new tables or columns) therefore fails on its preview URL with
-errors such as `no such column`, and right after the merge production serves the new code for a
-few seconds before the migrations finish. When the new migrations only add tables and columns
-(the old code ignores them), apply them before merging, from your computer on the branch:
+`npm run deploy:ci` (deploy straight to production, then migrate) is the old command, kept in case
+you want to go back: put it back as the Deploy command and every merge is live again.
 
-```sh
-npm run db:migrate:remote   # applies the branch's pending migrations to the production D1
-```
+## 2b. Validate, then promote
 
-The preview then works, and the merge deploy finds nothing left to apply. Don't do this for a
-migration that drops or renames something the code on `main` still uses.
+**Where to test.** After each merge to `main` (about two minutes, the build shows on the commit in
+GitHub and in Worker > Deployments), the new version answers at
+
+    https://dev-ft-bkk-site.edelattre.workers.dev
+
+That address always follows the latest upload of `main`. Each version also has its own address,
+`https://<8 characters>-ft-bkk-site.edelattre.workers.dev`, shown in Deployments next to it. The
+live site, `https://ft-bkk-site.edelattre.workers.dev` (and the domain later), does not change.
+
+**Make it live (promote).**
+
+1. Cloudflare dashboard > Workers & Pages > **ft-bkk-site** > **Deployments**.
+2. Under **Version History**, find the version: its tag is the commit's first 7 characters and its
+   message is the commit title (for a merged pull request, "Merge pull request #… from …").
+3. Click **Deploy version** (top right, or the version's **…** menu), select that version, leave
+   it at **100%**, add a message if you want (for example "1.106 OK") and **Deploy**.
+
+The live site serves it within a few seconds. Promoting a version also brings everything merged
+before it: you don't have to promote each one.
+
+To try a version on part of the visitors first, pick two versions in **Deploy version** and split
+the percentage (for example 90% old, 10% new); later deploy the new one at 100%.
+
+**Go back (roll back).** Deployments > **Active deployment**: open the menu on an earlier deployment
+and choose **Rollback**, or **Deploy version** with an older version at 100%. From a computer:
+`npx wrangler rollback` (previous version) or `npx wrangler versions deploy <version id>@100%`.
+Rolling back changes the code only: the database keeps its data and its migrations, which is why
+migrations must stay compatible (below).
+
+**What a test address shares with the live site.** Everything except the code: the same database,
+the same images, the same secrets and email service. A registration, an admin edit or an email sent
+from `dev-…` is real and reaches real people. Test with your own email address and delete test
+rows afterwards. Scheduled jobs (reminders, social media posts, the weekly backup) only run on the
+live version, never on a test address. Test addresses answer `noindex`, so search engines ignore
+them.
+
+**Admin on a test address.** `/admin` checks the Cloudflare Access login on every host. Add the
+test addresses to the same Access application, so the admin works there with the same email code:
+Zero Trust > Access > Applications > "FT Bangkok admin" > Configure > Destinations, add two entries
+with the domain `*-ft-bkk-site.edelattre.workers.dev`, path `admin` and path `api/admin`, Save
+(the AUD tag stays the same, nothing changes in the code). If the dashboard does not accept that
+wildcard, use `*.edelattre.workers.dev` with the same two paths. Without these entries the admin
+answers 403 on test addresses (it fails closed), while public pages work.
+
+**Migrations.** They run when a version is uploaded, before you promote it, so that the test address
+works with the new tables and columns. The live, older version runs on the same database meanwhile,
+so a migration must only **add** tables and columns (with a default when a column is required).
+`npm run upload:ci` refuses to run a new migration that drops or renames a table or column, unless
+it carries a line `-- safe-for-live-version: <why>`. To remove a column: first merge and promote the
+code that stops using it, then merge the migration that drops it with that line (`npm test` checks
+the same rule).
+
+**Secrets while a version waits.** Adding or changing a secret (Variables and Secrets) creates a new
+version from the latest one. If Cloudflare refuses because the latest version is not live, promote
+or roll back first, or from a computer run `npx wrangler versions secret put <NAME>` (creates a new
+version with the secret, then promote it). A var in `wrangler.jsonc` goes live with the version
+that carries it.
+
+**Cron schedule.** The hourly trigger belongs to the Worker, not to a version: a change to
+`triggers.crons` in `wrangler.jsonc` needs `npx wrangler triggers deploy` once, after promoting.
 
 ## 3. Load the content
 

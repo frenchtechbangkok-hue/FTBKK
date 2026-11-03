@@ -81,8 +81,10 @@ npm run check:redirects -- <url>  # every old Wix URL must end on a 200
 
 ## Deploy
 
-The repo is connected to Cloudflare Workers Builds: every merge to `main` builds and deploys the
-Worker, then applies D1 migrations. Other branches get a preview URL. Cloudflare setup (R2, build
+The repo is connected to Cloudflare Workers Builds: every merge to `main` applies D1 migrations
+and uploads a new Worker version, testable at `https://dev-ft-bkk-site.edelattre.workers.dev`. It
+goes live only when it is promoted in Cloudflare > ft-bkk-site > Deployments (rollback is there
+too). Migrations must only add tables and columns. Other branches get a preview URL. Cloudflare setup (R2, build
 settings, Access, Turnstile, email, social media, traffic report, backups, domain) is in
 [docs/deploy.md](docs/deploy.md).
 
