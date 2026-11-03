@@ -3,10 +3,9 @@
 // in some groups or with some tags, a list imported from a CSV file or a selection of contacts. Lines such as {{event: slug}} become cards.
 import { z } from 'zod';
 import { and, desc, eq, gte, inArray, isNotNull } from 'drizzle-orm';
-import { env } from 'cloudflare:workers';
 import { getDb } from '../db';
 import { communityEmails, events, members, posts } from '../db/schema';
-import type { EmailMessage } from './email';
+import { emailProvider, providerLimits, type EmailMessage } from './email';
 import { email as emailField, optionalUrl } from './forms';
 import { personalise } from './event-emails';
 import { loadContacts, type Contact } from './contacts';
@@ -441,11 +440,11 @@ export async function cardChoices(now = new Date()): Promise<CardChoice[]> {
 }
 
 /**
- * The provider's daily cap (EMAIL_DAILY_LIMIT; Resend's free plan: 100) and how many emails this
+ * The provider's daily cap (EMAIL_DAILY_LIMIT, Resend only; its free plan: 100) and how many emails this
  * page already sent today (UTC day, as Resend counts). 0 = no cap known.
  */
 export async function dailyAllowance(now = new Date()) {
-  const limit = Number(env.EMAIL_DAILY_LIMIT ?? 0) || 0;
+  const limit = providerLimits(await emailProvider()).daily;
   if (!limit) return { limit: 0, sentToday: 0 };
   const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const rows = await getDb()

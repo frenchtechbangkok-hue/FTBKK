@@ -132,8 +132,9 @@ Until this is done, no email is sent (confirmations, reminders and listing links
 
 Resend Free stops at 100 emails a day; one community email is about 1,200. Amazon SES costs
 $0.10 per 1,000 emails with no daily cap once production access is granted. The site sends
-through either: `EMAIL_PROVIDER` in `wrangler.jsonc` is `"resend"` (default) or `"ses"`, and going
-back is the same one-line change. Full plan, with the reasons: `ses-migration-plan.md` in the
+through either, chosen in **Admin > Email delivery > Sending service** (saved in the database,
+effective at once). Until a choice is saved there, `EMAIL_PROVIDER` in `wrangler.jsonc` decides
+(`"resend"`, the default, or `"ses"`). A service only shows once its key is set. Full plan, with the reasons: `ses-migration-plan.md` in the
 project files.
 
 **Workers plan.** Through SES each email is its own request. Workers Free allows 50 requests per
@@ -168,9 +169,12 @@ suppression list, SNS topic) is per region, so all of it lives in Sydney.
 6. **Test** in Admin > Email delivery > Send a test, choosing **Amazon SES**, while Resend still
    sends everything else. Send to `bounce@simulator.amazonses.com`: the address appears under
    "Addresses no longer emailed" within a minute.
-7. **Switch**: in `wrangler.jsonc`, `EMAIL_PROVIDER` `"ses"`, `EMAIL_DAILY_LIMIT` `""`, and
-   `SES_SEND_RATE` to the "Maximum send rate" SES shows (14 is common). Deploy. Back to Resend:
-   `EMAIL_PROVIDER` `"resend"` and `EMAIL_DAILY_LIMIT` `"100"`.
+7. **Switch** once AWS has granted production access (in the sandbox SES only delivers to
+   verified addresses, so members would get nothing): first set `SES_SEND_RATE` in
+   `wrangler.jsonc` to the "Maximum send rate" SES shows (14 is common) and deploy. Then in
+   Admin > Email delivery > Sending service, pick **Amazon SES** and press **Use this service**.
+   Back to Resend the same way. `EMAIL_DAILY_LIMIT` and `EMAIL_MONTHLY_LIMIT` (Resend's plan) are
+   ignored while SES sends, so they can stay as they are.
 
 8. **Email report with SES** (Admin > Reports > Emails): Configuration > Configuration sets >
    Create set `ft-bkk-site`. In the set, Event destinations > Add destination: event types Sends,

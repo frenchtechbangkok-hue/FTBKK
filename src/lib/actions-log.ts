@@ -443,6 +443,10 @@ export function describeAction(row: LogRow, names: LogNames = emptyNames()): Des
       case 'settings':
         if (action === 'update') return P('Changed site settings');
         if (action === 'partner_groups') return P('Edited the partner groups');
+        if (action === 'email-provider')
+          return P(
+            `Switched email sending to ${str(a.provider) === 'ses' ? 'Amazon SES' : 'Resend'}`,
+          );
         if (action === 'test-email')
           return P(`Sent a test email to ${str(a.to)}`, a.ok === false ? ' (it failed)' : '');
         if (action === 'test-notify')

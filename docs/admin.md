@@ -747,7 +747,14 @@ event's page) is written each time, so it is only listed. Every save and reset i
 ## Email delivery
 
 **Settings > Email delivery** shows which service sends the site's emails (Resend
-or Amazon SES, set by `EMAIL_PROVIDER` in `wrangler.jsonc`) and whether each one has its key.
+or Amazon SES) and whether each one has its key.
+
+- **Sending service**: pick Resend or Amazon SES and press **Use this service**. It applies at
+  once to every email (registrations, reminders, Email the community) and can be switched back
+  the same way; the switch is in the Actions log. Only a service whose key is set is offered.
+  Switch to Amazon SES only once AWS has granted production access: in its sandbox it only
+  delivers to addresses verified in SES, so members would get nothing. Resend's daily cap (100)
+  stops counting while SES sends.
 
 - **Send a test** emails any address through the service you pick, so Amazon SES can be tried
   before the switch while Resend keeps sending everything else. While SES is in its sandbox, it

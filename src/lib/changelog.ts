@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.99',
+    date: '2026-11-03',
+    pr: 114,
+    title: 'Choose the email service in the admin',
+    summary:
+      'Settings > Email delivery now has a Resend or Amazon SES choice with a "Use this service" button, so switching who sends the emails no longer needs a code change, and Resend\'s daily cap stops applying while Amazon SES sends.',
+  },
+  {
     version: '1.98',
     date: '2026-11-03',
     pr: 113,

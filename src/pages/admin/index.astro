@@ -29,6 +29,7 @@ import {
 
 const db = getDb();
 const now = new Date();
+const testSender = await usingTestSender();
 const [
   queue,
   upcoming,
@@ -83,7 +84,9 @@ const [
   loadWeek(now),
   loadActivity(6),
   // Before migration 0041 runs (a preview sharing the production database) there is no count.
-  planUsage(emailProvider(), now).catch(() => null),
+  emailProvider()
+    .then((p) => planUsage(p, now))
+    .catch(() => null),
   adminFirstName(Astro.locals.adminEmail),
 ]);
 
@@ -158,7 +161,7 @@ const changeTone = { up: 'text-success', down: 'text-danger', same: 'text-muted'
 ---
 
 <AdminLayout title="Dashboard" heading={heading} intro={intro}>
-  {usingTestSender() && (
+  {testSender && (
     <Alert tone="warning" class="mb-4">
       Emails only reach the Resend account owner: the sender is still Resend's test address
       (onboarding@resend.dev). Members and attendees get no email until the domain is verified in
