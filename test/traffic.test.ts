@@ -108,27 +108,36 @@ describe('loadTraffic', () => {
   const account = (data: Record<string, unknown>) =>
     json({ data: { viewer: { accounts: [data] } } });
 
-  function fakeCloudflare(opts: { vitalsError?: boolean } = {}) {
+  function fakeCloudflare(opts: { vitalsError?: boolean; noSiteList?: boolean } = {}) {
     const calls: string[] = [];
     const fetcher = (async (url: string, init?: RequestInit) => {
       calls.push(String(url));
       if (String(url).endsWith('/accounts?per_page=50'))
         return json({ success: true, result: [{ id: 'acc', name: 'FT' }] });
       if (String(url).includes('/rum/site_info/list'))
-        return json({
-          success: true,
-          result: [
-            { site_tag: 'other', site_token: 'x', host: 'other.com' },
-            { site_tag: 'tag', site_token: 'beacon', host: 'example.com' },
-          ],
-        });
+        if (opts.noSiteList)
+          return json({ success: false, errors: [{ message: 'Authentication error' }] }, 403);
+        else
+          return json({
+            success: true,
+            result: [
+              { site_tag: 'other', site_token: 'x', host: 'other.com' },
+              { site_tag: 'tag', site_token: 'beacon', host: 'example.com' },
+            ],
+          });
       const { query, variables } = JSON.parse(String(init!.body)) as {
         query: string;
         variables: Record<string, string>;
       };
       if (query.includes('query Limits')) return json({ errors: [{ message: 'no settings' }] });
       if (query.includes('query Pageloads')) {
-        expect(variables).toMatchObject({ account: 'acc', site: 'tag' });
+        if (opts.noSiteList) {
+          expect(variables).toMatchObject({ account: 'acc', site: 'example.com' });
+          expect(query).toContain('{ requestHost: $site }');
+        } else {
+          expect(variables).toMatchObject({ account: 'acc', site: 'tag' });
+          expect(query).toContain('{ siteTag: $site }');
+        }
         return account({
           total: [{ count: 300, sum: { visits: 120 } }],
           days: [
@@ -188,7 +197,7 @@ describe('loadTraffic', () => {
     const { fetcher } = fakeCloudflare();
     const r = await loadTraffic(cfg, period, now, fetcher);
     expect(r.accountId).toBe('acc');
-    expect(r.siteTag).toBe('tag');
+    expect(r.siteFilter).toEqual({ field: 'siteTag', value: 'tag' });
     const p = r.pageloads.data!;
     expect(p.visits).toBe(120);
     expect(p.pageViews).toBe(300);
@@ -209,6 +218,15 @@ describe('loadTraffic', () => {
     const r = await loadTraffic(cfg, period, now, fetcher);
     expect(r.vitals.error).toBe('unknown field');
     expect(r.pageloads.data!.visits).toBe(120);
+  });
+
+  it("filters on the website's host when the token can't list sites", async () => {
+    const { fetcher } = fakeCloudflare({ noSiteList: true });
+    const r = await loadTraffic(cfg, period, now, fetcher);
+    expect(r.siteFilter).toEqual({ field: 'requestHost', value: 'example.com' });
+    expect(r.pageloads.error).toBeNull();
+    expect(r.pageloads.data!.visits).toBe(120);
+    expect(r.vitals.data!.lcp.p75).toBe(2100);
   });
 
   it('skips lookups when the account and site are set', async () => {

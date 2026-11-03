@@ -116,9 +116,10 @@ Public pages:
   chart per week or month, most viewed pages, referrers, countries, devices and browsers (Web
   Analytics beacon, on while Settings has its token), Core Web Vitals for real visitors (LCP, INP,
   CLS at the 75th percentile with the share of good page views, as in Observatory), and the
-  requests and errors the Worker served. The account and the Web Analytics site are found from
-  the token (or set `CF_ACCOUNT_ID` and `CF_WEB_ANALYTICS_SITE_TAG` in `wrangler.jsonc`); long
-  periods are split into the spans Cloudflare allows and clamped to what it keeps (about six
+  requests and errors the Worker served. The account is found from the token
+  (or `CF_ACCOUNT_ID`) and the figures are those of the `SITE_URL` host (or of the Web Analytics
+  site `CF_WEB_ANALYTICS_SITE_TAG`, or the one whose beacon token is in Settings when the token may
+  list sites); long periods are split into the spans Cloudflare allows and clamped to what it keeps (about six
   months of visits, three of Worker requests). Each part loads on its own and shows its error.
 - **Member admin and reports**: Members > All members filters on status, profile,
   sector, joined dates, events attended, no-show rate and newsletter, and exports the filtered

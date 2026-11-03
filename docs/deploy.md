@@ -170,14 +170,14 @@ Admin > Reports > Website traffic reads Cloudflare's analytics with an API token
 3. Add it to the Worker: Workers & Pages > ft-bkk-site > Settings > Variables and Secrets > Add >
    type **Secret**, name `CF_ANALYTICS_TOKEN`, paste, Deploy (or
    `npx wrangler secret put CF_ANALYTICS_TOKEN`). Secrets survive deploys.
-4. Open Admin > Reports > Website traffic. The page finds the account and the Web Analytics site
-   by itself. If it says the token reads several accounts, or that no site matches, put the
-   account ID (dashboard address bar: `dash.cloudflare.com/<account id>/…`) in `CF_ACCOUNT_ID`
-   and the site tag (Web Analytics > the site: the address ends with `siteTag~in=<tag>`) in
-   `CF_WEB_ANALYTICS_SITE_TAG` in `wrangler.jsonc`, and deploy.
+4. Open Admin > Reports > Website traffic. The page finds the account by itself, and reads the
+   page views of the website's host (`SITE_URL`). Only if it says the token reads several
+   accounts, put the account ID (dashboard address bar: `dash.cloudflare.com/<account id>/…`) in
+   `CF_ACCOUNT_ID` in `wrangler.jsonc` and deploy. `CF_WEB_ANALYTICS_SITE_TAG` (Web Analytics >
+   the site: the address ends with `siteTag~in=<tag>`) is optional: it limits the figures to one
+   Web Analytics site.
 
-When the domain moves to Cloudflare, add the new host as a Web Analytics site too (or switch the
-existing one); the report keeps reading the site whose token is in Settings.
+When the domain moves, change `SITE_URL` as planned: the report follows the new host.
 
 ## Backups and restore
 

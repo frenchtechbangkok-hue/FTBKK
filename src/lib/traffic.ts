@@ -181,8 +181,9 @@ async function resolve(cfg: TrafficConfig, fetcher: Fetcher) {
       );
     accountId = accounts[0]!.id;
   }
+  // The token may not be allowed to list Web Analytics sites (that needs another permission):
+  // then the figures are filtered on the website's host, which needs nothing more.
   let siteTag = cfg.siteTag;
-  let siteError: string | null = null;
   if (!siteTag) {
     try {
       const sites = await rest(
@@ -193,18 +194,22 @@ async function resolve(cfg: TrafficConfig, fetcher: Fetcher) {
       );
       const site =
         sites.find((s) => cfg.beaconToken && s.site_token === cfg.beaconToken) ??
-        sites.find((s) => s.host === cfg.host) ??
-        (sites.length === 1 ? sites[0] : undefined);
+        sites.find((s) => s.host === cfg.host);
       if (site) siteTag = site.site_tag;
-      else
-        siteError = sites.length
-          ? 'No Web Analytics site matches this website: set CF_WEB_ANALYTICS_SITE_TAG.'
-          : 'No Web Analytics site in this Cloudflare account yet.';
-    } catch (e) {
-      siteError = `Could not list the Web Analytics sites (${(e as Error).message}): set CF_WEB_ANALYTICS_SITE_TAG.`;
+    } catch {
+      // Filter on the host below.
     }
   }
-  return { accountId, siteTag, siteError };
+  const site: SiteFilter = siteTag
+    ? { field: 'siteTag', value: siteTag }
+    : { field: 'requestHost', value: cfg.host };
+  return { accountId, site };
+}
+
+/** Which Web Analytics figures to read: one site, or every page view on the website's host. */
+interface SiteFilter {
+  field: 'siteTag' | 'requestHost';
+  value: string;
 }
 
 const LimitsSchema = z.object({ maxDuration: z.number(), notOlderThan: z.number() }).nullish();
@@ -254,33 +259,39 @@ const TOPS = {
 } as const;
 type TopName = keyof typeof TOPS;
 
-const PAGELOAD = `query Pageloads($account: string!, $site: string!, $from: Time!, $to: Time!) {
+const PAGELOAD = (
+  field: SiteFilter['field'],
+) => `query Pageloads($account: string!, $site: string!, $from: Time!, $to: Time!) {
   viewer { accounts(filter: { accountTag: $account }) {
     total: rumPageloadEventsAdaptiveGroups(limit: 1, filter: { AND: [
-      { datetime_geq: $from, datetime_lt: $to }, { siteTag: $site } ] }) { count sum { visits } }
+      { datetime_geq: $from, datetime_lt: $to }, { ${field}: $site } ] }) { count sum { visits } }
     days: rumPageloadEventsAdaptiveGroups(limit: 100, orderBy: [date_ASC], filter: { AND: [
-      { datetime_geq: $from, datetime_lt: $to }, { siteTag: $site } ] }) {
+      { datetime_geq: $from, datetime_lt: $to }, { ${field}: $site } ] }) {
       count sum { visits } dimensions { date } }
     ${Object.entries(TOPS)
       .map(
         ([alias, dim]) => `${alias}: rumPageloadEventsAdaptiveGroups(limit: 50,
       orderBy: [count_DESC], filter: { AND: [
-      { datetime_geq: $from, datetime_lt: $to }, { siteTag: $site } ] }) {
+      { datetime_geq: $from, datetime_lt: $to }, { ${field}: $site } ] }) {
       count sum { visits } dimensions { key: ${dim} } }`,
       )
       .join('\n')}
   } } }`;
 
-const TOTALS = `query PageloadTotals($account: string!, $site: string!, $from: Time!, $to: Time!) {
+const TOTALS = (
+  field: SiteFilter['field'],
+) => `query PageloadTotals($account: string!, $site: string!, $from: Time!, $to: Time!) {
   viewer { accounts(filter: { accountTag: $account }) {
     total: rumPageloadEventsAdaptiveGroups(limit: 1, filter: { AND: [
-      { datetime_geq: $from, datetime_lt: $to }, { siteTag: $site } ] }) { count sum { visits } }
+      { datetime_geq: $from, datetime_lt: $to }, { ${field}: $site } ] }) { count sum { visits } }
   } } }`;
 
-const VITALS = `query WebVitals($account: string!, $site: string!, $from: Time!, $to: Time!) {
+const VITALS = (
+  field: SiteFilter['field'],
+) => `query WebVitals($account: string!, $site: string!, $from: Time!, $to: Time!) {
   viewer { accounts(filter: { accountTag: $account }) {
     vitals: rumWebVitalsEventsAdaptiveGroups(limit: 1, filter: { AND: [
-      { datetime_geq: $from, datetime_lt: $to }, { siteTag: $site } ] }) {
+      { datetime_geq: $from, datetime_lt: $to }, { ${field}: $site } ] }) {
       count
       sum { lcpTotal lcpGood lcpNeedsImprovement lcpPoor inpTotal inpGood inpNeedsImprovement
         inpPoor clsTotal clsGood clsNeedsImprovement clsPoor }
@@ -325,7 +336,8 @@ export interface WorkerStats {
 export interface TrafficReport {
   configured: true;
   accountId: string;
-  siteTag: string;
+  /** Web Analytics site, or the host when the token can't list sites. */
+  siteFilter: SiteFilter;
   buckets: Bucket[];
   unit: string;
   pageloads: Section<Pageloads>;
@@ -358,61 +370,57 @@ export async function loadTraffic(
   now = new Date(),
   fetcher: Fetcher = fetch,
 ): Promise<TrafficReport> {
-  const { accountId, siteTag, siteError } = await resolve(cfg, fetcher);
+  const { accountId, site: siteFilter } = await resolve(cfg, fetcher);
   const full = { ...cfg, accountId };
   const limits = await datasetLimits(full, fetcher);
   const { unit, buckets } = periodBuckets(period);
-  const site = { site: siteTag };
+  const site = { site: siteFilter.value };
   const pieces = (r: Range, d: Dataset) => splitRange(r, limits[d].maxDuration);
   const rum = clampRange(period, limits.rumPageloadEventsAdaptiveGroups, now);
 
-  const pageloads = section(
-    rum,
-    async (r) => {
-      const parts = await Promise.all(
-        pieces(r, 'rumPageloadEventsAdaptiveGroups').map((p) =>
-          graphql(full, PAGELOAD, { ...site, ...span(p) }, fetcher),
+  const pageloads = section(rum, async (r) => {
+    const parts = await Promise.all(
+      pieces(r, 'rumPageloadEventsAdaptiveGroups').map((p) =>
+        graphql(full, PAGELOAD(siteFilter.field), { ...site, ...span(p) }, fetcher),
+      ),
+    );
+    const visitsByDay = new Map<string, number>();
+    const viewsByDay = new Map<string, number>();
+    let visits = 0;
+    let pageViews = 0;
+    for (const a of parts) {
+      const t = groups(a, 'total')[0];
+      visits += t?.sum?.visits ?? 0;
+      pageViews += t?.count ?? 0;
+      for (const g of groups(a, 'days')) {
+        const d = dimKey(g, 'date');
+        visitsByDay.set(d, (visitsByDay.get(d) ?? 0) + (g.sum?.visits ?? 0));
+        viewsByDay.set(d, (viewsByDay.get(d) ?? 0) + (g.count ?? 0));
+      }
+    }
+    const top = (name: TopName, label: (k: string) => string) =>
+      mergeTop(
+        parts.map((a) =>
+          groups(a, name).map((g): [string, number] => [
+            label(dimKey(g, 'key')),
+            name === 'pages' ? (g.count ?? 0) : (g.sum?.visits ?? 0),
+          ]),
         ),
       );
-      const visitsByDay = new Map<string, number>();
-      const viewsByDay = new Map<string, number>();
-      let visits = 0;
-      let pageViews = 0;
-      for (const a of parts) {
-        const t = groups(a, 'total')[0];
-        visits += t?.sum?.visits ?? 0;
-        pageViews += t?.count ?? 0;
-        for (const g of groups(a, 'days')) {
-          const d = dimKey(g, 'date');
-          visitsByDay.set(d, (visitsByDay.get(d) ?? 0) + (g.sum?.visits ?? 0));
-          viewsByDay.set(d, (viewsByDay.get(d) ?? 0) + (g.count ?? 0));
-        }
-      }
-      const top = (name: TopName, label: (k: string) => string) =>
-        mergeTop(
-          parts.map((a) =>
-            groups(a, name).map((g): [string, number] => [
-              label(dimKey(g, 'key')),
-              name === 'pages' ? (g.count ?? 0) : (g.sum?.visits ?? 0),
-            ]),
-          ),
-        );
-      return {
-        visits,
-        pageViews,
-        visitsSeries: bucketDaily(visitsByDay, buckets),
-        viewsSeries: bucketDaily(viewsByDay, buckets),
-        tops: {
-          pages: top('pages', (k) => k || '/'),
-          referrers: top('referrers', (k) => k.replace(/^www\./, '') || 'Direct or unknown'),
-          countries: top('countries', (k) => k || 'Unknown'),
-          devices: top('devices', (k) => (k ? k[0]!.toUpperCase() + k.slice(1) : 'Unknown')),
-          browsers: top('browsers', (k) => k || 'Unknown'),
-        },
-      };
-    },
-    siteError,
-  );
+    return {
+      visits,
+      pageViews,
+      visitsSeries: bucketDaily(visitsByDay, buckets),
+      viewsSeries: bucketDaily(viewsByDay, buckets),
+      tops: {
+        pages: top('pages', (k) => k || '/'),
+        referrers: top('referrers', (k) => k.replace(/^www\./, '') || 'Direct or unknown'),
+        countries: top('countries', (k) => k || 'Unknown'),
+        devices: top('devices', (k) => (k ? k[0]!.toUpperCase() + k.slice(1) : 'Unknown')),
+        browsers: top('browsers', (k) => k || 'Unknown'),
+      },
+    };
+  });
 
   // The previous period's totals, for the changes on the key figures, when Cloudflare still has it.
   const prevRange = period.previous
@@ -420,11 +428,11 @@ export async function loadTraffic(
     : null;
   type Totals = { visits: number; pageViews: number };
   const previous: Promise<Totals | null> =
-    siteError || !prevRange || prevRange.from.getTime() !== period.previous!.from.getTime()
+    !prevRange || prevRange.from.getTime() !== period.previous!.from.getTime()
       ? Promise.resolve(null)
       : Promise.all(
           pieces(prevRange, 'rumPageloadEventsAdaptiveGroups').map((p) =>
-            graphql(full, TOTALS, { ...site, ...span(p) }, fetcher),
+            graphql(full, TOTALS(siteFilter.field), { ...site, ...span(p) }, fetcher),
           ),
         )
           .then((parts) =>
@@ -446,7 +454,7 @@ export async function loadTraffic(
     async (r) => {
       const parts = await Promise.all(
         pieces(r, 'rumWebVitalsEventsAdaptiveGroups').map((p) =>
-          graphql(full, VITALS, { ...site, ...span(p) }, fetcher),
+          graphql(full, VITALS(siteFilter.field), { ...site, ...span(p) }, fetcher),
         ),
       );
       const rows = parts.flatMap((a) => groups(a, 'vitals'));
@@ -476,7 +484,6 @@ export async function loadTraffic(
       };
       return { lcp: one('lcp'), inp: one('inp'), cls: one('cls') };
     },
-    siteError,
   );
 
   const worker = section(clampRange(period, limits.workersInvocationsAdaptive, now), async (r) => {
@@ -501,7 +508,7 @@ export async function loadTraffic(
   return {
     configured: true,
     accountId,
-    siteTag,
+    siteFilter,
     unit,
     buckets,
     pageloads: await pageloads,
