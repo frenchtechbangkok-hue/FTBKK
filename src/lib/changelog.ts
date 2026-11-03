@@ -21,7 +21,7 @@ export const RELEASES: Release[] = [
   {
     version: '1.92',
     date: '2026-11-03',
-    pr: 105,
+    pr: 107,
     title: 'Easier Actions log',
     summary:
       'Each line of the Actions log is now a plain sentence with links, grouped by day, with who did it, an area label, the changed fields in words, and filters by area and by person.',
