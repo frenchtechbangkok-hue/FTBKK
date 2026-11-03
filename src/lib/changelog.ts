@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.98',
+    date: '2026-11-03',
+    pr: 113,
+    title: 'Simpler README',
+    summary:
+      'The project page on GitHub is short and clear again: what the site and the admin do, how to run and deploy it, with the full detail moved to a separate features page.',
+  },
+  {
     version: '1.97',
     date: '2026-11-03',
     pr: 112,
