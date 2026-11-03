@@ -496,7 +496,9 @@ enrolment at check-in.
   so). Visits are only counted while Settings > General > Cloudflare Web Analytics token is
   filled in, and the tab needs the Cloudflare connection once (see docs/deploy.md); until then it
   explains what to do.
-- **Emails**: what happened to the emails the site sent (confirmations, reminders, community
+- **Emails**: on top, **plan usage**: how many emails went out today and this month against
+  Resend's free plan (100 a day, 3,000 a month), with what is left and when it resets; the bar
+  turns orange at 80% and red at the cap, when Resend refuses further emails. Below, what happened to the emails the site sent (confirmations, reminders, community
   emails, team notifications): how many went out, the share delivered, opened and clicked, the
   share that bounced and how many people marked one as spam, with the change against the period
   before, a chart per week or month, and a table per subject, so you can compare one community

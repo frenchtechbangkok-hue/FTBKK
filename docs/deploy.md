@@ -116,6 +116,8 @@ Until this is done, no email is sent (confirmations, reminders and listing links
 6. `EMAIL_DAILY_LIMIT` in `wrangler.jsonc` is the provider's daily cap (100 on Resend Free).
    Email the community warns when an audience is bigger than what is left today. Set it to the
    new plan's cap after an upgrade, or to `""` when there is none (Amazon SES in production).
+   `EMAIL_MONTHLY_LIMIT` (3000 on Resend Free) is the monthly cap shown in Reports > Emails; same
+   rule.
 
 7. **Email report** (Admin > Reports > Emails). Resend has no statistics API, so it tells the
    site about each email through a webhook. In Resend > Webhooks > Add webhook: Endpoint URL
