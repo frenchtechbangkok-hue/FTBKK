@@ -1,0 +1,205 @@
+---
+import { env } from 'cloudflare:workers';
+import { z } from 'zod';
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Alert from '../../components/Alert.astro';
+import Button from '../../components/Button.astro';
+import FormField from '../../components/FormField.astro';
+import {
+  emailProvider,
+  PROVIDER_NAMES,
+  providerReady,
+  sendEmail,
+  type EmailProvider,
+} from '../../lib/email';
+import { listSuppressions, unsuppress } from '../../lib/email-suppressions';
+import { audit, siteUrl } from '../../lib/orgs';
+import { formatDate } from '../../lib/format';
+
+// Emails and social media > Email delivery: which service sends the site's emails, a test send
+// through either one (to try Amazon SES before switching), and the addresses no longer emailed
+// because they bounced or marked an email as spam.
+const actor = Astro.locals.adminEmail ?? 'admin';
+const current = emailProvider();
+const PROVIDERS = Object.keys(PROVIDER_NAMES) as EmailProvider[];
+
+const Action = z.discriminatedUnion('intent', [
+  z.object({
+    intent: z.literal('test'),
+    to: z.email('Enter a valid email.'),
+    provider: z.enum(['resend', 'ses']),
+  }),
+  z.object({ intent: z.literal('unsuppress'), email: z.email() }),
+]);
+
+let notice = '';
+let error = '';
+let testTo = actor.includes('@') ? actor : '';
+let testProvider: EmailProvider = current;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const parsed = Action.safeParse(Object.fromEntries(form));
+  if (!parsed.success) error = parsed.error.issues[0]?.message ?? 'Invalid request.';
+  else if (parsed.data.intent === 'test') {
+    const { to, provider } = parsed.data;
+    testTo = to;
+    testProvider = provider;
+    const res = await sendEmail(
+      {
+        to,
+        subject: `[Test] Sent through ${PROVIDER_NAMES[provider]}`,
+        paragraphs: [
+          `This is a test from Admin > Email delivery, sent through ${PROVIDER_NAMES[provider]} from ${env.EMAIL_FROM}.`,
+          `If it landed in spam, the sending domain's DNS records (SPF, DKIM, DMARC) need a look. Sent by ${actor}.`,
+        ],
+        action: { label: 'Open the admin', url: siteUrl('/admin/email-delivery') },
+      },
+      { provider },
+    ).catch((e: unknown) => ({ ok: false, error: String(e), suppressed: [] as string[] }));
+    await audit(actor, 'test-email', 'settings', null, null, { to, provider, ok: res.ok });
+    if (res.suppressed?.length) {
+      error = `${to} is on the list below (it bounced or marked an email as spam), so nothing was sent. Remove it first to test with it.`;
+    } else if (res.ok) {
+      notice = `${PROVIDER_NAMES[provider]} accepted the test for ${to}. It should arrive within a minute; if not, look in spam.`;
+    } else error = `${PROVIDER_NAMES[provider]} refused the test: ${res.error ?? 'unknown error'}`;
+  } else {
+    await unsuppress(parsed.data.email);
+    await audit(actor, 'unsuppress', 'email', null, { email: parsed.data.email }, null);
+    notice = `${parsed.data.email} gets emails again.`;
+  }
+}
+
+const blocked = await listSuppressions();
+const eventsUrl = env.SES_EVENTS_KEY
+  ? siteUrl(`/api/ses-events?key=${encodeURIComponent(env.SES_EVENTS_KEY)}`)
+  : '';
+const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
+---
+
+<AdminLayout title="Email delivery">
+  {notice && (
+    <Alert tone="success" class="mb-6">
+      {notice}
+    </Alert>
+  )}
+  {error && (
+    <Alert tone="danger" class="mb-6">
+      {error}
+    </Alert>
+  )}
+  <p class="mb-6 max-w-3xl text-sm text-muted">
+    Which service sends the site's emails, a test through either one, and the addresses the site no
+    longer emails.
+  </p>
+
+  <div class="grid max-w-3xl gap-6">
+    <section class="admin-panel grid gap-3">
+      <h2 class="text-lg">Sending service</h2>
+      <p>
+        Emails go through <strong>{PROVIDER_NAMES[current]}</strong>, from {env.EMAIL_FROM}.
+      </p>
+      <ul class="grid gap-1 text-sm">
+        {PROVIDERS.map((p) => (
+          <li>
+            {PROVIDER_NAMES[p]}:{' '}
+            {providerReady(p) ? (
+              <span class="text-success">key set</span>
+            ) : (
+              <span class="text-muted">no key</span>
+            )}
+            {p === current && ' (in use)'}
+          </li>
+        ))}
+      </ul>
+      <p class="text-sm text-muted">
+        The service is chosen by EMAIL_PROVIDER in wrangler.jsonc ("resend" or "ses"); switching
+        back is the same one-line change. Steps in docs/deploy.md, "Amazon SES".
+      </p>
+    </section>
+
+    <section class="admin-panel">
+      <h2 class="mb-3 text-lg">Send a test</h2>
+      <form method="post" class="grid gap-4">
+        <input type="hidden" name="intent" value="test" />
+        <FormField name="to" label="Send to" type="email" required value={testTo} />
+        <FormField
+          name="provider"
+          label="Through"
+          value={testProvider}
+          options={PROVIDERS.map((p) => ({
+            value: p,
+            label: `${PROVIDER_NAMES[p]}${p === current ? ' (in use)' : ''}`,
+          }))}
+          hint="Try Amazon SES here before switching. While SES is in its sandbox, it only delivers to addresses verified in SES."
+        />
+        <div>
+          <Button type="submit" variant="secondary" size="sm">
+            Send the test
+          </Button>
+        </div>
+      </form>
+    </section>
+
+    <section class="admin-panel grid gap-3">
+      <h2 class="text-lg">Addresses no longer emailed ({blocked.length})</h2>
+      <p class="text-sm text-muted">
+        Amazon SES reports addresses that don't exist (bounced) and people who marked an email as
+        spam. Every email skips them, so a dead address doesn't hurt the sender's reputation again.
+        Remove one only when you know the address works again.
+      </p>
+      {blocked.length > 0 && (
+        <div class="overflow-x-auto">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Why</th>
+                <th>Since</th>
+                <th>
+                  <span class="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {blocked.map((b) => (
+                <tr>
+                  <td class="break-all">{b.email}</td>
+                  <td>
+                    {REASONS[b.reason]}
+                    {b.detail && <span class="block text-xs text-muted">{b.detail}</span>}
+                  </td>
+                  <td class="whitespace-nowrap">{formatDate(b.createdAt)}</td>
+                  <td>
+                    <form method="post">
+                      <input type="hidden" name="intent" value="unsuppress" />
+                      <input type="hidden" name="email" value={b.email} />
+                      <Button
+                        type="submit"
+                        variant="ghost"
+                        size="sm"
+                        data-confirm={`Email ${b.email} again?`}
+                      >
+                        Remove
+                      </Button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <details class="text-sm">
+        <summary class="cursor-pointer">Address for SES notifications (SNS subscription)</summary>
+        {eventsUrl ? (
+          <p class="mt-2 font-mono text-xs break-all">{eventsUrl}</p>
+        ) : (
+          <p class="mt-2 text-muted">
+            Add the secret SES_EVENTS_KEY to the Worker first (docs/deploy.md, "Amazon SES").
+          </p>
+        )}
+      </details>
+    </section>
+  </div>
+</AdminLayout>

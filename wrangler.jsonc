@@ -42,6 +42,18 @@
     // Emails the provider sends per day (Resend's free plan: 100). Email the community warns when
     // an audience is bigger than what is left today. Empty or 0 = no warning (Amazon SES).
     "EMAIL_DAILY_LIMIT": "100",
+    // Who sends the emails: "resend" (RESEND_API_KEY) or "ses" (Amazon SES: the secrets
+    // AWS_SES_ACCESS_KEY_ID and AWS_SES_SECRET_ACCESS_KEY, docs/deploy.md "Amazon SES"). Switching
+    // to "ses": also empty EMAIL_DAILY_LIMIT. Back to Resend at any time by setting "resend" again.
+    "EMAIL_PROVIDER": "resend",
+    // Amazon SES region (Singapore) and its maximum send rate per second for bulk sends: 1 while
+    // the account is in the SES sandbox, 14 once production access is granted (SES > Account
+    // dashboard > Sending limits).
+    "AWS_REGION": "ap-southeast-1",
+    "SES_SEND_RATE": "10",
+    // SNS topic that brings SES bounces and complaints to /api/ses-events (empty = any topic, the
+    // secret SES_EVENTS_KEY in the subscription URL still has to match).
+    "SES_EVENTS_TOPIC_ARN": "",
     // Social media (Admin > Social media). Empty = not connected: scheduled posts arrive by email
     // to post by hand. The page tokens are the secrets LINKEDIN_ACCESS_TOKEN and
     // FACEBOOK_PAGE_TOKEN (docs/deploy.md, "Connect LinkedIn and Facebook").

@@ -1,4 +1,6 @@
 import { env } from 'cloudflare:workers';
+import { suppressedAmong, suppressedEmails } from './email-suppressions';
+import { sesSend, sesSendMany, type MimeMessage, type SesConfig } from './ses';
 
 export interface EmailAttachment {
   filename: string;
@@ -139,23 +141,65 @@ ${details}${logos}${ticket}${choices}${button}${links}
   return { html, text };
 }
 
-/** Sends through Resend. Without RESEND_API_KEY (local dev) the email is logged instead. */
+// ---------- sending: Resend or Amazon SES (EMAIL_PROVIDER) ----------
+
+export type EmailProvider = 'resend' | 'ses';
+export const PROVIDER_NAMES: Record<EmailProvider, string> = {
+  resend: 'Resend',
+  ses: 'Amazon SES',
+};
+
+/** The provider every email goes through: EMAIL_PROVIDER in wrangler.jsonc, Resend by default. */
+export const emailProvider = (): EmailProvider => (env.EMAIL_PROVIDER === 'ses' ? 'ses' : 'resend');
+
+const sesConfig = (): SesConfig | null =>
+  env.AWS_SES_ACCESS_KEY_ID && env.AWS_SES_SECRET_ACCESS_KEY
+    ? {
+        accessKeyId: env.AWS_SES_ACCESS_KEY_ID,
+        secretAccessKey: env.AWS_SES_SECRET_ACCESS_KEY,
+        region: env.AWS_REGION || 'ap-southeast-1',
+      }
+    : null;
+
+/** Whether a provider has its key(s), so an admin can send a test through it. */
+export const providerReady = (p: EmailProvider) =>
+  p === 'ses' ? !!sesConfig() : !!env.RESEND_API_KEY;
+
+/** SES's maximum send rate (emails per second) for bulk sends; SES_SEND_RATE, default 10. */
+const sesRate = () => Number(env.SES_SEND_RATE) || 10;
+
 /**
  * True while the sender is Resend's test address (onboarding@resend.dev): Resend then only
  * delivers to the Resend account's own email, so members and attendees get nothing until the
  * domain is verified in Resend and EMAIL_FROM uses it.
  */
 export const usingTestSender = () =>
-  !!env.RESEND_API_KEY && /@resend\.dev>?\s*$/i.test(env.EMAIL_FROM ?? '');
+  emailProvider() === 'resend' &&
+  !!env.RESEND_API_KEY &&
+  /@resend\.dev>?\s*$/i.test(env.EMAIL_FROM ?? '');
 
-export async function sendEmail(m: EmailMessage): Promise<{ ok: boolean; error?: string }> {
+const recipients = (m: EmailMessage) => (Array.isArray(m.to) ? m.to : [m.to]).filter(Boolean);
+
+function toMime(m: EmailMessage, to: string[]): MimeMessage {
   const { html, text } = renderEmail(m);
-  const to = Array.isArray(m.to) ? m.to : [m.to];
-  if (!to.length) return { ok: true };
-  if (!env.RESEND_API_KEY) {
-    console.log(`[email:dev] to=${to.join(',')} subject="${m.subject}"\n${text}`);
-    return { ok: true };
-  }
+  return {
+    from: env.EMAIL_FROM,
+    to,
+    replyTo: m.replyTo,
+    subject: m.subject,
+    html,
+    text,
+    attachments: m.attachments,
+  };
+}
+
+/** Without the provider's key (local dev) the email is logged instead of sent. */
+function logOnly(m: EmailMessage, to: string[]) {
+  console.log(`[email:dev] to=${to.join(',')} subject="${m.subject}"\n${renderEmail(m).text}`);
+}
+
+async function resendSend(m: EmailMessage, to: string[]) {
+  const { html, text } = renderEmail(m);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -183,23 +227,90 @@ export async function sendEmail(m: EmailMessage): Promise<{ ok: boolean; error?:
 }
 
 /**
- * Sends many emails in as few requests as possible (Resend batch API, 100 per call), so a
- * reminder or cancellation for a full event stays well under the Worker's subrequest limit.
- * Batch sends don't support attachments; they are dropped.
+ * Sends one email (to one or a few people) through EMAIL_PROVIDER, or through `provider` for an
+ * admin's test. Addresses on the suppression list (bounced, marked as spam) are left out; when
+ * nobody is left, nothing is sent and the result says so.
  */
-export async function sendEmailBatch(messages: EmailMessage[]) {
-  if (!messages.length) return { ok: true, sent: 0 };
-  if (!env.RESEND_API_KEY) {
-    for (const m of messages) await sendEmail({ ...m, attachments: undefined });
-    return { ok: true, sent: messages.length };
+export async function sendEmail(
+  m: EmailMessage,
+  opts: { provider?: EmailProvider } = {},
+): Promise<{ ok: boolean; error?: string; suppressed?: string[] }> {
+  const provider = opts.provider ?? emailProvider();
+  const all = recipients(m);
+  if (!all.length) return { ok: true };
+  const blocked = await suppressedAmong(all);
+  const to = all.filter((e) => !blocked.has(e.trim().toLowerCase()));
+  const suppressed = all.filter((e) => blocked.has(e.trim().toLowerCase()));
+  if (!to.length) return { ok: true, suppressed };
+  if (provider === 'ses') {
+    const cfg = sesConfig();
+    if (!cfg) {
+      return { ok: false, error: 'Amazon SES has no access key (AWS_SES_ACCESS_KEY_ID).' };
+    }
+    const res = await sesSend(cfg, toMime(m, to));
+    if (!res.ok) console.error('[email] SES error', res.error);
+    return { ok: res.ok, error: res.error, suppressed };
   }
-  let sent = 0;
-  for (let i = 0; i < messages.length; i += 100) {
-    const chunk = messages.slice(i, i + 100).map((m) => {
+  if (!env.RESEND_API_KEY) {
+    logOnly(m, to);
+    return { ok: true, suppressed };
+  }
+  return { ...(await resendSend(m, to)), suppressed };
+}
+
+/**
+ * Sends many emails (one per person) in order. Resend: its batch API, 100 per call, which keeps
+ * a reminder for a full event under the Worker's subrequest limit; attachments are dropped.
+ * Amazon SES: one call per email at SES_SEND_RATE per second (needs Workers Paid for big sends).
+ *
+ * `sent` counts the emails handled in order, including the `suppressed` ones skipped because the
+ * address bounced or complained, so `messages.slice(sent)` are the people not reached when
+ * `ok` is false.
+ */
+export async function sendEmailBatch(
+  messages: EmailMessage[],
+): Promise<{ ok: boolean; sent: number; suppressed: number; error?: string }> {
+  if (!messages.length) return { ok: true, sent: 0, suppressed: 0 };
+  const blocked = await suppressedEmails();
+  const isBlocked = (m: EmailMessage) => {
+    const to = recipients(m);
+    return to.length > 0 && to.every((e) => blocked.has(e.trim().toLowerCase()));
+  };
+  // Positions of the emails that really go out, to map the provider's count back to `sent`.
+  const keep = messages.map((m, i) => (isBlocked(m) ? -1 : i)).filter((i) => i >= 0);
+  const suppressedBefore = (n: number) => (n >= keep.length ? messages.length : keep[n]!);
+  const skipped = messages.length - keep.length;
+  const outgoing = keep.map((i) => messages[i]!);
+  const done = (ok: boolean, n: number, error?: string) => {
+    const sent = suppressedBefore(n);
+    const suppressed = messages.slice(0, sent).filter(isBlocked).length;
+    return { ok, sent, suppressed, ...(error ? { error } : {}) };
+  };
+  if (!outgoing.length) return { ok: true, sent: messages.length, suppressed: skipped };
+
+  if (emailProvider() === 'ses') {
+    const cfg = sesConfig();
+    if (!cfg) return done(false, 0, 'Amazon SES has no access key (AWS_SES_ACCESS_KEY_ID).');
+    const res = await sesSendMany(
+      cfg,
+      outgoing.map((m) => toMime(m, recipients(m))),
+      sesRate(),
+    );
+    if (!res.ok) console.error('[email] SES batch error', res.error);
+    return done(res.ok, res.sent, res.error);
+  }
+
+  if (!env.RESEND_API_KEY) {
+    for (const m of outgoing) logOnly({ ...m, attachments: undefined }, recipients(m));
+    return done(true, outgoing.length);
+  }
+  let n = 0;
+  for (let i = 0; i < outgoing.length; i += 100) {
+    const chunk = outgoing.slice(i, i + 100).map((m) => {
       const { html, text } = renderEmail(m);
       return {
         from: env.EMAIL_FROM,
-        to: Array.isArray(m.to) ? m.to : [m.to],
+        to: recipients(m),
         subject: m.subject,
         html,
         text,
@@ -215,10 +326,11 @@ export async function sendEmailBatch(messages: EmailMessage[]) {
       body: JSON.stringify(chunk),
     });
     if (!res.ok) {
-      console.error('[email] Resend batch error', res.status, await res.text());
-      return { ok: false, sent };
+      const error = `${res.status} ${await res.text()}`;
+      console.error('[email] Resend batch error', error);
+      return done(false, n, error);
     }
-    sent += chunk.length;
+    n += chunk.length;
   }
-  return { ok: true, sent };
+  return done(true, n);
 }

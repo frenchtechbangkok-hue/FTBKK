@@ -154,18 +154,23 @@ if (Astro.request.method === 'POST') {
           const settings = await getSettings();
           const send = communityMessage(d.audience, d, { cards, replyTo: settings.contactEmail });
           const res = await sendEmailBatch(to.map((r) => send.to(r)));
-          if (res.sent > 0) {
+          const delivered = res.sent - res.suppressed;
+          if (delivered > 0) {
             await db
               .update(communityEmails)
-              .set({ recipients: res.sent })
+              .set({ recipients: delivered })
               .where(eq(communityEmails.id, row!.id));
             await audit(actor, 'email_community', 'community_email', row!.id, null, {
               audience: d.audience,
               subject: d.subject,
-              recipients: res.sent,
+              recipients: delivered,
             });
           } else await db.delete(communityEmails).where(eq(communityEmails.id, row!.id));
-          if (res.ok) return Astro.redirect(`/admin/community-email?sent=${res.sent}`, 303);
+          if (res.ok)
+            return Astro.redirect(
+              `/admin/community-email?sent=${delivered}&skipped=${res.suppressed}`,
+              303,
+            );
           unreached = to.slice(res.sent).map((r) => r.email);
           error = res.sent
             ? `Sending stopped after ${res.sent} of ${to.length} emails (often the provider's daily limit). Sending again would email the first ${res.sent} people twice: once the email service works again, write to the ${unreached.length} people listed below instead.`
@@ -219,6 +224,7 @@ const [history, choices, allowance] = await Promise.all([
 ]);
 const left = Math.max(0, allowance.limit - allowance.sentToday);
 const sent = Number(Astro.url.searchParams.get('sent'));
+const skipped = Number(Astro.url.searchParams.get('skipped'));
 const str = (k: string) => (values[k] === null || values[k] === undefined ? '' : String(values[k]));
 const audience = (COMMUNITY_AUDIENCE_KEYS as string[]).includes(str('audience'))
   ? (str('audience') as CommunityAudience)
@@ -241,9 +247,16 @@ const groups = [
     contacts only, tick them in <a href="/admin/contacts">Contacts</a> and click{' '}
     <strong>Email…</strong>. For one event's registrants, use the Email page of that event.
   </p>
-  {sent > 0 && (
+  {(sent > 0 || skipped > 0) && (
     <Alert tone="success" class="mb-6">
       Sent to {plural(sent)}.
+      {skipped > 0 && (
+        <>
+          {' '}
+          {plural(skipped)} skipped: their address bounced or marked an earlier email as spam (Admin
+          &gt; Email delivery).
+        </>
+      )}
     </Alert>
   )}
   {notice && (

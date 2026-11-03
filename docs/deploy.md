@@ -117,6 +117,50 @@ Until this is done, no email is sent (confirmations, reminders and listing links
    Email the community warns when an audience is bigger than what is left today. Set it to the
    new plan's cap after an upgrade, or to `""` when there is none (Amazon SES in production).
 
+## 6b. Email with Amazon SES (replaces Resend)
+
+Resend Free stops at 100 emails a day; one community email is about 1,200. Amazon SES costs
+$0.10 per 1,000 emails with no daily cap once production access is granted. The site sends
+through either: `EMAIL_PROVIDER` in `wrangler.jsonc` is `"resend"` (default) or `"ses"`, and going
+back is the same one-line change. Full plan, with the reasons: `ses-migration-plan.md` in the
+project files.
+
+**Workers plan.** Through SES each email is its own request. Workers Free allows 50 requests per
+run, so an email to more than about 40 people needs **Workers Paid** ($5/month, 10,000 per run).
+
+In the AWS console, region **Asia Pacific (Singapore) ap-southeast-1** (`AWS_REGION`):
+
+1. **Domain**: SES > Configuration > Identities > Create identity > Domain (`mail.delattre.me`
+   today, the French Tech mail subdomain later), Easy DKIM RSA 2048, custom MAIL FROM
+   `bounce.<domain>`. Add the 3 DKIM CNAMEs (**DNS only**, grey cloud), the MX and SPF TXT on
+   `bounce.<domain>`, and a DMARC TXT on `_dmarc.<domain>` where the domain's DNS is hosted. Keep
+   Resend's records until Resend is no longer used.
+2. **Production access**: Account dashboard > Request production access. Until then SES only
+   sends 200 a day, 1 per second, to addresses verified in SES. The site must open without the
+   Access login (Access only on `/admin` and `/api/admin`) when AWS looks at it.
+3. **Suppression list**: Configuration > Suppression list: account-level suppression on for
+   bounces and complaints.
+4. **Key**: IAM > Users > Create user `ft-bkk-site-email` (no console access), with a policy
+   allowing only `ses:SendEmail` and `ses:SendRawEmail`. Create an access key ("Application running
+   outside AWS") and add the Worker secrets `AWS_SES_ACCESS_KEY_ID` and `AWS_SES_SECRET_ACCESS_KEY`.
+5. **Bounces and complaints**: add a secret `SES_EVENTS_KEY` (any long random string, for example
+   from `openssl rand -hex 24`). In SNS (same region), create a Standard topic
+   `ft-bkk-ses-events`, then a subscription: protocol HTTPS, endpoint = the address shown in
+   Admin > Email delivery ("Address for SES notifications", `/api/ses-events?key=…`). The site
+   confirms it by itself. In SES > Identities > the domain > Notifications > Feedback
+   notifications, send Bounce and Complaint to that topic. Optionally put the topic ARN in
+   `SES_EVENTS_TOPIC_ARN` in `wrangler.jsonc`, so only that topic is accepted.
+6. **Test** in Admin > Email delivery > Send a test, choosing **Amazon SES**, while Resend still
+   sends everything else. Send to `bounce@simulator.amazonses.com`: the address appears under
+   "Addresses no longer emailed" within a minute.
+7. **Switch**: in `wrangler.jsonc`, `EMAIL_PROVIDER` `"ses"`, `EMAIL_DAILY_LIMIT` `""`, and
+   `SES_SEND_RATE` to the "Maximum send rate" SES shows (14 is common). Deploy. Back to Resend:
+   `EMAIL_PROVIDER` `"resend"` and `EMAIL_DAILY_LIMIT` `"100"`.
+
+Moving to the French Tech domain later: verify the new domain in SES (step 1), then change
+`EMAIL_FROM`. Production access, keys and the SNS topic stay; add the new identity to the feedback
+notifications (step 5).
+
 ## 7. Connect LinkedIn and Facebook (optional)
 
 Until this is done, scheduled social media posts arrive by email to post by hand (Admin > Social
