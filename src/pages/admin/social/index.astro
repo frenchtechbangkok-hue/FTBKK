@@ -1,6 +1,7 @@
 ---
 import { and, asc, desc, eq, gte, inArray, ne } from 'drizzle-orm';
 import { z } from 'zod';
+import EmptyState from '../../../components/admin/EmptyState.astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import Alert from '../../../components/Alert.astro';
 import Button from '../../../components/Button.astro';
@@ -86,13 +87,17 @@ const connected = connectedNetworks();
 const missing = items.filter((i) => !i.imageUrl).length;
 ---
 
-<AdminLayout title="Social media posts">
-  <p class="mb-6 max-w-2xl text-sm text-muted">
-    Every event and blog post has a share image, made by itself. Open one below to share it now or
-    schedule its announcement and, for an event, a reminder the day before. The links to our pages
-    shown in the site footer are in{' '}
-    <a href="/admin/settings?section=social-links">Settings &gt; Social links</a>.
-  </p>
+<AdminLayout
+  title="Social media posts"
+  intro="Share an event or a post now, or schedule its announcement and the day-before reminder."
+>
+  <Fragment slot="help">
+    <p>
+      Every event and blog post has a share image, made by itself. Open one below to share it. The
+      links to our pages shown in the site footer are in{' '}
+      <a href="/admin/settings?section=social-links">Settings &gt; Social links</a>.
+    </p>
+  </Fragment>
   {message && (
     <Alert tone={message.tone} class="mb-6">
       {message.text}
@@ -136,7 +141,10 @@ const missing = items.filter((i) => !i.imageUrl).length;
       )}
     </div>
     {items.length === 0 ? (
-      <p class="text-sm text-muted">No upcoming event or published post.</p>
+      <EmptyState
+        text="No upcoming event or published post."
+        hint="Events and posts show here once published, ready to share."
+      />
     ) : (
       <ul class="divide-y divide-line">
         {items.map((i) => (

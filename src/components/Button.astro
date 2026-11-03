@@ -1,7 +1,7 @@
 ---
 interface Props {
   href?: string;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'light';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'light' | 'danger';
   size?: 'sm' | 'md';
   type?: 'button' | 'submit';
   class?: string;
@@ -20,6 +20,8 @@ const styles = {
   secondary: 'border border-navy text-navy hover:bg-navy hover:text-paper',
   ghost: 'text-accent hover:bg-surface',
   light: 'bg-paper text-navy hover:bg-surface',
+  /** Destructive actions (Delete, Cancel): red text, always with data-confirm. */
+  danger: 'text-danger hover:bg-danger/5',
 };
 const sizes = { sm: 'px-4 py-1.5 text-sm', md: 'px-6 py-2.5' };
 const classes = `inline-flex items-center justify-center gap-2 rounded-button font-semibold no-underline transition-colors disabled:opacity-60 ${styles[variant]} ${sizes[size]} ${cls}`;

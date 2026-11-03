@@ -16,7 +16,7 @@ import { listSuppressions, unsuppress } from '../../lib/email-suppressions';
 import { audit, siteUrl } from '../../lib/orgs';
 import { formatDate } from '../../lib/format';
 
-// Emails and social media > Email delivery: which service sends the site's emails, a test send
+// Settings > Email delivery: which service sends the site's emails, a test send
 // through either one (to try Amazon SES before switching), and the addresses no longer emailed
 // because they bounced or marked an email as spam.
 const actor = Astro.locals.adminEmail ?? 'admin';
@@ -77,7 +77,10 @@ const eventsUrl = env.SES_EVENTS_KEY
 const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
 ---
 
-<AdminLayout title="Email delivery">
+<AdminLayout
+  title="Email delivery"
+  intro="Which service sends the site's emails, a test through either one, and the addresses the site no longer emails."
+>
   {notice && (
     <Alert tone="success" class="mb-6">
       {notice}
@@ -88,10 +91,6 @@ const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
       {error}
     </Alert>
   )}
-  <p class="mb-6 max-w-3xl text-sm text-muted">
-    Which service sends the site's emails, a test through either one, and the addresses the site no
-    longer emails.
-  </p>
 
   <div class="grid max-w-3xl gap-6">
     <section class="admin-panel grid gap-3">
@@ -176,7 +175,7 @@ const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
                       <input type="hidden" name="email" value={b.email} />
                       <Button
                         type="submit"
-                        variant="ghost"
+                        variant="danger"
                         size="sm"
                         data-confirm={`Email ${b.email} again?`}
                       >

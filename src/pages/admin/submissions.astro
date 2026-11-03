@@ -167,12 +167,18 @@ const moves = (
         </Button>
       )}
       {moves.map(([s, text]) => (
-        <Button type="submit" name="action" value={s} size="sm" variant="ghost">
+        <Button
+          type="submit"
+          name="action"
+          value={s}
+          size="sm"
+          variant={s === 'deleted' ? 'danger' : 'ghost'}
+        >
           {text}
         </Button>
       ))}
       {folder !== 'spam' && (
-        <Button type="submit" name="action" value="spam" size="sm" variant="ghost">
+        <Button type="submit" name="action" value="spam" size="sm" variant="danger">
           Spam and block
         </Button>
       )}
@@ -315,7 +321,7 @@ const moves = (
                 name="action"
                 value={st}
                 size="sm"
-                variant={st === 'deleted' ? 'ghost' : 'secondary'}
+                variant={st === 'deleted' ? 'danger' : 'secondary'}
               >
                 {st === 'deleted' ? text : `Mark ${text.toLowerCase()}`}
               </Button>

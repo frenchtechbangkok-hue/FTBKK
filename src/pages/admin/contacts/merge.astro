@@ -95,7 +95,7 @@ const options = MERGE_FIELDS.map((f) => ({
 }));
 ---
 
-<AdminLayout title="Merge contacts">
+<AdminLayout title="Merge contacts" trail={[{ href: '/admin/contacts', label: 'Contacts' }]}>
   <p class="mb-4 max-w-3xl text-sm text-muted">
     Pick the main email and, for each detail, the value to keep. The other emails stay on the
     contact as other emails, so registrations and sign-ups with any of them count as this person.

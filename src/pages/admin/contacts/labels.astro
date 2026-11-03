@@ -1,5 +1,6 @@
 ---
 import { z } from 'zod';
+import EmptyState from '../../../components/admin/EmptyState.astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import Alert from '../../../components/Alert.astro';
 import Button from '../../../components/Button.astro';
@@ -72,16 +73,24 @@ const people = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`;
 const input = 'rounded-lg border border-line px-3 py-1.5 text-sm';
 ---
 
-<AdminLayout title="Tags and groups">
-  <p class="mb-6 max-w-3xl text-sm text-muted">
-    Use them to sort your contacts and members. A <strong>tag</strong> is a short label shown next
-    to a person's name (Speaker, Investor, Fintech…). A <strong>group</strong> is a list of people
-    you keep together for a purpose (Sponsor prospects, Connect volunteers…), with a description. A
-    person can have several tags and be in several groups. To put people in a tag or group, tick
-    them in <a href="/admin/contacts">Contacts</a> or <a href="/admin/members?tab=all">Members</a>{' '}
-    and use the bar that appears, or edit one person. Both can be picked as the audience in{' '}
-    <a href="/admin/community-email">Email the community</a>. Only the admin team sees them.
-  </p>
+<AdminLayout
+  title="Tags and groups"
+  intro="Labels and lists to sort your contacts and members. Only the admin team sees them."
+>
+  <Fragment slot="help">
+    <p>
+      A <strong>tag</strong> is a short label shown next to a person's name (Speaker, Investor,
+      Fintech…). A <strong>group</strong> is a list of people you keep together for a purpose
+      (Sponsor prospects, Connect volunteers…), with a description. A person can have several tags
+      and be in several groups.
+    </p>
+    <p>
+      To put people in a tag or group, tick them in <a href="/admin/contacts">Contacts</a> or{' '}
+      <a href="/admin/members?tab=all">Members</a> and use the bar that appears, or edit one person.
+      Both can be picked as the audience in <a href="/admin/community-email">Email the community</a>
+      .
+    </p>
+  </Fragment>
   {done && (
     <Alert tone="success" class="mb-4">
       {done}
@@ -146,7 +155,7 @@ const input = 'rounded-lg border border-line px-3 py-1.5 text-sm';
                     <Button
                       type="submit"
                       size="sm"
-                      variant="secondary"
+                      variant="danger"
                       name="action"
                       value="group-delete"
                       data-confirm={`Delete the group “${g.name}”? The ${people(groupCount.get(g.id) ?? 0)} in it stay in Contacts.`}
@@ -160,7 +169,7 @@ const input = 'rounded-lg border border-line px-3 py-1.5 text-sm';
           ))}
         </ul>
       ) : (
-        <p class="text-sm text-muted">No groups yet.</p>
+        <EmptyState text="No groups yet." hint="Create the first one below." />
       )}
       <form method="post" class="grid gap-2 rounded-lg bg-surface p-3">
         <h3 class="text-sm font-semibold">New group</h3>
@@ -225,7 +234,7 @@ const input = 'rounded-lg border border-line px-3 py-1.5 text-sm';
                 <Button
                   type="submit"
                   size="sm"
-                  variant="ghost"
+                  variant="danger"
                   name="action"
                   value="tag-delete"
                   data-confirm={`Delete the tag “${t.name}”? It is taken off the ${people(tagCount.get(t.key) ?? 0)} who have it.`}
@@ -240,7 +249,7 @@ const input = 'rounded-lg border border-line px-3 py-1.5 text-sm';
           ))}
         </ul>
       ) : (
-        <p class="text-sm text-muted">No tags yet.</p>
+        <EmptyState text="No tags yet." hint="Create the first one below." />
       )}
       <form method="post" class="flex flex-wrap items-end gap-2 rounded-lg bg-surface p-3">
         <label class="grid gap-1 text-sm">

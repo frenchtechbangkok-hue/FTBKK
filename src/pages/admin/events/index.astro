@@ -1,100 +1,182 @@
 ---
-import { desc } from 'drizzle-orm';
+import { z } from 'zod';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import Badge from '../../../components/Badge.astro';
 import Button from '../../../components/Button.astro';
-import { getDb } from '../../../db';
-import { events } from '../../../db/schema';
-import { registrationCount } from '../../../lib/registrations';
-import { formatEventDate } from '../../../lib/format';
+import EmptyState from '../../../components/admin/EmptyState.astro';
+import FillBar from '../../../components/admin/FillBar.astro';
+import { formatEventDate, TZ } from '../../../lib/format';
+import { comingUp, eventRows, type EventRow } from '../../../lib/event-stats';
+import { loadEventStatData } from '../../../lib/reports';
+import { matches } from '../../../lib/admin-search';
 
-const rows = await getDb()
-  .select({
-    id: events.id,
-    slug: events.slug,
-    title: events.title,
-    series: events.series,
-    startsAt: events.startsAt,
-    endsAt: events.endsAt,
-    status: events.status,
-    capacity: events.capacity,
-    inviteOnly: events.inviteOnly,
-    listed: events.listed,
-    registered: registrationCount(['registered', 'attended']),
-  })
-  .from(events)
-  .orderBy(desc(events.startsAt));
 const now = new Date();
-const upcoming = rows.filter((e) => (e.endsAt ?? e.startsAt) >= now).reverse();
-const past = rows.filter((e) => (e.endsAt ?? e.startsAt) < now);
-const groups = [
-  { title: 'Upcoming', rows: upcoming },
-  { title: 'Past', rows: past },
+const q = z
+  .string()
+  .trim()
+  .max(100)
+  .catch('')
+  .parse(Astro.url.searchParams.get('q') ?? '');
+const data = await loadEventStatData();
+const stats = eventRows(data.eventList, data.regs, data.feedback, data.memberList, now);
+const statOf = new Map(stats.map((r) => [r.event.id, r]));
+// Drafts have no figures (eventRows skips them): only their registrations count, if any.
+const all = [...data.eventList]
+  .filter((e) => !q || matches(q, e.title, e.series))
+  .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime());
+const endOf = (e: (typeof all)[number]) => e.endsAt ?? e.startsAt;
+const upcoming = all.filter((e) => endOf(e) >= now).reverse();
+const past = all.filter((e) => endOf(e) < now);
+const year = (d: Date) =>
+  new Intl.DateTimeFormat('en-GB', { year: 'numeric', timeZone: TZ }).format(d);
+const pastByYear = [...new Set(past.map((e) => year(e.startsAt)))].map((y) => ({
+  title: y,
+  rows: past.filter((e) => year(e.startsAt) === y),
+}));
+const usualNote = (r: EventRow) => {
+  const u = comingUp(r, stats, data.regs, now);
+  if (u.usual === null) return null;
+  const gap = r.registered - Math.round(u.usual);
+  return {
+    text: gap === 0 ? 'Same as usual' : `${gap > 0 ? '+' : '−'}${Math.abs(gap)} vs usual`,
+    tone: gap > 0 ? 'text-success' : gap < 0 ? 'text-danger' : 'text-muted',
+    hint: `Usual at this point: ${Math.round(u.usual)}`,
+  };
+};
+const pct = (x: number | null) => (x === null ? '–' : `${Math.round(x * 100)}%`);
+const sections = [
+  { title: 'Upcoming', rows: upcoming, upcoming: true },
+  ...pastByYear.map((g) => ({ ...g, upcoming: false })),
 ];
 ---
 
-<AdminLayout title="Events">
-  <div class="mb-4 flex flex-wrap justify-end gap-2">
+<AdminLayout title="Events" intro="Upcoming events first, then past events by year.">
+  <Fragment slot="actions">
     <Button href="/admin/reports/events" size="sm" variant="secondary">
       Reports
     </Button>
     <Button href="/admin/events/new" size="sm">
       New event
     </Button>
-  </div>
-  {groups.map((g) => (
-    <section class="admin-panel mb-6 overflow-x-auto">
-      <h2 class="mb-3 text-lg">{g.title}</h2>
-      {g.rows.length ? (
-        <table class="admin-table" data-sortable>
-          <thead>
-            <tr>
-              <th>Event</th>
-              <th>Date</th>
-              <th>Registered</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {g.rows.map((e) => (
+  </Fragment>
+  <form method="get" role="search" class="mb-4 flex max-w-md gap-2">
+    <label for="q" class="sr-only">
+      Search events
+    </label>
+    <input
+      id="q"
+      name="q"
+      type="search"
+      value={q}
+      placeholder="Search events"
+      class="admin-input"
+    />
+  </form>
+  {all.length === 0 && (
+    <EmptyState
+      text={q ? `No event matches “${q}”.` : 'No events yet.'}
+      hint={q ? undefined : 'Create the first one: it shows on the Events page once published.'}
+      action={
+        q
+          ? { href: '/admin/events', label: 'Show all events' }
+          : { href: '/admin/events/new', label: 'New event' }
+      }
+    />
+  )}
+  {sections
+    .filter((g) => g.rows.length || (g.upcoming && !q))
+    .map((g) => (
+      <section class="admin-panel mb-6 overflow-x-auto">
+        <h2 class="mb-3 text-lg">
+          {g.title} <span class="text-sm font-normal text-muted">{g.rows.length}</span>
+        </h2>
+        {g.rows.length ? (
+          <table class="admin-table" data-sortable>
+            <thead>
               <tr>
-                <td data-sort={e.title}>
-                  <a href={`/admin/events/${e.id}`} class="font-semibold">
-                    {e.title}
-                  </a>
-                  <span class="block text-xs text-muted">{e.series}</span>
-                </td>
-                <td class="whitespace-nowrap" data-sort={e.startsAt.getTime()}>
-                  {formatEventDate(e.startsAt, e.endsAt)}
-                </td>
-                <td data-sort={e.registered}>
-                  <a href={`/admin/registrations?event=${e.id}`}>
-                    {e.registered}
-                    {e.capacity ? ` / ${e.capacity}` : ''}
-                  </a>
-                </td>
-                <td data-sort={e.status} class="space-x-1 whitespace-nowrap">
-                  <Badge
-                    tone={
-                      e.status === 'published'
-                        ? 'success'
-                        : e.status === 'cancelled'
-                          ? 'danger'
-                          : 'neutral'
-                    }
-                  >
-                    {e.status}
-                  </Badge>
-                  {e.inviteOnly && <Badge tone="accent">private</Badge>}
-                  {!e.listed && <Badge>unlisted</Badge>}
-                </td>
+                <th>Event</th>
+                <th>Date</th>
+                <th>Registered</th>
+                <th>{g.upcoming ? 'Pace' : 'Checked in'}</th>
+                <th>Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p class="text-muted">None.</p>
-      )}
-    </section>
-  ))}
+            </thead>
+            <tbody>
+              {g.rows.map((e) => {
+                const s = statOf.get(e.id);
+                const note = g.upcoming && s ? usualNote(s) : null;
+                return (
+                  <tr>
+                    <td data-sort={e.title}>
+                      <a href={`/admin/events/${e.id}`} class="font-semibold">
+                        {e.title}
+                      </a>
+                      <span class="block text-xs text-muted">{e.series}</span>
+                    </td>
+                    <td class="whitespace-nowrap" data-sort={e.startsAt.getTime()}>
+                      {formatEventDate(e.startsAt, e.endsAt)}
+                    </td>
+                    <td data-sort={s?.registered ?? 0}>
+                      <a href={`/admin/registrations?event=${e.id}`}>
+                        {s?.registered ?? 0}
+                        {e.capacity ? ` / ${e.capacity}` : ''}
+                      </a>
+                      {s && s.waitlist > 0 && (
+                        <span class="text-xs text-muted"> +{s.waitlist} waitlist</span>
+                      )}
+                      <FillBar taken={s?.registered ?? 0} capacity={e.capacity} />
+                    </td>
+                    {g.upcoming ? (
+                      <td data-sort={note?.text ?? ''}>
+                        {note ? (
+                          <span class={`text-sm ${note.tone}`} title={note.hint}>
+                            {note.text}
+                          </span>
+                        ) : (
+                          <span class="text-sm text-muted">–</span>
+                        )}
+                      </td>
+                    ) : (
+                      <td data-sort={s?.attended ?? 0}>
+                        {s && s.attended > 0 ? (
+                          <>
+                            {s.attended}
+                            <span class="block text-xs text-muted">
+                              {pct(s.showUp)} show-up · {s.firstTimers} new
+                            </span>
+                          </>
+                        ) : (
+                          <span class="text-sm text-muted">Check-in not used</span>
+                        )}
+                      </td>
+                    )}
+                    <td data-sort={e.status} class="space-x-1 whitespace-nowrap">
+                      <Badge
+                        tone={
+                          e.status === 'published'
+                            ? 'success'
+                            : e.status === 'cancelled'
+                              ? 'danger'
+                              : 'neutral'
+                        }
+                      >
+                        {e.status}
+                      </Badge>
+                      {e.inviteOnly && <Badge tone="accent">private</Badge>}
+                      {!e.listed && <Badge>unlisted</Badge>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <EmptyState
+            text="No upcoming event."
+            hint="Create the next one so people can register."
+            action={{ href: '/admin/events/new', label: 'New event' }}
+          />
+        )}
+      </section>
+    ))}
 </AdminLayout>

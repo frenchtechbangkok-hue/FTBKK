@@ -33,7 +33,8 @@ export const kindOptions = KINDS.map((k) => ({ value: k, label: KIND_LABELS[k] }
 const earliestOf = (dates: (Date | null | undefined)[], now: Date) =>
   dates.reduce<Date>((min, d) => (d && d < min ? d : min), now);
 
-export async function loadEventReport(url: URL, now = new Date()) {
+/** Events, registrations, feedback and members: what the event figures are computed from. */
+export async function loadEventStatData() {
   const db = getDb();
   const [eventList, regs, feedback, memberList] = await Promise.all([
     db
@@ -42,8 +43,11 @@ export async function loadEventReport(url: URL, now = new Date()) {
         title: events.title,
         series: events.series,
         startsAt: events.startsAt,
+        endsAt: events.endsAt,
         capacity: events.capacity,
         status: events.status,
+        inviteOnly: events.inviteOnly,
+        listed: events.listed,
       })
       .from(events),
     db
@@ -79,6 +83,11 @@ export async function loadEventReport(url: URL, now = new Date()) {
       })
       .from(members),
   ]);
+  return { eventList, regs, feedback, memberList };
+}
+
+export async function loadEventReport(url: URL, now = new Date()) {
+  const { eventList, regs, feedback, memberList } = await loadEventStatData();
   const period = parsePeriod(
     url.searchParams,
     now,

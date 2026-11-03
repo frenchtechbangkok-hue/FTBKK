@@ -1,0 +1,21 @@
+---
+import Button from '../Button.astro';
+
+// What an empty list shows everywhere in the admin: what goes here, and how to add the first one.
+interface Props {
+  text: string;
+  hint?: string;
+  action?: { href: string; label: string };
+}
+const { text, hint, action } = Astro.props;
+---
+
+<div class="rounded-card border border-dashed border-line bg-surface/50 p-6 text-center">
+  <p class="font-semibold text-navy">{text}</p>
+  {hint && <p class="mt-1 text-sm text-muted">{hint}</p>}
+  {action && (
+    <Button href={action.href} size="sm" variant="secondary" class="mt-3">
+      {action.label}
+    </Button>
+  )}
+</div>

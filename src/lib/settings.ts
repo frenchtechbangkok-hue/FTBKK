@@ -21,7 +21,7 @@ export interface Settings {
   mission: string;
   values: string[];
   ecosystemHeading: string;
-  /** Home photo slots (Website pages > Home); null = the built-in default. */
+  /** Home photo slots (Website > Page texts > Home); null = the built-in default. */
   homeHeroPhoto: Photo | null;
   homeAboutPhoto: Photo | null;
   homeCommunityPhotos: (Photo | null)[];

@@ -1,5 +1,5 @@
 /**
- * Settings > Change history: one entry per merged pull request, newest first. Each merge is a new
+ * History > Change history: one entry per merged pull request, newest first. Each merge is a new
  * version of the site (1.0 was the first full site; the number after the dot goes up by one per
  * merge). Every PR adds its own entry at the top, in plain words for the team: what changes for
  * visitors or admins, not how it is built. test/changelog.test.ts checks the order.
@@ -18,6 +18,14 @@ export interface Release {
 export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
+  {
+    version: '1.97',
+    date: '2026-11-03',
+    pr: 112,
+    title: 'Clearer admin',
+    summary:
+      'The admin menu is regrouped (Website, Settings for switches, History for the logs) with red numbers for what is waiting and a search box. Every page has the same header, buttons and empty lists, an event has the same tabs on all its screens, and everyday pages show a useful figure: event pace and show-up, who is coming, a summary per contact, quiet members, opens and clicks per community email, post views and listings to complete.',
+  },
   {
     version: '1.96',
     date: '2026-11-03',

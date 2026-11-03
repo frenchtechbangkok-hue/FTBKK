@@ -19,7 +19,18 @@ export interface MemberStats {
   /** noShows ÷ (attended + noShows); null when they never had an event where check-in was used. */
   noShowRate: number | null;
   newsletter: boolean;
+  /** When they last came to an event (checked in, or registered for a past event). */
+  lastCame: Date | null;
 }
+
+/** Active members quiet for this long (no event) show under the Quiet tab. */
+export const QUIET_DAYS = 183;
+
+export const isQuiet = (m: Pick<MemberListItem, 'status' | 'stats' | 'createdAt'>, now: Date) => {
+  if (m.status !== 'active') return false;
+  const since = m.stats.lastCame ?? m.createdAt;
+  return now.getTime() - since.getTime() > QUIET_DAYS * 86_400_000;
+};
 
 export type MemberListItem = MemberRow & {
   stats: MemberStats;
@@ -101,6 +112,14 @@ export function memberStats(c: Contact | undefined): MemberStats {
     noShows,
     noShowRate: attended + noShows ? noShows / (attended + noShows) : null,
     newsletter: c?.newsletter.agreed ?? false,
+    lastCame:
+      c?.history
+        .filter(
+          (r) =>
+            r.status === 'attended' || (r.status === 'registered' && r.event.startsAt < new Date()),
+        )
+        .reduce<Date | null>((d, r) => (!d || r.event.startsAt > d ? r.event.startsAt : d), null) ??
+      null,
   };
 }
 

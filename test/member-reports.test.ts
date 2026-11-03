@@ -151,12 +151,12 @@ describe('member list filters', () => {
       name: 'Bob',
       interests: ['Fintech'],
       confirmedAt: new Date('2026-07-01T05:00:00Z'),
-      stats: { attended: 3, noShows: 1, noShowRate: 0.25, newsletter: true },
+      stats: { attended: 3, noShows: 1, noShowRate: 0.25, newsletter: true, lastCame: null },
     }),
     item({
       id: 3,
       name: 'Chloé',
-      stats: { attended: 1, noShows: 0, noShowRate: 0, newsletter: false },
+      stats: { attended: 1, noShows: 0, noShowRate: 0, newsletter: false, lastCame: null },
       tags: ['investor'],
       groups: [4],
     }),
@@ -196,6 +196,7 @@ describe('member list filters', () => {
       noShows: 0,
       noShowRate: null,
       newsletter: false,
+      lastCame: null,
     });
   });
 });

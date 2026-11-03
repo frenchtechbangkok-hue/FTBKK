@@ -23,9 +23,9 @@ Public pages:
   > Partners, with a link to all partners; migration 0031 turned the earlier list of Business
   > France, the Franco-Thai Chamber of Commerce, the Embassy of France, La French Tech and
   > Bpifrance into partner listings); and a red closing band with Contact us and Join. Each photo has its own
-  > slot in Website pages > Home, with built-in defaults (`lib/home.ts`).
+  > slot in Website > Page texts > Home, with built-in defaults (`lib/home.ts`).
 - **Event covers**: French Tech Connect, French Tech Talk and French Tech Select events without a
-  cover show a default image, set in Settings > Default event covers (built-in images for Connect and Talk until then,
+  cover show a default image, set in Settings > Event covers (built-in images for Connect and Talk until then,
   none for Select; `lib/event-covers.ts`).
 - **Private and unlisted events**: a private event takes registrations only from people who open
   its invitation link (`/events/<slug>?invite=<token>`, made in the admin; "New link" revokes the
@@ -62,7 +62,7 @@ Public pages:
   subsidiary, Thai partner, regional hub) with invoicing, ownership, capital and setup time, an
   18-month roadmap, visas for the people you send, selling tips, local and cross-border taxes, a
   launch checklist, who can help and a FAQ.
-- Each guide has an **online** switch (Admin > Settings > Guide pages), off by default so the board
+- Each guide has an **online** switch (Admin > Website > Guide pages), off by default so the board
   can check the content first. Offline, the page answers 404 to visitors and is left out of the
   Resources menu, footer, sitemap and the other guide; a logged-in admin sees it with a "Preview,
   not online" bar (`src/lib/guides.ts`).
@@ -294,15 +294,22 @@ Public pages:
   it); posts, events and listings carry schema.org data (BlogPosting, Event with speakers,
   Organization) and the home page adds the WebSite name Google shows in results.
 
-Private admin at `/admin` (behind Cloudflare Access). Its menu is grouped: **Events** (all
-events, registrations, check-in), **Community** (members, contacts, messages, board and
-speakers), **Ecosystem** (to review, all listings, partners, renewals), **Blog** (posts, PDFs and
-files), **Website pages** (one screen per public page: Home, About, Join, Tech Pulse, Thai page,
-code of conduct and privacy), **Emails and social media** (email the community, social media
-posts, automatic emails), **Reports** (events and attendance, membership: `/admin/reports/*`) and
-**Settings** (general, membership, default event covers, social links, guide pages: one
-`/admin/settings?section=` screen each, plus **Change history** at `/admin/changes` and **Actions
-log** at `/admin/actions-log`). Old admin addresses redirect
+Private admin at `/admin` (behind Cloudflare Access). Its menu (`src/lib/admin-menu.ts`) is
+grouped: **Events** (all events, registrations, check-in), **Community** (members, contacts, tags
+and groups, messages), **Ecosystem** (to review, all listings, partners, renewals), **Website**
+(blog posts, PDFs and files, page texts with one tab per public page, board and speakers, guide
+pages), **Emails and social media** (email the community, social media posts, automatic emails),
+**Reports** (`/admin/reports/*`), **Settings** (general, membership, event covers, social links:
+one `/admin/settings?section=` screen each, plus email delivery) and **History** (**Actions log**
+at `/admin/actions-log`, **Change history** at `/admin/changes`). Red badges show what is waiting
+(members to review, unread messages, directory queue, failed social posts) and a search box at the
+top of the menu opens `/admin/search` (contacts, members, events, posts, listings by name). Every admin page uses the same header (`AdminLayout`: title, one-line `intro`, `actions` and `help`
+slots, `trail` above the title), tabs (`PageTabs`, `EventTabs` for an event's or a post's screens),
+figure rows (`StatRow`), empty boxes (`EmptyState`) and red `danger` buttons for deletes. Everyday
+pages carry a figure each: events pace against the usual and show-up rate, "Who's coming" on
+registrations, a summary line on each contact, Members > Quiet, opens and clicks per community
+email (`sendFigures`), post views (`/api/admin/post-views`, Cloudflare) and listings to complete
+(`listingGaps`). Old admin addresses redirect
 (`src/lib/redirects.ts`). The groups fold and unfold, the current one open. Anyone who can sign in
 to the admin can do everything; there are no roles. See
 [docs/admin.md](docs/admin.md).

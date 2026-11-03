@@ -1,5 +1,6 @@
 ---
 import { and, desc, eq, gt, lt } from 'drizzle-orm';
+import EventTabs from '../../../../components/admin/EventTabs.astro';
 import AdminLayout from '../../../../layouts/AdminLayout.astro';
 import FormField from '../../../../components/FormField.astro';
 import Button from '../../../../components/Button.astro';
@@ -159,11 +160,8 @@ const audience = (AUDIENCE_KEYS as string[]).includes(str('audience'))
 const plural = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`;
 ---
 
-<AdminLayout title={`Email registrants: ${event.title}`}>
-  <div class="mb-4 flex flex-wrap gap-4 text-sm">
-    <a href={`/admin/events/${event.id}`}>← {event.title}</a>
-    <a href={`/admin/registrations?event=${event.id}`}>Registrations</a>
-  </div>
+<AdminLayout title={event.title} trail={[{ href: '/admin/events', label: 'Events' }]}>
+  <EventTabs kind="event" item={event} current="email" />
   <p class="mb-6 text-muted">
     {formatEventDate(event.startsAt, event.endsAt)}
     {event.venue && <> · {event.venue}</>}

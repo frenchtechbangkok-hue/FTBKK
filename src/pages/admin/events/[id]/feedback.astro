@@ -1,5 +1,7 @@
 ---
 import { desc, eq, sql } from 'drizzle-orm';
+import EventTabs from '../../../../components/admin/EventTabs.astro';
+import EmptyState from '../../../../components/admin/EmptyState.astro';
 import AdminLayout from '../../../../layouts/AdminLayout.astro';
 import Button from '../../../../components/Button.astro';
 import { getDb } from '../../../../db';
@@ -51,12 +53,11 @@ const withComments = rows.filter((r) => r.comment);
 const base = `/admin/events/${event.id}/feedback`;
 ---
 
-<AdminLayout title={`Feedback: ${event.title}`}>
+<AdminLayout title={event.title} trail={[{ href: '/admin/events', label: 'Events' }]}>
+  <EventTabs kind="event" item={event} current="feedback" />
   <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <p class="text-sm text-muted">
       {formatEventDate(event.startsAt, event.endsAt)}
-      {' · '}
-      <a href={`/admin/events/${event.id}`}>Edit event</a>
       {' · '}
       <a href="/admin/reports/events">Reports</a>
     </p>
@@ -120,7 +121,10 @@ const base = `/admin/events/${event.id}/feedback`;
       {anon ? 'Comments' : 'Responses'}
     </h2>
     {rows.length === 0 ? (
-      <p class="text-sm text-muted">No feedback yet.</p>
+      <EmptyState
+        text="No feedback yet."
+        hint="The feedback email goes out at 9:00 the day after the event."
+      />
     ) : anon ? (
       withComments.length ? (
         <ul class="grid gap-4">

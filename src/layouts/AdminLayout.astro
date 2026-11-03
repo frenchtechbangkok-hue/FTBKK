@@ -1,15 +1,22 @@
 ---
 import '../styles/global.css';
 import Logo from '../components/Logo.astro';
+import { MENU, groupCount, menuCounts } from '../lib/admin-menu';
 
 interface Props {
   title: string;
   /** The page's h1 when it differs from the tab title (the dashboard's greeting). */
   heading?: string;
-  /** A short line under the h1. */
+  /** A short line under the h1 (one sentence; longer help goes in the "help" slot). */
   intro?: string;
+  /** Where this page sits, shown above the h1: [{ href: '/admin/contacts', label: 'Contacts' }]. */
+  trail?: { href: string; label: string }[];
 }
-const { title, heading, intro } = Astro.props;
+// Slots: "actions" = the page's buttons, top right (the main one red, others outlined);
+// "help" = how the page works, folded under the intro.
+const { title, heading, intro, trail = [] } = Astro.props;
+const hasActions = Astro.slots.has('actions');
+const hasHelp = Astro.slots.has('help');
 const adminEmail = Astro.locals.adminEmail;
 // Only after a redirect: a re-rendered POST (a form with errors) keeps the URL's ?saved=1.
 const flash = Astro.request.method === 'GET' ? Astro.url.searchParams.get('saved') : null;
@@ -23,96 +30,14 @@ const flashText =
         : flash === 'merged'
           ? 'Merged into one contact.'
           : 'Saved. Public pages refresh within a minute.';
-// The sidebar, in groups.
-interface NavLink {
-  href: string;
-  label: string;
-}
-// Content and day-to-day work first, figures next, site-wide switches last.
-const groups: { label: string; links: NavLink[] }[] = [
-  { label: '', links: [{ href: '/admin', label: 'Dashboard' }] },
-  {
-    label: 'Events',
-    links: [
-      { href: '/admin/events', label: 'All events' },
-      { href: '/admin/registrations', label: 'Registrations' },
-      { href: '/admin/checkin', label: 'Check-in' },
-    ],
-  },
-  {
-    label: 'Community',
-    links: [
-      { href: '/admin/members', label: 'Members' },
-      { href: '/admin/contacts', label: 'Contacts' },
-      { href: '/admin/contacts/labels', label: 'Tags and groups' },
-      { href: '/admin/submissions', label: 'Messages' },
-      { href: '/admin/people', label: 'Board and speakers' },
-    ],
-  },
-  {
-    label: 'Ecosystem',
-    links: [
-      { href: '/admin/ecosystem', label: 'To review' },
-      { href: '/admin/ecosystem?tab=all', label: 'All listings' },
-      { href: '/admin/ecosystem?tab=partners', label: 'Partners' },
-      { href: '/admin/ecosystem?tab=renewals', label: 'Renewals' },
-    ],
-  },
-  {
-    label: 'Blog',
-    links: [
-      { href: '/admin/posts', label: 'Posts' },
-      { href: '/admin/files', label: 'PDFs and files' },
-    ],
-  },
-  {
-    label: 'Website pages',
-    links: [
-      { href: '/admin/site-texts', label: 'Home' },
-      { href: '/admin/site-texts?page=about', label: 'About' },
-      { href: '/admin/site-texts?page=join', label: 'Join' },
-      { href: '/admin/site-texts?page=tech-pulse', label: 'Tech Pulse' },
-      { href: '/admin/site-texts?page=thai', label: 'Thai page' },
-      { href: '/admin/site-texts?page=legal', label: 'Code of conduct and privacy' },
-    ],
-  },
-  {
-    label: 'Emails and social media',
-    links: [
-      { href: '/admin/community-email', label: 'Email the community' },
-      { href: '/admin/social', label: 'Social media posts' },
-      { href: '/admin/emails', label: 'Automatic emails' },
-      { href: '/admin/email-delivery', label: 'Email delivery' },
-    ],
-  },
-  {
-    label: 'Reports',
-    links: [
-      { href: '/admin/reports/events', label: 'Events and attendance' },
-      { href: '/admin/reports/members', label: 'Membership' },
-      { href: '/admin/reports/traffic', label: 'Website traffic' },
-      { href: '/admin/reports/emails', label: 'Emails' },
-    ],
-  },
-  {
-    label: 'Settings',
-    links: [
-      { href: '/admin/settings', label: 'General' },
-      { href: '/admin/settings?section=membership', label: 'Membership' },
-      { href: '/admin/settings?section=event-covers', label: 'Default event covers' },
-      { href: '/admin/settings?section=social-links', label: 'Social links' },
-      { href: '/admin/settings?section=guides', label: 'Guide pages' },
-      { href: '/admin/changes', label: 'Change history' },
-      { href: '/admin/actions-log', label: 'Actions log' },
-    ],
-  },
-];
+// The sidebar, in groups (src/lib/admin-menu.ts), with a badge where something is waiting.
+const groups = MENU;
+const counts = await menuCounts();
 const path = Astro.url.pathname;
 // The longest matching link wins, so /admin/events/12 lights up All events only. Links
 // to the same screen differ by one query parameter, which must match too (missing = its default).
 const SUBPAGES: Record<string, { param: string; fallback: string }> = {
   '/admin/ecosystem': { param: 'tab', fallback: 'queue' },
-  '/admin/site-texts': { param: 'page', fallback: 'home' },
   '/admin/settings': { param: 'section', fallback: 'general' },
 };
 const links = groups.flatMap((g) => g.links);
@@ -130,6 +55,7 @@ const current = links
   .filter(matches)
   .sort((a, b) => b.split('?')[0]!.length - a.split('?')[0]!.length)[0];
 const active = (href: string) => href === current;
+const waitingTotal = groups.reduce((n, g) => n + groupCount(g, counts), 0);
 const currentGroup = groups.find((g) => g.links.some((l) => active(l.href)));
 Astro.response.headers.set('Cache-Control', 'private, no-store');
 ---
@@ -163,10 +89,29 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
             data-admin-menu
           >
             Menu{currentGroup?.label ? ` · ${currentGroup.label}` : ''}
+            {waitingTotal > 0 && (
+              <span class="ml-1 rounded-full bg-brand px-1.5 text-xs leading-5">
+                {waitingTotal}
+              </span>
+            )}
           </button>
         </div>
       </div>
       <nav id="admin-menu" aria-label="Admin" class="hidden px-2 pb-4 md:block md:px-3">
+        <form action="/admin/search" method="get" role="search" class="mb-3 px-1">
+          <label for="admin-search" class="sr-only">
+            Find a person, event, post or listing
+          </label>
+          <input
+            id="admin-search"
+            name="q"
+            type="search"
+            maxlength="100"
+            placeholder="Find a person, event…"
+            value={path === '/admin/search' ? (Astro.url.searchParams.get('q') ?? '') : ''}
+            class="w-full rounded-lg border border-paper/30 bg-paper/10 px-3 py-1.5 text-sm text-paper placeholder:text-paper/60 focus:border-accent-soft"
+          />
+        </form>
         {groups.map((g) => {
           const list = (
             <ul class="grid gap-0.5">
@@ -175,9 +120,15 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
                   <a
                     href={n.href}
                     aria-current={active(n.href) ? 'page' : undefined}
-                    class="block rounded-lg px-3 py-1.5 text-sm text-paper no-underline hover:bg-paper/10 aria-[current=page]:bg-paper/15 aria-[current=page]:font-semibold"
+                    class="flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-sm text-paper no-underline hover:bg-paper/10 aria-[current=page]:bg-paper/15 aria-[current=page]:font-semibold"
                   >
                     {n.label}
+                    {n.count && (counts[n.count] ?? 0) > 0 && (
+                      <span class="rounded-full bg-brand px-1.5 text-xs leading-5 font-semibold text-paper">
+                        {counts[n.count]}
+                        <span class="sr-only"> waiting</span>
+                      </span>
+                    )}
                   </a>
                 </li>
               ))}
@@ -187,7 +138,15 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
           return g.label ? (
             <details class="group mb-1" data-menu-group={g.label} open={g === currentGroup}>
               <summary class="flex cursor-pointer list-none items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold tracking-wider text-accent-soft uppercase hover:bg-paper/10 [&::-webkit-details-marker]:hidden">
-                {g.label}
+                <span class="flex items-center gap-2">
+                  {g.label}
+                  {groupCount(g, counts) > 0 && (
+                    <span class="rounded-full bg-brand px-1.5 text-xs leading-5 tracking-normal text-paper group-open:hidden">
+                      {groupCount(g, counts)}
+                      <span class="sr-only"> waiting</span>
+                    </span>
+                  )}
+                </span>
                 <span aria-hidden="true" class="text-sm transition-transform group-open:rotate-90">
                   ›
                 </span>
@@ -202,8 +161,37 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
       </nav>
     </aside>
     <main class="min-w-0 flex-1 p-4 md:p-8">
-      <h1 class={`text-2xl ${intro ? 'mb-1' : 'mb-6'}`}>{heading ?? title}</h1>
-      {intro && <p class="mb-6 text-muted">{intro}</p>}
+      {trail.length > 0 && (
+        <nav aria-label="You are here" class="mb-1 text-sm text-muted">
+          {trail.map((t) => (
+            <>
+              <a href={t.href} class="text-muted hover:text-navy">
+                {t.label}
+              </a>
+              <span aria-hidden="true"> › </span>
+            </>
+          ))}
+        </nav>
+      )}
+      <div class="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div class="max-w-3xl min-w-0">
+          <h1 class="text-2xl">{heading ?? title}</h1>
+          {intro && <p class="mt-1 text-muted">{intro}</p>}
+          {hasHelp && (
+            <details class="mt-1 text-sm text-muted">
+              <summary class="cursor-pointer text-accent">How this works</summary>
+              <div class="mt-2 grid gap-2">
+                <slot name="help" />
+              </div>
+            </details>
+          )}
+        </div>
+        {hasActions && (
+          <div class="flex flex-wrap items-center gap-2">
+            <slot name="actions" />
+          </div>
+        )}
+      </div>
       {flash && (
         <div
           role="status"
@@ -258,8 +246,19 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
       const dirty = new Set<HTMLFormElement>();
       document.querySelectorAll<HTMLFormElement>('form[data-warn-unsaved]').forEach((f) => {
         // <form data-unsaved>: re-rendered with text that isn't saved yet (e.g. after a preview).
-        if (f.hasAttribute('data-unsaved')) dirty.add(f);
-        f.addEventListener('input', () => dirty.add(f));
+        // Its "Unsaved changes" note, if it has one, shows once something is typed.
+        const note = () =>
+          f
+            .querySelectorAll<HTMLElement>('[data-unsaved-note]')
+            .forEach((el) => (el.hidden = false));
+        if (f.hasAttribute('data-unsaved')) {
+          dirty.add(f);
+          note();
+        }
+        f.addEventListener('input', () => {
+          dirty.add(f);
+          note();
+        });
         f.addEventListener('submit', (e) => {
           if (e.defaultPrevented) return;
           const others = [...dirty].filter((o) => o !== f);
@@ -271,6 +270,12 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
           }
           dirty.clear();
         });
+      });
+      // Filter bars: picking in a dropdown applies it straight away (search boxes apply on Enter).
+      document.querySelectorAll<HTMLFormElement>('form[role="search"]').forEach((f) => {
+        f.querySelectorAll('select').forEach((sel) =>
+          sel.addEventListener('change', () => f.requestSubmit()),
+        );
       });
       addEventListener('beforeunload', (e) => {
         if (dirty.size) e.preventDefault();

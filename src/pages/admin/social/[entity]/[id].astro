@@ -1,6 +1,7 @@
 ---
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
+import EventTabs from '../../../../components/admin/EventTabs.astro';
 import AdminLayout from '../../../../layouts/AdminLayout.astro';
 import Alert from '../../../../components/Alert.astro';
 import Button from '../../../../components/Button.astro';
@@ -85,16 +86,24 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
 const picked = new Set(values.networks as string[]);
 ---
 
-<AdminLayout title={`Share on social media: ${item.title}`}>
-  <div class="mb-4 flex flex-wrap gap-4 text-sm">
-    <a href={item.editUrl}>← Edit the {isEvent ? 'event' : 'post'}</a>
-    {item.published && (
-      <a href={item.url} target="_blank" rel="noopener">
-        View on the site ↗
-      </a>
-    )}
-    <a href="/admin/social">All social media posts</a>
-  </div>
+<AdminLayout
+  title={item.title}
+  trail={[
+    isEvent
+      ? { href: '/admin/events', label: 'Events' }
+      : { href: '/admin/posts', label: 'Blog posts' },
+  ]}
+>
+  <EventTabs
+    kind={isEvent ? 'event' : 'post'}
+    item={{
+      id: item.id,
+      slug: item.url.split('/').pop() ?? '',
+      status: item.published ? 'published' : 'draft',
+      startsAt: item.startsAt,
+    }}
+    current="share"
+  />
 
   {message && (
     <Alert tone={message.tone} class="mb-6">

@@ -1,0 +1,47 @@
+---
+import PageTabs from './PageTabs.astro';
+
+// The screens of one event (or one post) as tabs, the same on each of them.
+interface Props {
+  kind: 'event' | 'post';
+  item: { id: number; slug: string; status: string; startsAt?: Date | null };
+  current: 'details' | 'registrations' | 'email' | 'share' | 'feedback';
+}
+const { kind, item, current } = Astro.props;
+const tabs =
+  kind === 'event'
+    ? [
+        { key: 'details', href: `/admin/events/${item.id}`, label: 'Details' },
+        {
+          key: 'registrations',
+          href: `/admin/registrations?event=${item.id}`,
+          label: 'Registrations',
+        },
+        { key: 'email', href: `/admin/events/${item.id}/email`, label: 'Email registrants' },
+        { key: 'share', href: `/admin/social/event/${item.id}`, label: 'Share on social media' },
+        ...(item.startsAt && item.startsAt < new Date()
+          ? [{ key: 'feedback', href: `/admin/events/${item.id}/feedback`, label: 'Feedback' }]
+          : []),
+      ]
+    : [
+        { key: 'details', href: `/admin/posts/${item.id}`, label: 'Details' },
+        { key: 'share', href: `/admin/social/post/${item.id}`, label: 'Share on social media' },
+      ];
+const live = item.status !== 'draft';
+const publicHref = kind === 'event' ? `/events/${item.slug}` : `/blog/${item.slug}`;
+---
+
+<div class="mb-2 flex flex-wrap items-start justify-between gap-2">
+  <PageTabs
+    label={kind === 'event' ? 'This event' : 'This post'}
+    tabs={tabs.map((t) => ({ href: t.href, label: t.label, current: t.key === current }))}
+  />
+  <div class="flex flex-wrap gap-3 pt-1.5 text-sm">
+    {live && (
+      <a href={publicHref} target="_blank" rel="noopener">
+        View on the site ↗
+      </a>
+    )}
+    {kind === 'event' && <a href={`/admin/events/new?from=${item.id}`}>Duplicate</a>}
+  </div>
+</div>

@@ -42,10 +42,7 @@ if (Astro.request.method === 'POST') {
 }
 ---
 
-<AdminLayout title="New contact">
-  <p class="mb-4">
-    <a href="/admin/contacts">← All contacts</a>
-  </p>
+<AdminLayout title="New contact" trail={[{ href: '/admin/contacts', label: 'Contacts' }]}>
   <div class="admin-panel max-w-3xl">
     <p class="mb-4 text-sm text-muted">
       For someone who hasn't registered for an event yet. When they register later with the same

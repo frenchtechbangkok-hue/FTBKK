@@ -2,6 +2,11 @@
 import { z } from 'zod';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import AdminLayout from '../../layouts/AdminLayout.astro';
+import EmptyState from '../../components/admin/EmptyState.astro';
+import EventTabs from '../../components/admin/EventTabs.astro';
+import StatRow from '../../components/admin/StatRow.astro';
+import { eventRows, whoIsComing } from '../../lib/event-stats';
+import { loadEventStatData } from '../../lib/reports';
 import Badge from '../../components/Badge.astro';
 import Button from '../../components/Button.astro';
 import Alert from '../../components/Alert.astro';
@@ -225,6 +230,20 @@ const memberChoices = event
   : [];
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const peopleCount = (n: number) => (n === 1 ? '1 person' : `${n} people`);
+// "Who's coming" for an event not over yet: first-timers, returning people, members, companies.
+const coming =
+  event && (event.endsAt ?? event.startsAt) >= now
+    ? await loadEventStatData().then((d) =>
+        whoIsComing(
+          event.id,
+          eventRows(d.eventList, d.regs, d.feedback, d.memberList, now),
+          d.regs,
+          new Set(
+            d.memberList.filter((m) => m.status === 'active').map((m) => m.email.toLowerCase()),
+          ),
+        ),
+      )
+    : null;
 ---
 
 <AdminLayout title="Registrations">
@@ -255,6 +274,7 @@ const peopleCount = (n: number) => (n === 1 ? '1 person' : `${n} people`);
   )}
   {event ? (
     <>
+      <EventTabs kind="event" item={event} current="registrations" />
       <div class="admin-panel mb-4">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -286,20 +306,32 @@ const peopleCount = (n: number) => (n === 1 ? '1 person' : `${n} people`);
             </Button>
           </div>
         </div>
-        <dl class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {[
-            ['Registered', counts.registered + counts.attended],
-            ['Capacity', event.capacity ?? '∞'],
-            ['Checked in', counts.attended],
-            ['Waitlist', counts.waitlist],
-            ['Cancelled', counts.cancelled],
-          ].map(([k, v]) => (
-            <div class="rounded-lg bg-surface p-3">
-              <dt class="text-xs text-muted">{k}</dt>
-              <dd class="font-display text-2xl font-bold text-navy">{v}</dd>
-            </div>
-          ))}
-        </dl>
+        <StatRow
+          class="mt-5"
+          items={[
+            {
+              label: 'Registered',
+              value: counts.registered + counts.attended,
+              hint: event.capacity ? `of ${event.capacity} seats` : 'No seat limit',
+            },
+            { label: 'Checked in', value: counts.attended },
+            { label: 'Waitlist', value: counts.waitlist },
+            { label: 'Cancelled', value: counts.cancelled },
+          ]}
+        />
+        {coming && coming.people > 0 && (
+          <p class="mt-4 border-t border-line pt-3 text-sm">
+            <span class="font-semibold text-navy">Who's coming:</span> {coming.firstTimers} first{' '}
+            {coming.firstTimers === 1 ? 'timer' : 'timers'}, {coming.returning} came before,{' '}
+            {coming.members} {coming.members === 1 ? 'member' : 'members'}
+            {coming.companies.length > 0 && (
+              <>
+                {' · '}most from {coming.companies.map((c) => `${c.name} (${c.people})`).join(', ')}
+              </>
+            )}
+            .
+          </p>
+        )}
         {counts.guests > 0 && (
           <p class="mt-2 text-xs text-muted">
             Counts include guests ({counts.guests} coming with registrants), who have no name or
@@ -689,7 +721,7 @@ const peopleCount = (n: number) => (n === 1 ? '1 person' : `${n} people`);
                           name="action"
                           value="attended"
                           size="sm"
-                          variant="ghost"
+                          variant="secondary"
                         >
                           Check in
                         </Button>
@@ -711,7 +743,7 @@ const peopleCount = (n: number) => (n === 1 ? '1 person' : `${n} people`);
                           name="action"
                           value="promote"
                           size="sm"
-                          variant="ghost"
+                          variant="secondary"
                         >
                           Register
                         </Button>
@@ -733,7 +765,7 @@ const peopleCount = (n: number) => (n === 1 ? '1 person' : `${n} people`);
                           name="action"
                           value="cancel"
                           size="sm"
-                          variant="ghost"
+                          variant="danger"
                           data-confirm={`Cancel ${r.name}'s registration?`}
                         >
                           Cancel
@@ -746,12 +778,19 @@ const peopleCount = (n: number) => (n === 1 ? '1 person' : `${n} people`);
             </tbody>
           </table>
         ) : (
-          <p class="text-muted">No registrations{q || statusFilter ? ' match' : ' yet'}.</p>
+          <EmptyState
+            text={q || statusFilter ? 'No registration matches.' : 'No registrations yet.'}
+            hint={
+              q || statusFilter
+                ? 'Try another name or status.'
+                : 'People appear here when they register on the event page, or when you add them.'
+            }
+          />
         )}
       </div>
     </>
   ) : (
-    <p class="text-muted">No events yet.</p>
+    <EmptyState text="No events yet." action={{ href: '/admin/events/new', label: 'New event' }} />
   )}
   <script>
     // Pick members: filter the list as you type, and tick every member shown.

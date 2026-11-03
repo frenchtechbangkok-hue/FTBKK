@@ -1,5 +1,6 @@
 ---
 import { z } from 'zod';
+import PageTabs from '../../components/admin/PageTabs.astro';
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import FormField from '../../components/FormField.astro';
 import MarkdownEditor from '../../components/admin/MarkdownEditor.astro';
@@ -39,6 +40,15 @@ const PAGES = {
   legal: 'Code of conduct and privacy',
 } as const;
 type Page = keyof typeof PAGES;
+// Short names for the tab row.
+const TAB_LABELS: Record<Page, string> = {
+  home: 'Home',
+  about: 'About',
+  join: 'Join',
+  'tech-pulse': 'Tech Pulse',
+  thai: 'Thai page',
+  legal: 'Code of conduct and privacy',
+};
 const pageParam = Astro.url.searchParams.get('page') ?? 'home';
 const page: Page = pageParam in PAGES ? (pageParam as Page) : 'home';
 const actor = Astro.locals.adminEmail ?? 'admin';
@@ -181,7 +191,15 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
 ---
 
 <AdminLayout title={PAGES[page]}>
-  <p class="-mt-4 mb-6 text-sm text-muted">
+  <PageTabs
+    label="Pages"
+    tabs={Object.entries(TAB_LABELS).map(([key, label]) => ({
+      href: key === 'home' ? '/admin/site-texts' : `/admin/site-texts?page=${key}`,
+      label,
+      current: key === page,
+    }))}
+  />
+  <p class="-mt-2 mb-6 text-sm text-muted">
     The texts of this page of the public site.{' '}
     <a
       href={
@@ -308,7 +326,7 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
           <p class="text-sm text-muted">
             Each photo has its own place on the page. Use your own or licensed photos, at least 1600
             px wide for the main header, 5 MB at most. Elsewhere on the site: the default covers of
-            Connect and Talk events are in Settings &gt; Default event covers, organisation logos in
+            Connect and Talk events are in Settings &gt; Event covers, organisation logos in
             Ecosystem, and each event or post has its own cover.
           </p>
           <PhotoSlot
@@ -496,8 +514,11 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
       </>
     )}
 
-    <div class="sticky bottom-0 z-10 -mx-4 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur md:mx-0 md:rounded-card md:border md:bg-paper/95">
+    <div class="sticky bottom-0 z-10 -mx-4 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur md:mx-0 md:rounded-card md:border md:bg-paper/95 flex items-center gap-4">
       <Button type="submit">Save</Button>
+      <span data-unsaved-note hidden class="text-sm font-semibold text-warning">
+        Unsaved changes
+      </span>
     </div>
   </form>
 </AdminLayout>

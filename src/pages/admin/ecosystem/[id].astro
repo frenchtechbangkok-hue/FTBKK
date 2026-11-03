@@ -154,7 +154,10 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
 const badges = (values.badges as string[] | undefined) ?? [];
 ---
 
-<AdminLayout title={org ? org.name : 'Add an organisation'}>
+<AdminLayout
+  title={org ? org.name : 'Add an organisation'}
+  trail={[{ href: '/admin/ecosystem?tab=all', label: 'Ecosystem' }]}
+>
   {org && (
     <div class="mb-4 flex flex-wrap gap-4 text-sm text-muted">
       {org.status === 'published' && (
@@ -355,7 +358,7 @@ const badges = (values.badges as string[] | undefined) ?? [];
           To take it off the site but keep it, set the status to hidden instead.
         </p>
         <div>
-          <Button type="submit" name="action" value="delete" variant="ghost" class="text-danger">
+          <Button type="submit" name="action" value="delete" variant="danger" class="text-danger">
             Delete this organisation
           </Button>
         </div>

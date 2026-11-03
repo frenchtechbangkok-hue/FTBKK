@@ -1,0 +1,87 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { z } from 'zod';
+import { searchAdmin, SEARCH_LIMIT, type SearchHit } from '../../lib/admin-search';
+
+// The menu's search box: people, events, posts and listings whose name matches.
+const parsed = z
+  .string()
+  .trim()
+  .max(100)
+  .safeParse(Astro.url.searchParams.get('q') ?? '');
+const q = parsed.success ? parsed.data : '';
+const results = q ? await searchAdmin(q) : null;
+const sections: { title: string; hits: SearchHit[]; all?: string }[] = results
+  ? [
+      { title: 'People', hits: results.people, all: `/admin/contacts?q=${encodeURIComponent(q)}` },
+      { title: 'Events', hits: results.events },
+      { title: 'Blog posts', hits: results.posts },
+      { title: 'Ecosystem listings', hits: results.listings },
+    ]
+  : [];
+const total = sections.reduce((n, s) => n + s.hits.length, 0);
+// One match: open it straight away.
+if (total === 1) return Astro.redirect(sections.find((s) => s.hits.length)!.hits[0]!.href);
+---
+
+<AdminLayout title="Search">
+  <form method="get" role="search" class="mb-6 flex max-w-xl gap-2">
+    <label for="q" class="sr-only">
+      Find a person, event, post or listing
+    </label>
+    <input
+      id="q"
+      name="q"
+      type="search"
+      value={q}
+      maxlength="100"
+      autofocus
+      placeholder="Name, email, company, event or listing"
+      class="admin-input"
+    />
+    <button
+      type="submit"
+      class="rounded-button border border-navy px-4 text-sm font-semibold text-navy hover:bg-navy hover:text-paper"
+    >
+      Search
+    </button>
+  </form>
+  {!q && <p class="text-muted">Type a name, an email, a company, an event or a listing.</p>}
+  {q && total === 0 && (
+    <section class="admin-panel">
+      <p>Nothing matches “{q}”.</p>
+      <p class="mt-1 text-sm text-muted">
+        Search looks at names, emails and companies of contacts and members, event and post titles,
+        and listing names.
+      </p>
+    </section>
+  )}
+  {total > 0 && (
+    <div class="grid gap-6 lg:grid-cols-2">
+      {sections
+        .filter((s) => s.hits.length)
+        .map((s) => (
+          <section class="admin-panel">
+            <h2 class="mb-3 text-lg">
+              {s.title} <span class="text-sm font-normal text-muted">{s.hits.length}</span>
+            </h2>
+            <ul class="divide-y divide-line">
+              {s.hits.map((h) => (
+                <li class="py-2">
+                  <a href={h.href} class="font-semibold">
+                    {h.title}
+                  </a>
+                  {h.detail && <span class="block text-xs text-muted">{h.detail}</span>}
+                </li>
+              ))}
+            </ul>
+            {s.hits.length === SEARCH_LIMIT && s.all && (
+              <a href={s.all} class="mt-2 inline-block text-sm">
+                See all in Contacts
+              </a>
+            )}
+          </section>
+        ))}
+    </div>
+  )}
+</AdminLayout>

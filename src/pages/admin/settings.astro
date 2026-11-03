@@ -14,12 +14,12 @@ import { COVER_KINDS, DEFAULT_EVENT_COVERS, KIND_NAMES } from '../../lib/event-c
 import { GUIDES } from '../../lib/guides';
 
 // Site-wide settings, one screen per section (?section=, listed under Settings in the admin menu).
-// Each screen saves only its own fields. The texts shown on public pages are in Website pages
+// Each screen saves only its own fields. The texts shown on public pages are in Website > Page texts
 // (/admin/site-texts).
 const SECTIONS = {
   general: 'General settings',
   membership: 'Membership settings',
-  'event-covers': 'Default event covers',
+  'event-covers': 'Event covers',
   'social-links': 'Social links',
   guides: 'Guide pages',
 } as const;
@@ -137,7 +137,7 @@ if (form?.get('intent') === 'test-notify') {
 }
 const INTROS: Record<Section, string> = {
   general:
-    'The site name, the contact email, who gets the team emails, and analytics. The texts of the public pages are under Website pages.',
+    'The site name, the contact email, who gets the team emails, and analytics. The texts of the public pages are under Website > Page texts.',
   membership:
     'Switches for individual membership, company membership and member priority on events.',
   'event-covers':
@@ -150,7 +150,7 @@ const INTROS: Record<Section, string> = {
 const str = (k: string) => (values[k] === null || values[k] === undefined ? '' : String(values[k]));
 ---
 
-<AdminLayout title={SECTIONS[section]}>
+<AdminLayout title={SECTIONS[section]} intro={INTROS[section]}>
   {testResult?.ok && (
     <Alert tone="success" class="mb-6">
       Test sent to {notifyTo.join(', ')}. {PROVIDER_NAMES[emailProvider()]} accepted it; if it isn't
@@ -168,7 +168,6 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
       Please fix the highlighted fields.
     </Alert>
   )}
-  <p class="mb-6 max-w-3xl text-sm text-muted">{INTROS[section]}</p>
   <form method="post" enctype="multipart/form-data" data-warn-unsaved class="grid max-w-3xl gap-6">
     {section === 'general' && (
       <>
@@ -322,8 +321,11 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
       </section>
     )}
 
-    <div class="sticky bottom-0 z-10 -mx-4 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur md:mx-0 md:rounded-card md:border md:bg-paper/95">
+    <div class="sticky bottom-0 z-10 -mx-4 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur md:mx-0 md:rounded-card md:border md:bg-paper/95 flex items-center gap-4">
       <Button type="submit">Save</Button>
+      <span data-unsaved-note hidden class="text-sm font-semibold text-warning">
+        Unsaved changes
+      </span>
     </div>
   </form>
   <form id="test-notify" method="post" hidden>
