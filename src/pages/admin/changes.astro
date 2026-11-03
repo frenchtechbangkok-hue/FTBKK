@@ -1,0 +1,53 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { RELEASES, REPO_URL } from '../../lib/changelog';
+import { formatDate } from '../../lib/format';
+
+// Settings > Change history: every version of the site, newest first, from src/lib/changelog.ts.
+// Each merged pull request is one version. The admin edits made by people are in Actions log.
+const current = RELEASES[0]!;
+// Group by month so the long list stays easy to scan.
+const months: { label: string; releases: typeof RELEASES }[] = [];
+for (const r of RELEASES) {
+  const label = formatDate(`${r.date}T12:00:00+07:00`, { day: undefined });
+  const last = months.at(-1);
+  if (last?.label === label) last.releases.push(r);
+  else months.push({ label, releases: [r] });
+}
+---
+
+<AdminLayout title="Change history">
+  <p class="mb-6 max-w-3xl text-sm text-muted">
+    What changed on the website, version by version, newest first. The site is on version{' '}
+    <strong class="text-ink">{current.version}</strong> since{' '}
+    {formatDate(`${current.date}T12:00:00+07:00`)}. Who edited what in the admin is in{' '}
+    <a href="/admin/actions-log">Actions log</a>.
+  </p>
+  {months.map((m) => (
+    <section class="mb-8">
+      <h2 class="mb-3 text-sm font-semibold tracking-wide text-muted uppercase">{m.label}</h2>
+      <ol class="admin-panel divide-y divide-line !py-0">
+        {m.releases.map((r) => (
+          <li class="flex flex-col gap-1 py-4 sm:flex-row sm:gap-6">
+            <div class="flex shrink-0 items-baseline gap-3 sm:w-36 sm:flex-col sm:gap-1">
+              <span class="font-semibold text-navy">Version {r.version}</span>
+              <span class="text-xs text-muted">{formatDate(`${r.date}T12:00:00+07:00`)}</span>
+            </div>
+            <div class="min-w-0">
+              <h3 class="font-semibold text-ink">{r.title}</h3>
+              <p class="mt-1 text-sm text-ink">{r.summary}</p>
+              <a
+                class="mt-1 inline-block text-xs text-muted"
+                href={`${REPO_URL}/pull/${r.pr}`}
+                target="_blank"
+                rel="noopener"
+              >
+                Details on GitHub (#{r.pr}) ↗
+              </a>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  ))}
+</AdminLayout>

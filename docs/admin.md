@@ -2,20 +2,20 @@
 
 The admin lives at `/admin`. Cloudflare Access asks for your email and sends a one-time code;
 only emails on the Access policy get in. Every change is saved straight to the live site (public
-pages refresh within a minute) and recorded in Settings > Change history.
+pages refresh within a minute) and recorded in Settings > Actions log.
 
 The menu has a group per kind of work, then the figures, then the switches:
 
-| Group                       | What is in it                                                                                                                                                                             |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Events**                  | All events, Registrations, Check-in                                                                                                                                                       |
-| **Community**               | Members, Contacts, Tags and groups, Messages, Board and speakers                                                                                                                          |
-| **Ecosystem**               | To review, All listings, Partners, Renewals                                                                                                                                               |
-| **Blog**                    | Posts, PDFs and files                                                                                                                                                                     |
-| **Website pages**           | The texts and photos of each public page: Home, About, Join, Tech Pulse, Thai page, Code of conduct and privacy (one screen each, with its own Save button)                               |
-| **Emails and social media** | Email the community, Social media posts (share and schedule events and posts), Automatic emails, Email delivery                                                                           |
-| **Reports**                 | Events and attendance, Membership, Website traffic (tabs of the same Reports screen, for the board)                                                                                       |
-| **Settings**                | General (site name, contact email, admin notifications, analytics), Membership (the sign-up switches), Default event covers, Social links (the footer links to our pages), Change history |
+| Group                       | What is in it                                                                                                                                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Events**                  | All events, Registrations, Check-in                                                                                                                                                                                                              |
+| **Community**               | Members, Contacts, Tags and groups, Messages, Board and speakers                                                                                                                                                                                 |
+| **Ecosystem**               | To review, All listings, Partners, Renewals                                                                                                                                                                                                      |
+| **Blog**                    | Posts, PDFs and files                                                                                                                                                                                                                            |
+| **Website pages**           | The texts and photos of each public page: Home, About, Join, Tech Pulse, Thai page, Code of conduct and privacy (one screen each, with its own Save button)                                                                                      |
+| **Emails and social media** | Email the community, Social media posts (share and schedule events and posts), Automatic emails, Email delivery                                                                                                                                  |
+| **Reports**                 | Events and attendance, Membership, Website traffic (tabs of the same Reports screen, for the board)                                                                                                                                              |
+| **Settings**                | General (site name, contact email, admin notifications, analytics), Membership (the sign-up switches), Default event covers, Social links (the footer links to our pages), Change history (versions of the site), Actions log (who changed what) |
 
 As a rule: what visitors read is under **Website pages**, what we post or send is under **Emails
 and social media**, and switches and site-wide values are under **Settings**. Click a group's
@@ -295,7 +295,7 @@ uses any more.
   you saved a contact card (your notes are not shown; the page tells them to ask for a copy). They can **Unsubscribe from the newsletter** (recorded on their contact
   card as "Not subscribed" with today's date) or **Delete my data** (asks to confirm, then does
   exactly what **Delete this contact** does: their card, registrations and feedback go, and freed
-  seats go to the waitlist). An unsubscribe shows in Settings > Change history with the actor
+  seats go to the waitlist). An unsubscribe shows in Settings > Actions log with the actor
   `self-service:<their email>`. Deleting a contact (here or with **Delete this contact**) also
   wipes the old values of their contact entries in the history and logs the deletion under
   `deleted:<short code>` instead of their email. After a deletion the link stops working. If someone asks by email
@@ -543,7 +543,12 @@ enrolment at check-in.
     guide. Admins still see the page, with a yellow "Preview, not online" bar on top (use the
     Preview link here; if you get "page not found", open the admin first so your Access login is
     fresh). Tick the box and Save to publish.
-  - **Change history**: who changed what in the admin, and when (the last 200 changes).
+  - **Change history**: what changed on the website, version by version, newest first. Every
+    update of the site (one merged pull request on GitHub) is a new version, 1.0 being the first
+    full site; each comes with its date, a short summary in plain words and a link to the details
+    on GitHub. Nothing to fill in: the entry ships with the update itself.
+  - **Actions log**: who changed what in the admin, and when (the last 200 changes). It was
+    called Change history before November 2026; the old address still works.
 - **Home page** (Website pages > Home): every photo has its own slot: **Main header** (the big
   photo at the top, also faint in the red closing band; its description is the small caption;
   default: the Bangkok skyline), **About us** (the arched photo; default: a photo from the latest

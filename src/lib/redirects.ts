@@ -48,6 +48,8 @@ const RULES: Rule[] = [
   // Admin screens moved when the menu was regrouped (Reports group, Oct 2026).
   [/^\/admin\/events\/stats\/?$/, () => '/admin/reports/events'],
   [/^\/admin\/reports\/?$/, () => '/admin/reports/members'],
+  // Settings > Change history became Actions log when the site version history took its name.
+  [/^\/admin\/history\/?$/, () => '/admin/actions-log'],
 ];
 
 export interface LegacyMatch {
