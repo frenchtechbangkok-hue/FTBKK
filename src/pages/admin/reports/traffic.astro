@@ -19,7 +19,7 @@ import {
 // the requests this Worker served. Read from Cloudflare's API at each visit (src/lib/traffic.ts).
 const { period, beacon, connected, report: r, error } = await loadTrafficReport(Astro.url);
 const versus = period.previous ? `vs ${period.previous.label}` : undefined;
-const n = (v: number) => v.toLocaleString('en-GB');
+const n = (v: number) => Math.round(v).toLocaleString('en-GB');
 const day = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'short',
@@ -27,6 +27,8 @@ const day = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Asia/Bangkok',
 });
 const p = r?.pageloads.data;
+const days = (range: { from: Date; to: Date } | null) =>
+  range ? Math.max(1, (range.to.getTime() - range.from.getTime()) / 86400000) : 1;
 const prev = r?.previous;
 const kpis = p
   ? [
@@ -53,10 +55,14 @@ const kpis = p
         hint: 'How far people read once they arrive',
       },
       {
-        label: 'Top source',
-        value: p.tops.referrers[0]?.[0] ?? '–',
+        label: 'Visits per day',
+        value: n(p.visits / days(r!.pageloads.range)),
+        delta: delta(
+          p.visits / days(r!.pageloads.range),
+          prev ? prev.visits / days(period.previous) : null,
+        ),
         hint: p.tops.referrers[0]
-          ? `${n(p.tops.referrers[0][1])} visits. All sources below.`
+          ? `Top source: ${p.tops.referrers[0][0]} (${n(p.tops.referrers[0][1])} visits)`
           : undefined,
       },
     ]

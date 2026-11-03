@@ -194,7 +194,7 @@ describe('loadTraffic', () => {
     expect(p.pageViews).toBe(300);
     expect(p.viewsSeries.reduce((a, b) => a + b, 0)).toBe(300);
     expect(p.tops.referrers).toEqual([
-      ['www.google.com', 70],
+      ['google.com', 70],
       ['Direct or unknown', 50],
     ]);
     expect(p.tops.devices).toEqual([['Mobile', 120]]);

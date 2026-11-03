@@ -404,7 +404,7 @@ export async function loadTraffic(
         viewsSeries: bucketDaily(viewsByDay, buckets),
         tops: {
           pages: top('pages', (k) => k || '/'),
-          referrers: top('referrers', (k) => k || 'Direct or unknown'),
+          referrers: top('referrers', (k) => k.replace(/^www\./, '') || 'Direct or unknown'),
           countries: top('countries', (k) => k || 'Unknown'),
           devices: top('devices', (k) => (k ? k[0]!.toUpperCase() + k.slice(1) : 'Unknown')),
           browsers: top('browsers', (k) => k || 'Unknown'),
