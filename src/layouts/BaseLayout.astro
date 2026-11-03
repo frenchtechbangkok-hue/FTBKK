@@ -47,8 +47,11 @@ const {
 const fullTitle = title
   ? `${title} | ${settings.siteTitle}`
   : `${settings.siteTitle} | French tech community in Bangkok, Thailand`;
-// Pages without their own image share the French Tech Connect visual the Wix site used.
-const ogImage = siteUrl(image || '/brand/og-default.jpg');
+// Pages without their own image (Home, About, lists...) share the general La French Tech Bangkok
+// image: official logo and name on navy, Bangkok skyline. 1200x630 like the event and post images.
+const DEFAULT_SHARE_IMAGE = '/brand/share-default.jpg';
+const ogImage = siteUrl(image || DEFAULT_SHARE_IMAGE);
+const knownSize = shareImage || !image;
 const ogLocale = lang === 'th' ? 'th_TH' : 'en_US';
 Astro.response.headers.set(
   'Cache-Control',
@@ -106,8 +109,14 @@ const ld = [orgLd, ...websiteLd, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : 
     {description && <meta property="og:description" content={description} />}
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={ogImage} />
-    {shareImage && <meta property="og:image:width" content={String(SHARE_WIDTH)} />}
-    {shareImage && <meta property="og:image:height" content={String(SHARE_HEIGHT)} />}
+    {knownSize && <meta property="og:image:width" content={String(SHARE_WIDTH)} />}
+    {knownSize && <meta property="og:image:height" content={String(SHARE_HEIGHT)} />}
+    {!image && (
+      <meta
+        property="og:image:alt"
+        content="La French Tech Bangkok logo over the Bangkok skyline"
+      />
+    )}
     {published && <meta property="article:published_time" content={published.toISOString()} />}
     {modified && <meta property="article:modified_time" content={modified.toISOString()} />}
     {ogType === 'article' && keywords.map((k) => <meta property="article:tag" content={k} />)}
