@@ -19,12 +19,20 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
-    version: '1.92',
+    version: '1.93',
     date: '2026-11-03',
     pr: 107,
     title: 'Easier Actions log',
     summary:
       'Each line of the Actions log is now a plain sentence with links, grouped by day, with who did it, an area label, the changed fields in words, and filters by area and by person.',
+  },
+  {
+    version: '1.92',
+    date: '2026-11-03',
+    pr: 105,
+    title: 'Email delivery report',
+    summary:
+      'Reports > Emails shows how many emails were delivered, opened, clicked, bounced or marked as spam.',
   },
   {
     version: '1.91',
