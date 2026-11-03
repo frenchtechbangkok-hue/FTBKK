@@ -47,6 +47,11 @@
     // FACEBOOK_PAGE_TOKEN (docs/deploy.md, "Connect LinkedIn and Facebook").
     "LINKEDIN_ORGANIZATION_ID": "",
     "FACEBOOK_PAGE_ID": "",
+    // Reports > Website traffic reads Cloudflare's Analytics API with the secret CF_ANALYTICS_TOKEN
+    // (docs/deploy.md, "Website traffic report"). Both can stay empty: the account is the only one
+    // the token reads, the site is the Web Analytics site whose token is in Settings.
+    "CF_ACCOUNT_ID": "",
+    "CF_WEB_ANALYTICS_SITE_TAG": "",
   },
   "triggers": {
     // Every hour, for scheduled social media posts; the daily jobs run at 02:00 UTC = 09:00

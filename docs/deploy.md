@@ -155,6 +155,30 @@ share image, so the site must be reachable without the Access login: Access must
 - Settings > **Cloudflare Web Analytics token** (Dashboard > Analytics & Logs > Web Analytics >
   add the site), if you want visitor stats.
 
+## 9. Website traffic report (optional)
+
+Admin > Reports > Website traffic reads Cloudflare's analytics with an API token.
+
+1. Turn on visitor counting if it isn't yet: Cloudflare dashboard > Analytics & Logs > Web
+   Analytics > Add a site, enter the site's host (`ft-bkk-site.edelattre.workers.dev` today), pick
+   the JavaScript snippet option, copy the token from the snippet (`"token": "…"`) and paste it in
+   Admin > Settings > General > **Cloudflare Web Analytics token**.
+2. Create the API token: My Profile > API Tokens > Create Token > **Create Custom Token**. Name
+   it "Website traffic report", permission **Account > Account Analytics > Read**, Account
+   Resources: Include > the French Tech account. Continue, Create, copy the token (it is shown
+   once).
+3. Add it to the Worker: Workers & Pages > ft-bkk-site > Settings > Variables and Secrets > Add >
+   type **Secret**, name `CF_ANALYTICS_TOKEN`, paste, Deploy (or
+   `npx wrangler secret put CF_ANALYTICS_TOKEN`). Secrets survive deploys.
+4. Open Admin > Reports > Website traffic. The page finds the account and the Web Analytics site
+   by itself. If it says the token reads several accounts, or that no site matches, put the
+   account ID (dashboard address bar: `dash.cloudflare.com/<account id>/…`) in `CF_ACCOUNT_ID`
+   and the site tag (Web Analytics > the site: the address ends with `siteTag~in=<tag>`) in
+   `CF_WEB_ANALYTICS_SITE_TAG` in `wrangler.jsonc`, and deploy.
+
+When the domain moves to Cloudflare, add the new host as a Web Analytics site too (or switch the
+existing one); the report keeps reading the site whose token is in Settings.
+
 ## Backups and restore
 
 - D1 keeps 30 days of history: `npx wrangler d1 time-travel restore ftbkk --timestamp=<ISO date>`

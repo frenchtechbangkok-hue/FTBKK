@@ -109,6 +109,17 @@ Public pages:
   ratings and comments, and CSV exports of what is shown (`/admin/reports/*.csv`). Figures are
   computed in memory (`src/lib/event-stats.ts`, `src/lib/member-reports.ts`); charts are
   server-rendered SVG, no chart library.
+- **Website traffic report** (`/admin/reports/traffic`, `src/lib/traffic.ts`): the third Reports
+  tab reads Cloudflare's GraphQL Analytics API from the server (Cloudflare dashboards can't be
+  embedded) with the Worker secret `CF_ANALYTICS_TOKEN` (Account Analytics: Read). Same period
+  picker: visits, page views and pages per visit with changes against the previous period, a
+  chart per week or month, most viewed pages, referrers, countries, devices and browsers (Web
+  Analytics beacon, on while Settings has its token), Core Web Vitals for real visitors (LCP, INP,
+  CLS at the 75th percentile with the share of good page views, as in Observatory), and the
+  requests and errors the Worker served. The account and the Web Analytics site are found from
+  the token (or set `CF_ACCOUNT_ID` and `CF_WEB_ANALYTICS_SITE_TAG` in `wrangler.jsonc`); long
+  periods are split into the spans Cloudflare allows and clamped to what it keeps (about six
+  months of visits, three of Worker requests). Each part loads on its own and shows its error.
 - **Member admin and reports**: Members > All members filters on status, profile,
   sector, joined dates, events attended, no-show rate and newsletter, and exports the filtered
   list as CSV (`/admin/members.csv`, `src/lib/member-list.ts`). Reports > Membership

@@ -14,7 +14,7 @@ The menu has a group per kind of work, then the figures, then the switches:
 | **Blog**                    | Posts, PDFs and files                                                                                                                                                                     |
 | **Website pages**           | The texts and photos of each public page: Home, About, Join, Tech Pulse, Thai page, Code of conduct and privacy (one screen each, with its own Save button)                               |
 | **Emails and social media** | Email the community, Social media posts (share and schedule events and posts), Automatic emails                                                                                           |
-| **Reports**                 | Events and attendance, Membership (two tabs of the same Reports screen, for the board)                                                                                                    |
+| **Reports**                 | Events and attendance, Membership, Website traffic (tabs of the same Reports screen, for the board)                                                                                       |
 | **Settings**                | General (site name, contact email, admin notifications, analytics), Membership (the sign-up switches), Default event covers, Social links (the footer links to our pages), Change history |
 
 As a rule: what visitors read is under **Website pages**, what we post or send is under **Emails
@@ -457,7 +457,7 @@ enrolment at check-in.
 
 ## Reports
 
-**Reports** has two tabs, for the team and the board. Figures are live.
+**Reports** has three tabs, for the team and the board. Figures are live.
 
 - **Pick a period** at the top: last 30 or 90 days, last 12 months (the default), this year, last
   year, all time, or **Custom dates**. Every figure and chart follows it, and the key numbers say
@@ -485,6 +485,17 @@ enrolment at check-in.
   how members rate the events compared with non-members. Charts of members per week, month or year
   and the member share per event; active members by profile type and sector, how new members heard
   of us, the most regular members and a table of members at each event.
+- **Website traffic**: visits, page views and pages per visit (with the change against the
+  period before), a chart of visits and page views, the most viewed pages, where visitors come
+  from (Google, LinkedIn, direct…), countries, devices and browsers. **Speed for real visitors**
+  shows Google's Core Web Vitals as measured in visitors' browsers: loading (LCP), responsiveness
+  (INP) and visual stability (CLS), each with Good, Needs improvement or Poor. **Server** shows
+  every request the website answered (bots and the admin included) and the errors. The figures
+  come from Cloudflare: they are estimates, without cookies, and Cloudflare keeps about six months
+  of visits and three months of server requests, so older periods start later (the page says
+  so). Visits are only counted while Settings > General > Cloudflare Web Analytics token is
+  filled in, and the tab needs the Cloudflare connection once (see docs/deploy.md); until then it
+  explains what to do.
 - **Export CSV** downloads what is shown: on Events, one line per event (or, with one event
   picked, its figures and comments); on Membership, the growth table or the members at each event.
 

@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import { eq, isNotNull } from 'drizzle-orm';
 import { getDb } from '../db';
 import { eventFeedback, events, members, registrations } from '../db/schema';
@@ -11,8 +12,11 @@ import {
 } from './event-stats';
 import { memberReports } from './member-reports';
 import { parsePeriod } from './report-period';
+import { getSettings } from './settings';
+import { siteOrigin } from './site';
+import { loadTraffic, oldestTraffic, type TrafficReport } from './traffic';
 
-// Loads what the two Reports tabs (and their CSV exports) need, with the filters in the URL.
+// Loads what the Reports tabs (and their CSV exports) need, with the filters in the URL.
 
 const KINDS = [...COVER_KINDS, 'other'] as const;
 export const kindOptions = KINDS.map((k) => ({ value: k, label: KIND_LABELS[k] }));
@@ -159,4 +163,36 @@ export async function loadMemberReport(url: URL, now = new Date()) {
       now,
     ),
   };
+}
+
+/**
+ * Reports > Website traffic, from Cloudflare. Without the API token, says so and the page shows how
+ * to connect it; `beacon` is false while Settings has no Web Analytics token (nothing collected).
+ */
+export async function loadTrafficReport(url: URL, now = new Date()) {
+  const period = parsePeriod(url.searchParams, now, oldestTraffic(now));
+  const settings = await getSettings();
+  const beacon = !!settings.analyticsToken;
+  const token = env.CF_ANALYTICS_TOKEN ?? '';
+  let report: TrafficReport | null = null;
+  let error: string | null = null;
+  if (token) {
+    try {
+      report = await loadTraffic(
+        {
+          token,
+          accountId: env.CF_ACCOUNT_ID ?? '',
+          siteTag: env.CF_WEB_ANALYTICS_SITE_TAG ?? '',
+          beaconToken: settings.analyticsToken,
+          host: siteOrigin().host,
+          script: 'ft-bkk-site',
+        },
+        period,
+        now,
+      );
+    } catch (e) {
+      error = (e as Error).message;
+    }
+  }
+  return { period, beacon, connected: !!token, report, error };
 }

@@ -86,7 +86,7 @@ const swatch = { brand: 'bg-brand', accent: 'bg-accent', navy: 'bg-navy', muted:
             stroke-width="1"
           />
           <text x={pad.left - 6} y={y(g) + 4} text-anchor="end" class="fill-muted text-[11px]">
-            {g}
+            {g >= 10000 ? `${g / 1000}k` : g}
           </text>
         </g>
       ))}
