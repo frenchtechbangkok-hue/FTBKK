@@ -25,11 +25,22 @@ as you left them in this browser. On a phone, open it with the **Menu** button. 
 Everyone who can sign in to the admin can do everything: there are no roles, owners or approval
 steps.
 
-The **Dashboard** opens with the quick actions: Create an event, Write a post, Email the
-community, Check in guests, Add an organisation and Edit the home page. Below them, each count
-opens the matching list (what is waiting in the directory, unread messages, draft posts, listings
-and renewals, members to review, contacts). Upcoming events lists the next five, each with a link
-to its registrations and, on the day of the event, a **Check in** link.
+The **Dashboard** greets you and says when the next event is. Then, from top to bottom:
+
+- **Quick actions**: Create an event, Write a post, Email the community, Check in guests, Add an
+  organisation and Edit the home page.
+- **Waiting for you**: only what needs someone, each line with its button (listings to review in
+  the directory, with the oldest one's age in red when it is late; unread messages; new members
+  to review; social media posts that failed in the last 14 days; listings to renew in the next 30
+  days; draft posts). When nothing waits it says _All clear_.
+- **Last 7 days**: website visits, event registrations and new members, each compared with the
+  7 days before, and the emails sent this month against the plan. Click a figure for its report.
+  Visits come from Cloudflare and appear a second after the page. Below: the total number of
+  members, contacts and listed organisations.
+- **Upcoming events**: the next five, with the days to go, how full they are, a link to the
+  registrations and, on the day, a **Check in** link.
+- **Latest activity**: the last registrations, new members, listings and messages.
+- **New on the site**: the latest line of Settings > Change history.
 
 ## Posts
 
@@ -410,7 +421,7 @@ enrolment at check-in.
   member is in Contacts and can use My data. Active members get member priority on events (when
   it is on in Settings), like owners of member companies.
 - **Notes** on each row are for the team only. The Dashboard shows the number of active members
-  and how many wait in To review.
+  and, under Waiting for you, how many wait in To review.
 - **Every year**: 30 days and 7 days before a member's year ends, they get a one-click email to
   keep their membership. Without a click, the day after it ends they become _Lapsed_ and get a
   last email; they can renew in one click from it or from their member page, and a lapsed member

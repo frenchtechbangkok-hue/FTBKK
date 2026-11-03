@@ -366,14 +366,17 @@ const dimKey = (g: z.infer<typeof Group>, k: string) => g.dimensions?.[k] ?? '';
 /** The traffic report for a period. `fetcher` is replaced in tests. */
 export async function loadTraffic(
   cfg: TrafficConfig,
-  period: Range & { previous: Range | null },
+  period: Range & { previous: Range | null; buckets?: Bucket[] },
   now = new Date(),
   fetcher: Fetcher = fetch,
 ): Promise<TrafficReport> {
   const { accountId, site: siteFilter } = await resolve(cfg, fetcher);
   const full = { ...cfg, accountId };
   const limits = await datasetLimits(full, fetcher);
-  const { unit, buckets } = periodBuckets(period);
+  // The dashboard passes its own day buckets; Reports uses the period's weeks or months.
+  const { unit, buckets } = period.buckets
+    ? { unit: 'day', buckets: period.buckets }
+    : periodBuckets(period);
   const site = { site: siteFilter.value };
   const pieces = (r: Range, d: Dataset) => splitRange(r, limits[d].maxDuration);
   const rum = clampRange(period, limits.rumPageloadEventsAdaptiveGroups, now);

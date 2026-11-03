@@ -4,8 +4,12 @@ import Logo from '../components/Logo.astro';
 
 interface Props {
   title: string;
+  /** The page's h1 when it differs from the tab title (the dashboard's greeting). */
+  heading?: string;
+  /** A short line under the h1. */
+  intro?: string;
 }
-const { title } = Astro.props;
+const { title, heading, intro } = Astro.props;
 const adminEmail = Astro.locals.adminEmail;
 // Only after a redirect: a re-rendered POST (a form with errors) keeps the URL's ?saved=1.
 const flash = Astro.request.method === 'GET' ? Astro.url.searchParams.get('saved') : null;
@@ -198,7 +202,8 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
       </nav>
     </aside>
     <main class="min-w-0 flex-1 p-4 md:p-8">
-      <h1 class="mb-6 text-2xl">{title}</h1>
+      <h1 class={`text-2xl ${intro ? 'mb-1' : 'mb-6'}`}>{heading ?? title}</h1>
+      {intro && <p class="mb-6 text-muted">{intro}</p>}
       {flash && (
         <div
           role="status"
