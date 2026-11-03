@@ -74,13 +74,12 @@ rows afterwards. Scheduled jobs (reminders, social media posts, the weekly backu
 live version, never on a test address. Test addresses answer `noindex`, so search engines ignore
 them.
 
-**Admin on a test address.** `/admin` checks the Cloudflare Access login on every host. Add the
-test addresses to the same Access application, so the admin works there with the same email code:
-Zero Trust > Access > Applications > "FT Bangkok admin" > Configure > Destinations, add two entries
-with the domain `*-ft-bkk-site.edelattre.workers.dev`, path `admin` and path `api/admin`, Save
-(the AUD tag stays the same, nothing changes in the code). If the dashboard does not accept that
-wildcard, use `*.edelattre.workers.dev` with the same two paths. Without these entries the admin
-answers 403 on test addresses (it fails closed), while public pages work.
+**Test addresses are private.** The Access application "FT Bangkok admin" has a Workers
+destination (Configure > Destinations > Workers: scope `ft-bkk-site`, type **A Worker's preview
+URLs**). It puts the same email-code login in front of every test address, whole pages included, so
+only admins see versions that are not live yet, and `/admin` works there with the same login (same
+application, same AUD tag). Without that destination, public pages on a test address are open and
+`/admin` answers 403 there (it fails closed).
 
 **Migrations.** They run when a version is uploaded, before you promote it, so that the test address
 works with the new tables and columns. The live, older version runs on the same database meanwhile,

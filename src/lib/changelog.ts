@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.107',
+    date: '2026-11-03',
+    pr: 122,
+    title: 'Test addresses need the admin login',
+    summary:
+      'The deploy guide now explains that test versions of the site (such as dev-ft-bkk-site) ask for the same email code as the admin, so only admins can see a version before it goes live.',
+  },
+  {
     version: '1.106',
     date: '2026-11-03',
     pr: 121,
