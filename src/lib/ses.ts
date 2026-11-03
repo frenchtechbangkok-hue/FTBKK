@@ -130,6 +130,11 @@ export interface SesConfig {
   accessKeyId: string;
   secretAccessKey: string;
   region: string;
+  /**
+   * SES configuration set (SES_CONFIGURATION_SET) whose event publishing sends sends, deliveries,
+   * opens and clicks to SNS for Reports > Emails. Empty = only bounces and complaints come back.
+   */
+  configurationSet?: string;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -152,6 +157,7 @@ export async function sesSend(
   const body = JSON.stringify({
     Destination: { ToAddresses: m.to },
     Content: { Raw: { Data: base64Utf8(buildMime(m)) } },
+    ...(cfg.configurationSet ? { ConfigurationSetName: cfg.configurationSet } : {}),
   });
   const url = `https://email.${cfg.region}.amazonaws.com/v2/email/outbound-emails`;
   let last = '';
