@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.100',
+    date: '2026-11-03',
+    pr: 115,
+    title: 'French Tech Visa guide',
+    summary:
+      'A new guide page, French Tech Visa, explains in English how to work, found a startup or invest in France with the Talent permit, and how to apply from Thailand; it stays offline until it is switched on in Settings > Guide pages.',
+  },
+  {
     version: '1.99',
     date: '2026-11-03',
     pr: 114,

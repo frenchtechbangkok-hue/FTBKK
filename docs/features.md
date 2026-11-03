@@ -36,7 +36,7 @@ screen by screen for the team.
   contact form. About opens with a navy hero and an "On this page" index of its sections, in the
   same style as `/join`. Texts are edited in the admin (Site texts).
 - **Resources** menu in the header (a drop-down; flat in the mobile menu): Tech Pulse, the
-  Founder's Guide and Expanding to Thailand.
+  Founder's Guide, Expanding to Thailand and the French Tech Visa.
 - **Thailand Tech Pulse** at `/tech-pulse` (Resources menu): our quarterly report. The latest
   edition leads with a Download button, then every edition with its quarter, a link to the summary
   post and the PDF. Editions are the published blog posts with "Tech Pulse" in their title; the
@@ -60,6 +60,14 @@ screen by screen for the team.
   subsidiary, Thai partner, regional hub) with invoicing, ownership, capital and setup time, an
   18-month roadmap, visas for the people you send, selling tips, local and cross-border taxes, a
   launch checklist, who can help and a FAQ.
+- **French Tech Visa** at `/french-tech-visa` (Resources menu, footer, sitemap, once online): an
+  English adaptation of La French Tech's official page on the French Tech Visa, for people in
+  Thailand who want to work, found a startup or invest in France. Key facts and benefits (4-year
+  renewable Talent permit, no separate work permit, family), a track picker (employees, founders,
+  investors) with each track's conditions and residence status, the innovative company criteria
+  and attestation, five steps to apply from Thailand, a checklist, a FAQ and the official sources.
+  Content in `src/lib/french-tech-visa.ts` with its own "last checked" date; links to the
+  Founder's Guide once that is online.
 - Each guide has an **online** switch (Admin > Website > Guide pages), off by default so the board
   can check the content first. Offline, the page answers 404 to visitors and is left out of the
   Resources menu, footer, sitemap and the other guide; a logged-in admin sees it with a "Preview,

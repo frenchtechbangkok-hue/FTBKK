@@ -65,6 +65,7 @@ const Schemas = {
   guides: z.object({
     foundersGuideOnline: z.boolean().optional().default(false),
     expansionGuideOnline: z.boolean().optional().default(false),
+    frenchTechVisaOnline: z.boolean().optional().default(false),
   }),
   'social-links': z.object({
     instagram: url,
@@ -84,7 +85,7 @@ let values: Record<string, unknown> = {
 
 // Default covers of Connect, Talk and Select events (R2 keys; null = the built-in image).
 let covers = current.eventCovers;
-// Guide pages: one "online" switch per Thailand guide (lib/guides.ts).
+// Guide pages: one "online" switch per guide page (lib/guides.ts).
 const GUIDE_SWITCHES = Object.entries(GUIDES).map(([path, g]) => ({ path, ...g }));
 
 const asPhoto = (key: string | null) => (key ? { key } : null);
@@ -145,7 +146,7 @@ const INTROS: Record<Section, string> = {
   'event-covers':
     'The image shown for events that have no cover of their own. Pick the type on each event.',
   guides:
-    'Put the Thailand guides online once their content is checked. While a guide is offline, visitors get "page not found" and its links are hidden from the menu, the footer and the sitemap; admins can still open it to proofread.',
+    'Put the guide pages online once their content is checked. While a guide is offline, visitors get "page not found" and its links are hidden from the menu, the footer and the sitemap; admins can still open it to proofread.',
   'social-links':
     'Links to our pages, shown in the site footer. To post an event or a blog post on social media, use Emails and social media > Social media posts.',
 };

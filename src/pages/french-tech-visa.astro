@@ -1,0 +1,282 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { guideMode, linkOnline } from '../lib/guides';
+import { getSettings } from '../lib/settings';
+import Button from '../components/Button.astro';
+import Icon from '../components/Icon.astro';
+import Checklist from '../components/guide/Checklist.astro';
+import Faq from '../components/guide/Faq.astro';
+import GuideHero from '../components/guide/GuideHero.astro';
+import SectionHead from '../components/guide/SectionHead.astro';
+import SourceLinks from '../components/guide/SourceLinks.astro';
+import {
+  ALL_SOURCES,
+  BENEFITS,
+  CHECKLIST,
+  CRITERIA,
+  FAQ,
+  KEY_FACTS,
+  STEPS,
+  TRACKS,
+  VISA_CHECKED_LABEL,
+  VISA_SOURCES,
+  type VisaSourceKey,
+} from '../lib/french-tech-visa';
+
+// The French Tech Visa guide: an English adaptation of La French Tech's official page, for talent,
+// founders and investors in Thailand who want to move to France. Same design as the two Thailand
+// guides; content in lib/french-tech-visa.ts. Listed in the Resources menu, the footer and the
+// sitemap once it is online (Admin > Settings > Guide pages).
+const toc = [
+  { href: '#overview', label: 'What it is' },
+  { href: '#tracks', label: 'Employees, founders, investors' },
+  { href: '#company', label: 'Is the company innovative?' },
+  { href: '#apply', label: 'Applying from Thailand' },
+  { href: '#checklist', label: 'Your checklist' },
+  { href: '#faq', label: 'Questions' },
+];
+const sourceLinks = (keys: readonly VisaSourceKey[]) => keys.map((k) => VISA_SOURCES[k]);
+// Offline guides answer 404 to the public; admins see a preview.
+const settings = await getSettings();
+const mode = await guideMode(Astro, settings, '/french-tech-visa');
+if (mode === 'hidden') return Astro.rewrite('/404');
+const preview = mode === 'preview';
+const showFounders = linkOnline(settings, '/founders-guide');
+---
+
+<BaseLayout
+  title="French Tech Visa: work, found or invest in France"
+  noindex={preview}
+  cache={!preview}
+  description="The French Tech Visa in English: a 4-year renewable Talent residence permit for employees, founders and investors joining the French tech ecosystem, and how to apply from Thailand."
+>
+  <GuideHero
+    eyebrow="French Tech Visa"
+    title="Work, found or invest in French tech"
+    intro="The French Tech Visa is France's fast track for international tech talent: a renewable residence permit of up to 4 years for employees of innovative startups, founders and investors, with their families. Here is the official scheme in English, and how to apply from Thailand."
+    checked={VISA_CHECKED_LABEL}
+    notice="Figures and conditions come from the official French pages linked on this page. They change: confirm on those pages, or with the French Embassy's visa services, before you apply."
+    toc={toc}
+    preview={preview}
+    other={
+      showFounders
+        ? {
+            href: '/founders-guide',
+            question: 'Building your startup in Thailand instead?',
+            label: "Read the Founder's Guide",
+          }
+        : null
+    }
+  />
+
+  <!-- 01 Overview -->
+  <section id="overview" class="scroll-mt-20 py-14 md:py-20">
+    <div class="container-page">
+      <SectionHead eyebrow="01 · What it is" title="A simpler route to the Talent permit">
+        <p class="mt-3 text-lg text-muted">
+          Not a separate visa, but a simplified procedure for the multi-year "Talent" residence
+          permit, for people from outside the EU joining the French tech ecosystem. Business France
+          runs it with the Mission French Tech through the{' '}
+          <a href={VISA_SOURCES.frenchTech.url} class="text-accent" rel="noopener" target="_blank">
+            Welcome to La French Tech desk
+          </a>
+          .
+        </p>
+      </SectionHead>
+      <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {KEY_FACTS.map((f) => (
+          <div class="flex flex-col rounded-card border border-line bg-paper p-6 shadow-card">
+            <dt class="order-2 mt-2 text-ink">{f.label}</dt>
+            <dd class="order-1 font-display text-4xl font-bold text-brand">{f.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <div class="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        {BENEFITS.map((b) => (
+          <article class="rounded-card bg-surface p-6">
+            <Icon name="check" class="size-6 text-success" />
+            <h3 class="mt-3 text-xl">{b.title}</h3>
+            <p class="mt-2">{b.text}</p>
+          </article>
+        ))}
+      </div>
+      <SourceLinks sources={[VISA_SOURCES.frenchTech, VISA_SOURCES.family]} class="mt-6" />
+    </div>
+  </section>
+
+  <!-- 02 Tracks: each button shows its panel; without JavaScript every panel is visible. -->
+  <section id="tracks" class="scroll-mt-20 bg-surface py-14 md:py-20" data-tracks>
+    <div class="container-page">
+      <SectionHead
+        eyebrow="02 · Three tracks"
+        title="Employees, founders, investors"
+        intro="Open to nationals of every country outside the EU, the EEA and Switzerland, Algeria excepted (a Franco-Algerian agreement applies). Pick yours to see the conditions."
+      />
+      <div class="mb-6 flex flex-wrap gap-2" role="group" aria-label="Your track">
+        {TRACKS.map((t, i) => (
+          <button
+            type="button"
+            class="chip cursor-pointer aria-pressed:border-navy aria-pressed:bg-navy aria-pressed:text-paper"
+            data-track={t.id}
+            aria-pressed={i === 0 ? 'true' : 'false'}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {TRACKS.map((t) => (
+        <article
+          class="mb-6 grid gap-6 rounded-card border border-line bg-paper p-6 shadow-card md:p-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"
+          data-track-panel={t.id}
+          aria-live="polite"
+        >
+          <div class="flex flex-col">
+            <h3 class="text-2xl">French Tech Visa for {t.label}</h3>
+            <p class="mt-2 text-muted">{t.who}</p>
+            <dl class="mt-6">
+              <dt class="text-xs font-semibold tracking-[0.15em] text-brand-dark uppercase">
+                Residence status
+              </dt>
+              <dd class="mt-1" lang="fr">
+                {t.status}
+              </dd>
+            </dl>
+            {t.note && (
+              <p class="mt-6 flex gap-3 rounded-xl bg-surface p-3 text-sm">
+                <Icon name="bulb" class="mt-0.5 size-5 shrink-0 text-brand" />
+                <span>{t.note}</span>
+              </p>
+            )}
+            <SourceLinks sources={sourceLinks(t.sources)} />
+          </div>
+          <div>
+            <p class="text-xs font-semibold tracking-[0.15em] text-brand-dark uppercase">
+              Conditions
+            </p>
+            <ul class="mt-3 grid gap-3">
+              {t.conditions.map((c) => (
+                <li class="flex gap-3 rounded-xl bg-surface p-4">
+                  <Icon name="check" class="mt-0.5 size-5 shrink-0 text-success" />
+                  <span>{c}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <!-- 03 Innovative company -->
+  <section id="company" class="scroll-mt-20 py-14 md:py-20">
+    <div class="container-page">
+      <SectionHead
+        eyebrow="03 · The employer"
+        title="Is the company innovative?"
+        intro="For the employee track, the hiring company must be registered in France, with a 14-digit SIRET number, and meet at least one of these three criteria."
+      />
+      <ol class="grid gap-5 md:grid-cols-3">
+        {CRITERIA.map((c, i) => (
+          <li class="flex flex-col rounded-card border border-line bg-paper p-6">
+            <span class="font-display text-sm font-bold text-brand tabular-nums">
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <h3 class="mt-2 text-xl">{c.title}</h3>
+            <p class="mt-2">{c.text}</p>
+            {c.source && <SourceLinks sources={[VISA_SOURCES[c.source]]} label="See:" />}
+          </li>
+        ))}
+      </ol>
+      <div class="mt-8 flex flex-col gap-4 rounded-card bg-navy p-6 text-paper md:flex-row md:items-center md:justify-between md:p-8">
+        <p class="max-w-2xl">
+          <strong class="text-paper">The attestation.</strong> The company proves it with an online
+          attestation of its innovative character, valid for 3 years and renewable. Every employee's
+          visa or permit file needs it.
+        </p>
+        <Button href={VISA_SOURCES.attestation.url} variant="light" target="_blank" rel="noopener">
+          Request the attestation <Icon name="external" class="size-4" />
+        </Button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 Applying from Thailand -->
+  <section id="apply" class="scroll-mt-20 bg-surface py-14 md:py-20">
+    <div class="container-page">
+      <SectionHead
+        eyebrow="04 · Applying from Thailand"
+        title="From Bangkok to France in five steps"
+        intro="The order of the procedure when you apply from Thailand."
+      />
+      <ol class="grid gap-4 lg:grid-cols-5">
+        {STEPS.map((s, i) => (
+          <li class="flex flex-col rounded-card border border-line bg-paper p-6">
+            <span
+              aria-hidden="true"
+              class="flex size-10 items-center justify-center rounded-full bg-navy font-display font-bold text-paper"
+            >
+              {i + 1}
+            </span>
+            <h3 class="mt-4 text-xl">{s.title}</h3>
+            <p class="mt-2">{s.text}</p>
+            <SourceLinks sources={sourceLinks(s.sources)} />
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <!-- 05 Checklist -->
+  <section id="checklist" class="scroll-mt-20 py-14 md:py-20">
+    <div class="container-page">
+      <Checklist
+        eyebrow="05 · Checklist"
+        title="Before you apply"
+        phases={CHECKLIST}
+        storageKey="ftbkk-french-tech-visa-checklist"
+      />
+    </div>
+  </section>
+
+  <!-- 06 FAQ and sources -->
+  <section id="faq" class="scroll-mt-20 bg-surface py-14 md:py-20">
+    <div class="container-page max-w-3xl">
+      <p class="eyebrow">06 · Questions</p>
+      <h2 class="text-3xl leading-tight md:text-4xl">Questions we hear</h2>
+      <Faq items={FAQ} sources={ALL_SOURCES} checked={VISA_CHECKED_LABEL} />
+    </div>
+  </section>
+
+  <section class="relative isolate overflow-hidden bg-brand py-16 text-paper md:py-20">
+    <div class="container-page flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
+      <div class="max-w-2xl">
+        <h2 class="text-3xl leading-snug text-paper md:text-4xl">Heading to French tech?</h2>
+        <p class="mt-3 text-lg text-paper/90">
+          Meet people who made the move, and French startups hiring, at La French Tech Bangkok.
+        </p>
+      </div>
+      <div class="flex shrink-0 flex-wrap gap-3">
+        <Button href="/join" variant="light">
+          Join the community
+        </Button>
+        <Button href={VISA_SOURCES.frenchTech.url} variant="light" target="_blank" rel="noopener">
+          Official page <Icon name="external" class="size-4" />
+        </Button>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  // Track picker: show only the chosen track once JavaScript runs.
+  for (const root of document.querySelectorAll<HTMLElement>('[data-tracks]')) {
+    const buttons = root.querySelectorAll<HTMLButtonElement>('[data-track]');
+    const panels = root.querySelectorAll<HTMLElement>('[data-track-panel]');
+    const show = (id: string) => {
+      for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.track === id));
+      for (const p of panels) p.hidden = p.dataset.trackPanel !== id;
+    };
+    for (const b of buttons) b.addEventListener('click', () => show(b.dataset.track ?? ''));
+    if (buttons[0]) show(buttons[0].dataset.track ?? '');
+  }
+</script>
