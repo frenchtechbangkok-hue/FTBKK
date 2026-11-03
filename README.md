@@ -278,7 +278,11 @@ to the admin can do everything; there are no roles. See
 pull request is a new version (1.0 was the first full site, then 1.1, 1.2...), with its date, a
 short plain-language summary and a link to the pull request. The entries live in
 `src/lib/changelog.ts` and every PR adds its own at the top. **Actions log** (`/admin/actions-log`,
-formerly `/admin/history`, which redirects) is the record of who changed what in the admin.
+formerly `/admin/history`, which redirects) is the record of who changed what in the admin: each
+`audit_log` row reads as a plain sentence with links ("Approved and published the listing Accor"),
+grouped by day, with an area label, who did it, the changed fields in words, filters by area and
+by person, and 100 per page. The wording lives in `src/lib/actions-log.ts`; a new kind of logged
+action gets its sentence there (unknown ones still read as words).
 
 **Automatic emails** (`/admin/emails`) lists the emails the site sends on its own, grouped (Events,
 Ecosystem, Membership, Community, Privacy, Admin notifications), each with who receives it, when it goes out and whether its text is the

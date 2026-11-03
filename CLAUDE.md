@@ -34,6 +34,7 @@ events, registrations and the ecosystem directory. Full plan: `docs/plan.md`. Cl
 - Every PR adds its entry at the top of `src/lib/changelog.ts` (Settings > Change history): next
   version number, merge date, PR number, a short title and one plain-language sentence for the
   team. If another PR merged first, renumber before merging (`npm test` checks the order).
+- A new `audit(...)` action also gets its plain sentence in `src/lib/actions-log.ts` (Actions log).
 - Before saying a task is done: `npm run check` and `npm run build` pass. Commit at the end of each
   phase.
 

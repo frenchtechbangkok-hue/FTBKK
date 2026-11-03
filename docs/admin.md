@@ -547,8 +547,13 @@ enrolment at check-in.
     update of the site (one merged pull request on GitHub) is a new version, 1.0 being the first
     full site; each comes with its date, a short summary in plain words and a link to the details
     on GitHub. Nothing to fill in: the entry ships with the update itself.
-  - **Actions log**: who changed what in the admin, and when (the last 200 changes). It was
-    called Change history before November 2026; the old address still works.
+  - **Actions log**: everything done in the admin, plus what the site did on its own (expired
+    listings, lapsed memberships) and what people did from their own links (confirming a
+    membership, updating their listing), newest first and grouped by day. Each line is a plain
+    sentence such as "Checked in Tom Martin at Connect #52", with a link to the event, listing,
+    post or contact, who did it and an area label. **Details** opens what changed (old value
+    crossed out, new value after it). Filter by area (Events, Community, Ecosystem, Blog and files,
+    Emails and social media, Settings) or by person with **Who**; **Older actions** loads the next 100. It was called Change history before November 2026; the old address still works.
 - **Home page** (Website pages > Home): every photo has its own slot: **Main header** (the big
   photo at the top, also faint in the red closing band; its description is the small caption;
   default: the Bangkok skyline), **About us** (the arched photo; default: a photo from the latest
