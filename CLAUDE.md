@@ -31,6 +31,9 @@ events, registrations and the ecosystem directory. Full plan: `docs/plan.md`. Cl
   only locally, when `ACCESS_AUD` is empty, using `DEV_ADMIN_EMAIL`).
 - Old Wix URLs keep working through redirects.
 - Every feature PR also updates `README.md` (and `docs/admin.md` for admin features).
+- Every PR adds its entry at the top of `src/lib/changelog.ts` (Settings > Change history): next
+  version number, merge date, PR number, a short title and one plain-language sentence for the
+  team. If another PR merged first, renumber before merging (`npm test` checks the order).
 - Before saying a task is done: `npm run check` and `npm run build` pass. Commit at the end of each
   phase.
 

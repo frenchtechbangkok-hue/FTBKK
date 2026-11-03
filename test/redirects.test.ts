@@ -24,6 +24,7 @@ describe('Wix redirects', () => {
     ['/blog/categories/founder-guides', '/blog/category/founder-guides'],
     ['/admin/events/stats', '/admin/reports/events'],
     ['/admin/reports', '/admin/reports/members'],
+    ['/admin/history', '/admin/actions-log'],
   ])('%s -> %s', (from, to) => expect(redirectFor(from)).toBe(to));
 
   it('leaves new URLs alone', () => {

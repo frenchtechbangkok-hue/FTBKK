@@ -34,8 +34,8 @@ const tabs = [
   { key: 'partners', label: 'Partners' },
   { key: 'renewals', label: 'Renewals' },
 ] as const;
-// The history tab moved to Settings > Change history.
-if (Astro.url.searchParams.get('tab') === 'log') return Astro.redirect('/admin/history', 301);
+// The history tab moved to Settings > Actions log.
+if (Astro.url.searchParams.get('tab') === 'log') return Astro.redirect('/admin/actions-log', 301);
 const tab = tabs.find((t) => t.key === Astro.url.searchParams.get('tab'))?.key ?? 'queue';
 let error = '';
 const partnerGroupList = await getPartnerGroups();
