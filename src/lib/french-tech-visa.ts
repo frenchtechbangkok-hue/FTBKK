@@ -20,7 +20,7 @@ const WELCOME =
 export const VISA_SOURCES = {
   frenchTech: src(
     'French Tech Visa (La French Tech, official page)',
-    'https://lafrenchtech.gouv.fr/fr/venir-travailler-en-france/french-tech-visa/',
+    'https://lafrenchtech.gouv.fr/en/french-tech-visa/',
   ),
   employees: src(
     'French Tech Visa for Employees (Business France, Welcome to France)',

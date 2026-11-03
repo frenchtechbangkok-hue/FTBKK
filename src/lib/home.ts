@@ -40,7 +40,7 @@ export const DEFAULT_PARTNERS = [
     link: 'https://www.francothaicc.com/',
   },
   { title: 'Embassy of France in Thailand', text: '', link: 'https://th.diplomatie.gouv.fr/' },
-  { title: 'La French Tech', text: '', link: 'https://lafrenchtech.gouv.fr/' },
+  { title: 'La French Tech', text: '', link: 'https://lafrenchtech.gouv.fr/en/' },
   { title: 'Bpifrance', text: '', link: 'https://www.bpifrance.fr/' },
 ];
 

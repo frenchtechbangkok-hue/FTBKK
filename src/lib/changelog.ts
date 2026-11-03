@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.101',
+    date: '2026-11-03',
+    pr: 116,
+    title: 'English links to La French Tech',
+    summary:
+      'The French Tech Visa guide and the La French Tech partner link now open the English version of the La French Tech website.',
+  },
+  {
     version: '1.100',
     date: '2026-11-03',
     pr: 115,
