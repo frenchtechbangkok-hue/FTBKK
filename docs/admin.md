@@ -614,8 +614,8 @@ tables.
     the footer, and the WhatsApp invite link (kept here for the team and the welcome email to
     members, never shown publicly). Posting on social media is under Emails and social media >
     Social media posts.
-  - **Guide pages**: one "online" switch each for the Founder's Guide, Expanding to Thailand and the
-    French Tech Visa,
+  - **Guide pages**: one "online" switch each for the Founder's Guide, Expanding to Thailand and Come
+    work in France,
     off until the board has checked the content. While a guide is off, visitors get "page not
     found" and its links disappear from the Resources menu, the footer, the sitemap and the other
     guide. Admins still see the page, with a yellow "Preview, not online" bar on top (use the

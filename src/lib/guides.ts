@@ -3,7 +3,7 @@ import { checkAdmin } from './auth';
 import type { Settings } from './settings';
 
 /**
- * The guide pages (two Thailand guides and the French Tech Visa) can be put online or kept offline from Admin > Website > Guide pages,
+ * The guide pages (two Thailand guides and Come work in France) can be put online or kept offline from Admin > Website > Guide pages,
  * so the board can check the content first. Offline, the page answers 404 to the public and its
  * links leave the header, footer, sitemap and the other guide; a logged-in admin still sees it,
  * with a "not online" banner.
@@ -11,7 +11,8 @@ import type { Settings } from './settings';
 export const GUIDES = {
   '/founders-guide': { key: 'foundersGuideOnline', label: "Founder's Guide" },
   '/expand-to-thailand': { key: 'expansionGuideOnline', label: 'Expanding to Thailand' },
-  '/french-tech-visa': { key: 'frenchTechVisaOnline', label: 'French Tech Visa' },
+  // The key keeps its first name (the page started as the French Tech Visa guide).
+  '/come-work-in-france': { key: 'frenchTechVisaOnline', label: 'Come work in France' },
 } as const satisfies Record<string, { key: keyof Settings; label: string }>;
 export type GuidePath = keyof typeof GUIDES;
 

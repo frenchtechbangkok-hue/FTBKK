@@ -1,8 +1,9 @@
-// Content of the French Tech Visa guide (/french-tech-visa): an English adaptation of La French
-// Tech's official page on the visa, completed with the Business France "Welcome to France" pages it
-// links to. Figures were checked against those sources on the date below; the rules belong to the
-// French administration and change, so every section links its official source. The content lives
-// here in code on purpose (no admin editor), like the two Thailand guides.
+// Content of Come work in France (/come-work-in-france): an English adaptation of La French Tech's
+// official "Come work in France" and French Tech Visa pages, completed with the Business France
+// "Welcome to France" pages they link to. Figures were checked against those sources on the date
+// below; the rules belong to the French administration and change, so every section links its
+// official source. The content lives here in code on purpose (no admin editor), like the two
+// Thailand guides.
 import type { ChecklistPhase, Source } from './thailand-guides';
 
 export const VISA_CHECKED_ON = '2026-11-03';
@@ -18,9 +19,14 @@ const WELCOME =
   'https://welcome.businessfrance.fr/simplanter-en-france/recruter-des-talents-internationaux/visas-et-titres-de-sejour';
 
 export const VISA_SOURCES = {
+  comeWork: src(
+    'Come work in France (La French Tech, official page)',
+    'https://lafrenchtech.gouv.fr/en/come-work-in-france/',
+  ),
+  welcome: src('Welcome by Business France', 'https://welcome.businessfrance.fr/en/'),
   frenchTech: src(
     'French Tech Visa (La French Tech, official page)',
-    'https://lafrenchtech.gouv.fr/fr/venir-travailler-en-france/french-tech-visa/',
+    'https://lafrenchtech.gouv.fr/en/french-tech-visa/',
   ),
   employees: src(
     'French Tech Visa for Employees (Business France, Welcome to France)',
@@ -52,10 +58,146 @@ export const VISA_SOURCES = {
     'Algerian nationals: residence certificate (Business France)',
     `${WELCOME}/recrutement-salaries-etrangers/certificat-de-residence-profession-salariee/`,
   ),
+  recruiting: src(
+    'Recruiting international talent (Business France)',
+    'https://welcome.businessfrance.fr/en/setting-up-a-business/recruiting-international-talent/',
+  ),
+  joinFrenchTech: src(
+    'Join the French Tech (Business France)',
+    'https://welcome.businessfrance.fr/en/why-choose-france/join-the-french-tech/',
+  ),
+  simulators: src(
+    'Official public simulators (Business France)',
+    'https://welcome.businessfrance.fr/en/learn-more-and-decide/toolbox/official-public-simulators/',
+  ),
+  startupJobs: src(
+    'Start-up job vacancies (La French Tech)',
+    'https://lafrenchtech.gouv.fr/en/join-a-start-up-of-our-ecosystem/',
+  ),
+  next40: src(
+    'French Tech Next40/120 (La French Tech)',
+    'https://lafrenchtech.gouv.fr/en/programme/french-tech-next40-120/',
+  ),
+  frenchTech2030: src(
+    'French Tech 2030 (La French Tech)',
+    'https://lafrenchtech.gouv.fr/en/programme/french-tech-2030/',
+  ),
+  network: src(
+    'French Tech capitals and communities (La French Tech)',
+    'https://lafrenchtech.gouv.fr/en/the-local-french-tech-network/',
+  ),
 } as const;
 export type VisaSourceKey = keyof typeof VISA_SOURCES;
 
-/** The headline facts, shown as four figures under the hero. */
+/**
+ * The official French government websites, shown as a band right under the page header: this page
+ * is a summary in English, the procedures themselves happen there.
+ */
+export const OFFICIAL_SITES: {
+  name: string;
+  by: string;
+  text: string;
+  source: VisaSourceKey;
+  domain: string;
+}[] = [
+  {
+    name: 'Welcome by Business France',
+    by: 'Business France, national agency',
+    text: 'The reference for coming to work or set up in France: visas and residence permits, the French Tech Visa track by track, tax, employment law, social security, simulators and guides.',
+    source: 'welcome',
+    domain: 'welcome.businessfrance.fr',
+  },
+  {
+    name: 'La French Tech',
+    by: 'La mission French Tech, French government',
+    text: 'The official French Tech Visa and Come work in France pages, startup jobs and the French Tech programmes.',
+    source: 'comeWork',
+    domain: 'lafrenchtech.gouv.fr',
+  },
+  {
+    name: 'France-Visas',
+    by: 'French government, official visa website',
+    text: 'Where you apply for your long-stay "Talent" visa before you leave Thailand, and book your appointment.',
+    source: 'franceVisas',
+    domain: 'france-visas.gouv.fr',
+  },
+  {
+    name: 'Foreigners in France (ANEF)',
+    by: 'French Ministry of the Interior',
+    text: 'Once in France: validate your long-stay visa online, then apply for and renew your residence permit.',
+    source: 'anef',
+    domain: 'interieur.gouv.fr',
+  },
+];
+
+/** Why France: the figures La French Tech's "Come work in France" page leads with. */
+export const WHY_FRANCE: { value: string; label: string }[] = [
+  {
+    value: 'No. 1',
+    label:
+      'In Europe for foreign investment projects, for the 7th year running (EY barometer, 2026)',
+  },
+  {
+    value: '95%',
+    label:
+      'Score that ranks France first in Europe for startup-friendliness, 3rd year running (ESNA report, 2025)',
+  },
+  {
+    value: '8 years',
+    label: 'Maximum length of the tax regime for people moving to France (impatriate regime)',
+  },
+  {
+    value: '1,800+',
+    label:
+      'University courses taught in English; 27+ French institutions in the 2025 Shanghai Ranking',
+  },
+];
+
+export const WHY_POINTS: { title: string; text: string }[] = [
+  {
+    title: 'A startup ecosystem',
+    text: 'The Mission French Tech, a government team based at Station F in Paris, the largest startup campus in the world, backs the ecosystem and runs programmes such as French Tech Next40/120 for the fastest-growing startups.',
+  },
+  {
+    title: 'Easier company setup',
+    text: 'The ESNA report scores France 100% for access to finance, employee share options and social inclusion, and 88% for how fast you can set up a business, up 18 points in a year.',
+  },
+  {
+    title: 'Quality of life',
+    text: 'Public healthcare that the WHO ranks among the best in the world, at an affordable cost, and good schools and universities for families.',
+  },
+];
+
+/** Where to find a job and get help, in France and from Thailand. */
+export const RESOURCES: { title: string; text: string; source: VisaSourceKey }[] = [
+  {
+    title: 'Find a startup job',
+    text: 'La French Tech lists open jobs in startups from its ecosystem.',
+    source: 'startupJobs',
+  },
+  {
+    title: 'The fastest-growing startups',
+    text: 'French Tech Next40/120 and French Tech 2030 companies get extra help from the Mission French Tech and Business France to recruit international talent.',
+    source: 'next40',
+  },
+  {
+    title: 'Welcome by Business France',
+    text: 'The official site for companies and talent moving to France: setting up a business, tax, employment law, social security, visas, with official simulators and guides.',
+    source: 'welcome',
+  },
+  {
+    title: 'Recruiting international talent',
+    text: 'For employers: visas, tax residence and relocation of the people you hire from abroad.',
+    source: 'recruiting',
+  },
+  {
+    title: 'French Tech communities',
+    text: 'French Tech capitals and communities across France and abroad, including ours in Bangkok, can introduce you to people on the ground.',
+    source: 'network',
+  },
+];
+
+/** The headline facts of the French Tech Visa, shown as four figures. */
 export const KEY_FACTS: { value: string; label: string }[] = [
   { value: '4 years', label: 'Multi-year "Talent" residence permit, renewable' },
   { value: '3 tracks', label: 'Employees, founders and investors' },
@@ -221,6 +363,10 @@ export const CHECKLIST: ChecklistPhase[] = [
 ];
 
 export const FAQ: { q: string; a: string }[] = [
+  {
+    q: 'Is the French Tech Visa the only way to work in France?',
+    a: 'No. It is the fast track for employees of innovative companies, founders and investors in tech. Other jobs and situations use other residence permits, all explained on Welcome by Business France.',
+  },
   {
     q: 'Can Thai citizens apply?',
     a: 'Yes. The French Tech Visa is open to nationals of every country outside the EU, the EEA and Switzerland, Algeria excepted, so Thai citizens and people of other nationalities living in Thailand can apply.',

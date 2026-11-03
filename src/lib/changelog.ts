@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.101',
+    date: '2026-11-03',
+    pr: 116,
+    title: 'Come work in France guide',
+    summary:
+      'The French Tech Visa guide becomes Come work in France: why France, the French Tech Visa, where to find a startup job and get help, with links to the English La French Tech website (the old address opens the visa section). Still offline until switched on in Settings > Guide pages.',
+  },
+  {
     version: '1.100',
     date: '2026-11-03',
     pr: 115,

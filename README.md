@@ -16,7 +16,8 @@ https://ft-bkk-site.edelattre.workers.dev until the domain moves over.
 - **Ecosystem**: a directory of French companies, startups and partners in Thailand. Owners manage
   their listing through email links, no accounts.
 - **Blog** with RSS, and **Resources**: Thailand Tech Pulse (PDFs for members while membership is
-  open), the Founder's Guide, Expanding to Thailand and the French Tech Visa guide.
+  open), the Founder's Guide, Expanding to Thailand and Come work in France
+  (French Tech Visa).
 - **About**, **Join** (free individual membership, WhatsApp, newsletter, contact form), a **Thai
   page** at `/th`, the code of conduct and the privacy notice.
 - **Members** get a personal page from an email link (no passwords): their events, profile and
