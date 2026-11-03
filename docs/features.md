@@ -62,8 +62,8 @@ screen by screen for the team.
   launch checklist, who can help and a FAQ.
 - **Come work in France** at `/come-work-in-france` (Resources menu, footer, sitemap, once online):
   an English adaptation of La French Tech's "Come work in France" and French Tech Visa pages, for
-  people in Thailand who want to work, found a startup or invest in France. Under the header,
-  an "official websites" band with cards for Welcome by Business France, La French Tech,
+  people in Thailand who want to work, found a startup or invest in France. An "Official
+  websites and support" section (after the application steps) with cards for Welcome by Business France, La French Tech,
   France-Visas and ANEF (each track also has a "Full details on Business France" button). Why France (figures
   from La French Tech), the French Tech Visa (key facts and benefits: 4-year renewable Talent
   permit, no separate work permit, family), a track picker (employees, founders, investors) with
