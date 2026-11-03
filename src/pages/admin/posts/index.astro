@@ -1,5 +1,6 @@
 ---
 import { desc, eq, sql } from 'drizzle-orm';
+import EmptyState from '../../../components/admin/EmptyState.astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import Badge from '../../../components/Badge.astro';
 import Button from '../../../components/Button.astro';
@@ -52,7 +53,12 @@ const rows = (
 const now = new Date();
 ---
 
-<AdminLayout title="Posts">
+<AdminLayout title="Blog posts" intro="News, recaps and Tech Pulse editions.">
+  <Fragment slot="actions">
+    <Button href="/admin/posts/new" size="sm">
+      New post
+    </Button>
+  </Fragment>
   {movedCount !== null && (
     <Alert tone="success" class="mb-4">
       {`Moved the typed author of ${movedCount} ${movedCount === 1 ? 'post' : 'posts'} into the Authors list.`}
@@ -68,26 +74,19 @@ const now = new Date();
       </Button>
     </form>
   )}
-  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-    <form method="get" role="search" class="flex gap-2">
-      <label for="q" class="sr-only">
-        Search posts
-      </label>
-      <input
-        id="q"
-        name="q"
-        value={q}
-        placeholder="Search titles"
-        class="rounded-lg border border-line bg-paper px-3 py-1.5"
-      />
-      <Button type="submit" variant="secondary" size="sm">
-        Search
-      </Button>
-    </form>
-    <Button href="/admin/posts/new" size="sm">
-      New post
-    </Button>
-  </div>
+  <form method="get" role="search" class="mb-4 flex max-w-md gap-2">
+    <label for="q" class="sr-only">
+      Search posts
+    </label>
+    <input
+      id="q"
+      name="q"
+      type="search"
+      value={q}
+      placeholder="Search titles"
+      class="admin-input"
+    />
+  </form>
   <div class="admin-panel overflow-x-auto">
     {rows.length ? (
       <table class="admin-table" data-sortable>
@@ -97,6 +96,9 @@ const now = new Date();
             <th>Status</th>
             <th>Published</th>
             <th>Last edit</th>
+            <th title="Page views over the last 30 days, from Cloudflare Web Analytics">
+              Views (30 days)
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -126,14 +128,39 @@ const now = new Date();
               <td class="whitespace-nowrap text-muted" data-sort={p.updatedAt.getTime()}>
                 {formatDate(p.updatedAt)}
               </td>
+              <td data-post-views={`/blog/${p.slug}`} data-sort="0" class="text-muted">
+                –
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
     ) : (
-      <p class="text-muted">
-        {q ? `No post matches “${q}”.` : 'No posts yet. Write the first one.'}
-      </p>
+      <EmptyState
+        text={q ? `No post matches “${q}”.` : 'No posts yet.'}
+        action={
+          q
+            ? { href: '/admin/posts', label: 'Show all posts' }
+            : { href: '/admin/posts/new', label: 'Write the first one' }
+        }
+      />
     )}
   </div>
+  <script>
+    // Page views per post, from Cloudflare (Reports > Website traffic needs the same token).
+    const cells = document.querySelectorAll<HTMLElement>('[data-post-views]');
+    if (cells.length)
+      fetch('/api/admin/post-views')
+        .then((r) => r.json() as Promise<{ views?: Record<string, number> }>)
+        .then((d) => {
+          if (!d.views) return;
+          cells.forEach((c) => {
+            const n = d.views![c.dataset.postViews!] ?? 0;
+            c.textContent = n.toLocaleString('en-GB');
+            c.dataset.sort = String(n);
+            c.classList.remove('text-muted');
+          });
+        })
+        .catch(() => {});
+  </script>
 </AdminLayout>

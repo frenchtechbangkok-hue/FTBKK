@@ -1,5 +1,6 @@
 ---
 import { asc, eq } from 'drizzle-orm';
+import EventTabs from '../../../components/admin/EventTabs.astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import FormField from '../../../components/FormField.astro';
 import Button from '../../../components/Button.astro';
@@ -200,17 +201,11 @@ const share = post ? await postShareItem(post) : null;
 const autoImage = share?.imageUrl ?? (post?.coverKey ? mediaUrl(post.coverKey) : null);
 ---
 
-<AdminLayout title={isNew ? 'New post' : 'Edit post'}>
-  {post && (
-    <p class="mb-4 flex flex-wrap gap-4 text-sm">
-      {post.status === 'published' && (
-        <a href={`/blog/${post.slug}`} target="_blank" rel="noopener">
-          View on the site ↗
-        </a>
-      )}
-      <a href={`/admin/social/post/${post.id}`}>Share on social media</a>
-    </p>
-  )}
+<AdminLayout
+  title={post ? post.title : 'New post'}
+  trail={[{ href: '/admin/posts', label: 'Blog posts' }]}
+>
+  {post && <EventTabs kind="post" item={post} current="details" />}
   {share && (
     <ShareImage
       spec={share.spec}

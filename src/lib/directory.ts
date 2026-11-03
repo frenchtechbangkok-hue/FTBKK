@@ -174,3 +174,26 @@ export const ORG_STATUSES = [
   'hidden',
 ] as const;
 export type OrgStatus = (typeof ORG_STATUSES)[number];
+
+/** A listing older than this without an update is flagged "to complete". */
+export const STALE_LISTING_DAYS = 365;
+
+/** What a listing is missing (Ecosystem > All listings): empty = complete. */
+export function listingGaps(
+  o: {
+    logoKey: string | null;
+    descriptionMd: string;
+    pitch: string | null;
+    website: string | null;
+    updatedAt: Date;
+  },
+  now: Date,
+): string[] {
+  return [
+    !o.logoKey && 'no logo',
+    !o.descriptionMd.trim() && !o.pitch?.trim() && 'no description',
+    !o.website?.trim() && 'no website',
+    now.getTime() - o.updatedAt.getTime() > STALE_LISTING_DAYS * 86_400_000 &&
+      'not updated in 12 months',
+  ].filter((g): g is string => !!g);
+}

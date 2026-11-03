@@ -72,16 +72,24 @@ const people = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`;
 const input = 'rounded-lg border border-line px-3 py-1.5 text-sm';
 ---
 
-<AdminLayout title="Tags and groups">
-  <p class="mb-6 max-w-3xl text-sm text-muted">
-    Use them to sort your contacts and members. A <strong>tag</strong> is a short label shown next
-    to a person's name (Speaker, Investor, Fintech…). A <strong>group</strong> is a list of people
-    you keep together for a purpose (Sponsor prospects, Connect volunteers…), with a description. A
-    person can have several tags and be in several groups. To put people in a tag or group, tick
-    them in <a href="/admin/contacts">Contacts</a> or <a href="/admin/members?tab=all">Members</a>{' '}
-    and use the bar that appears, or edit one person. Both can be picked as the audience in{' '}
-    <a href="/admin/community-email">Email the community</a>. Only the admin team sees them.
-  </p>
+<AdminLayout
+  title="Tags and groups"
+  intro="Labels and lists to sort your contacts and members. Only the admin team sees them."
+>
+  <Fragment slot="help">
+    <p>
+      A <strong>tag</strong> is a short label shown next to a person's name (Speaker, Investor,
+      Fintech…). A <strong>group</strong> is a list of people you keep together for a purpose
+      (Sponsor prospects, Connect volunteers…), with a description. A person can have several tags
+      and be in several groups.
+    </p>
+    <p>
+      To put people in a tag or group, tick them in <a href="/admin/contacts">Contacts</a> or{' '}
+      <a href="/admin/members?tab=all">Members</a> and use the bar that appears, or edit one person.
+      Both can be picked as the audience in <a href="/admin/community-email">Email the community</a>
+      .
+    </p>
+  </Fragment>
   {done && (
     <Alert tone="success" class="mb-4">
       {done}

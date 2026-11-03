@@ -240,13 +240,17 @@ const groups = [
 ].filter((g) => g.items.length);
 ---
 
-<AdminLayout title="Email the community">
-  <p class="mb-6 max-w-3xl text-sm text-muted">
-    One email to the active members, the newsletter subscribers, every contact, the people in some{' '}
-    <a href="/admin/contacts/labels">groups or tags</a>, or a list you import. To write to some
-    contacts only, tick them in <a href="/admin/contacts">Contacts</a> and click{' '}
-    <strong>Email…</strong>. For one event's registrants, use the Email page of that event.
-  </p>
+<AdminLayout
+  title="Email the community"
+  intro="One email to members, newsletter subscribers, every contact, some groups or tags, or a list you import."
+>
+  <Fragment slot="help">
+    <p>
+      To write to some contacts only, tick them in <a href="/admin/contacts">Contacts</a> and click{' '}
+      <strong>Email…</strong>. For one event's registrants, use the Email page of that event. Groups
+      and tags are in <a href="/admin/contacts/labels">Tags and groups</a>.
+    </p>
+  </Fragment>
   {(sent > 0 || skipped > 0) && (
     <Alert tone="success" class="mb-6">
       Sent to {plural(sent)}.

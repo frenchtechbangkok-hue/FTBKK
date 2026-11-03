@@ -33,19 +33,24 @@ const [all, settings, labels] = await Promise.all([loadContacts(), getSettings()
 const groups = findDuplicates(all, new Set(settings.notDuplicates));
 ---
 
-<AdminLayout title="Possible duplicates">
-  <p class="mb-4 max-w-3xl text-muted">
-    Contacts that may be the same person, found in the live list: same name, same phone, same
-    LinkedIn, the same email before the @ (jean.dupont@gmail.com and jean.dupont@company.com), or
-    the same first name at the same company. Nothing is merged on its own. Untick anyone who doesn't
-    belong in a group, then <strong>Review and merge</strong> opens the merge page with the
-    suggested main contact (listed first: a member, then the one with an email who came most)
-    already picked; you can still change everything there. <strong>Not the same person</strong>{' '}
-    hides the group for good.
-  </p>
-  <p class="mb-4 text-sm">
-    <a href="/admin/contacts">Back to Contacts</a>
-  </p>
+<AdminLayout
+  title="Possible duplicates"
+  intro="Contacts that may be the same person. Nothing is merged on its own."
+  trail={[{ href: '/admin/contacts', label: 'Contacts' }]}
+>
+  <Fragment slot="help">
+    <p>
+      Found in the live list: same name, same phone, same LinkedIn, the same email before the @
+      (jean.dupont@gmail.com and jean.dupont@company.com), or the same first name at the same
+      company.
+    </p>
+    <p>
+      Untick anyone who doesn't belong in a group, then <strong>Review and merge</strong> opens the
+      merge page with the suggested main contact (listed first: a member, then the one with an email
+      who came most) already picked; you can still change everything there.
+      <strong>Not the same person</strong> hides the group for good.
+    </p>
+  </Fragment>
 
   {groups.length === 0 ? (
     <Alert tone="success">No possible duplicates left.</Alert>

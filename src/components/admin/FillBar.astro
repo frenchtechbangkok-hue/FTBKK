@@ -1,0 +1,19 @@
+---
+// Seats taken against capacity, as a thin bar (events list, dashboard, reports).
+interface Props {
+  taken: number;
+  capacity: number | null | undefined;
+}
+const { taken, capacity } = Astro.props;
+const pct = capacity ? Math.min(100, (taken / capacity) * 100) : null;
+---
+
+{pct !== null && (
+  <div
+    class="mt-1 h-1.5 w-28 overflow-hidden rounded-full bg-line"
+    role="img"
+    aria-label={`${Math.round(pct)}% of seats taken`}
+  >
+    <div class="h-full rounded-full bg-brand" style={`width:${pct}%`} />
+  </div>
+)}

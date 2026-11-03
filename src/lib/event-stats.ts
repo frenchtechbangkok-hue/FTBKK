@@ -549,3 +549,44 @@ function group<T, K>(items: T[], key: (t: T) => K) {
   }
   return m;
 }
+
+/**
+ * Who is coming to an event, for the host (Registrations): among the named people registered,
+ * those never seen at an earlier event, those who came before, active members, and the companies
+ * with the most people.
+ */
+export function whoIsComing(
+  eventId: number,
+  rows: EventRow[],
+  regs: StatRegistration[],
+  activeMembers: Set<string>,
+) {
+  const row = rows.find((r) => r.event.id === eventId);
+  const startsAt = row?.event.startsAt;
+  const seenBefore = new Set(
+    rows.filter((r) => r.past && startsAt && r.event.startsAt < startsAt).flatMap((r) => r.emails),
+  );
+  const coming = regs.filter(
+    (r) => r.eventId === eventId && (r.status === 'registered' || r.status === 'attended'),
+  );
+  const emails = [...new Set(coming.map((r) => emailOf(r.email)).filter((e) => e !== null))];
+  const firstTimers = emails.filter((e) => !seenBefore.has(e)).length;
+  const byCompany = new Map<string, { name: string; people: number }>();
+  for (const r of coming) {
+    const name = r.company?.trim();
+    if (!name || /^(n\/?a|none|-|self[- ]?employed|freelance)$/i.test(name)) continue;
+    const c = byCompany.get(name.toLowerCase()) ?? { name, people: 0 };
+    c.people += 1;
+    byCompany.set(name.toLowerCase(), c);
+  }
+  return {
+    people: emails.length,
+    firstTimers,
+    returning: emails.length - firstTimers,
+    members: emails.filter((e) => activeMembers.has(e)).length,
+    companies: [...byCompany.values()]
+      .filter((c) => c.people > 1)
+      .sort((a, b) => b.people - a.people || a.name.localeCompare(b.name))
+      .slice(0, 5),
+  };
+}

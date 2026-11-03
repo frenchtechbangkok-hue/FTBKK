@@ -1,0 +1,18 @@
+---
+// A row of key figures inside a panel, in the dashboard's style: small label, big number, hint.
+interface Props {
+  items: { label: string; value: string | number; hint?: string | undefined }[];
+  class?: string;
+}
+const { items, class: cls = '' } = Astro.props;
+---
+
+<dl class={`grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-5 ${cls}`}>
+  {items.map((i) => (
+    <div>
+      <dt class="text-sm text-muted">{i.label}</dt>
+      <dd class="mt-1 font-display text-2xl font-bold text-navy md:text-3xl">{i.value}</dd>
+      {i.hint && <dd class="mt-1 text-xs text-muted">{i.hint}</dd>}
+    </div>
+  ))}
+</dl>

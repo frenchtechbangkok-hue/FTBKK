@@ -525,3 +525,49 @@ export async function loadTraffic(
 export const oldestTraffic = (now: Date) => new Date(now.getTime() - 183 * DAY_MS);
 
 export { CloudflareError };
+
+const PATH_VIEWS = (
+  field: SiteFilter['field'],
+) => `query PathViews($account: string!, $site: string!, $from: Time!, $to: Time!, $like: string!) {
+  viewer { accounts(filter: { accountTag: $account }) {
+    paths: rumPageloadEventsAdaptiveGroups(limit: 1000, orderBy: [count_DESC], filter: { AND: [
+      { datetime_geq: $from, datetime_lt: $to }, { ${field}: $site }, { requestPath_like: $like } ] }) {
+      count dimensions { key: requestPath } }
+  } } }`;
+
+/** Page views per path under a prefix ("/blog/"), over the last `days` days (Blog posts list). */
+export async function pageViewsByPath(
+  cfg: TrafficConfig,
+  prefix: string,
+  days: number,
+  now = new Date(),
+  fetcher: Fetcher = fetch,
+): Promise<Record<string, number>> {
+  const { accountId, site } = await resolve(cfg, fetcher);
+  const full = { ...cfg, accountId };
+  const limits = await datasetLimits(full, fetcher);
+  const r = clampRange(
+    { from: new Date(now.getTime() - days * DAY_MS), to: now },
+    limits.rumPageloadEventsAdaptiveGroups,
+    now,
+  );
+  if (!r) return {};
+  const parts = await Promise.all(
+    splitRange(r, limits.rumPageloadEventsAdaptiveGroups.maxDuration).map((p) =>
+      graphql(
+        full,
+        PATH_VIEWS(site.field),
+        { site: site.value, like: `${prefix}%`, ...span(p) },
+        fetcher,
+      ),
+    ),
+  );
+  const views: Record<string, number> = {};
+  for (const a of parts)
+    for (const g of groups(a, 'paths')) {
+      // One post can be reached with and without a trailing slash.
+      const path = dimKey(g, 'key').replace(/\/+$/, '');
+      views[path] = (views[path] ?? 0) + (g.count ?? 0);
+    }
+  return views;
+}

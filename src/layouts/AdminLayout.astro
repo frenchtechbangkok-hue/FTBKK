@@ -7,10 +7,16 @@ interface Props {
   title: string;
   /** The page's h1 when it differs from the tab title (the dashboard's greeting). */
   heading?: string;
-  /** A short line under the h1. */
+  /** A short line under the h1 (one sentence; longer help goes in the "help" slot). */
   intro?: string;
+  /** Where this page sits, shown above the h1: [{ href: '/admin/contacts', label: 'Contacts' }]. */
+  trail?: { href: string; label: string }[];
 }
-const { title, heading, intro } = Astro.props;
+// Slots: "actions" = the page's buttons, top right (the main one red, others outlined);
+// "help" = how the page works, folded under the intro.
+const { title, heading, intro, trail = [] } = Astro.props;
+const hasActions = Astro.slots.has('actions');
+const hasHelp = Astro.slots.has('help');
 const adminEmail = Astro.locals.adminEmail;
 // Only after a redirect: a re-rendered POST (a form with errors) keeps the URL's ?saved=1.
 const flash = Astro.request.method === 'GET' ? Astro.url.searchParams.get('saved') : null;
@@ -155,8 +161,37 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
       </nav>
     </aside>
     <main class="min-w-0 flex-1 p-4 md:p-8">
-      <h1 class={`text-2xl ${intro ? 'mb-1' : 'mb-6'}`}>{heading ?? title}</h1>
-      {intro && <p class="mb-6 text-muted">{intro}</p>}
+      {trail.length > 0 && (
+        <nav aria-label="You are here" class="mb-1 text-sm text-muted">
+          {trail.map((t) => (
+            <>
+              <a href={t.href} class="text-muted hover:text-navy">
+                {t.label}
+              </a>
+              <span aria-hidden="true"> › </span>
+            </>
+          ))}
+        </nav>
+      )}
+      <div class="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div class="max-w-3xl min-w-0">
+          <h1 class="text-2xl">{heading ?? title}</h1>
+          {intro && <p class="mt-1 text-muted">{intro}</p>}
+          {hasHelp && (
+            <details class="mt-1 text-sm text-muted">
+              <summary class="cursor-pointer text-accent">How this works</summary>
+              <div class="mt-2 grid gap-2">
+                <slot name="help" />
+              </div>
+            </details>
+          )}
+        </div>
+        {hasActions && (
+          <div class="flex flex-wrap items-center gap-2">
+            <slot name="actions" />
+          </div>
+        )}
+      </div>
       {flash && (
         <div
           role="status"

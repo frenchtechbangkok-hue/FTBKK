@@ -1,4 +1,5 @@
 ---
+import EmptyState from '../../components/admin/EmptyState.astro';
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import Button from '../../components/Button.astro';
 import Alert from '../../components/Alert.astro';
@@ -15,6 +16,7 @@ import {
   joinedAt,
   loadMemberList,
   parseMemberFilters,
+  isQuiet,
 } from '../../lib/member-list';
 import {
   MEMBER_STATUSES,
@@ -31,7 +33,8 @@ import { loadLabels, tagNames } from '../../lib/contact-labels';
 // looks at them afterwards here (To review, never blocking), and can suspend anyone.
 const actor = Astro.locals.adminEmail ?? 'admin';
 const params = Astro.url.searchParams;
-const tab = params.get('tab') === 'all' ? 'all' : 'review';
+const tabParam = params.get('tab');
+const tab = tabParam === 'all' || tabParam === 'quiet' ? tabParam : 'review';
 let error = '';
 const done = params.get('done');
 
@@ -83,10 +86,16 @@ if (Astro.request.method === 'POST') {
 
 const f = parseMemberFilters(params);
 const [all, settings] = await Promise.all([loadMemberList(), getSettings()]);
+const now = new Date();
 const rows =
   tab === 'review'
     ? all.filter((m) => m.status === 'active' && !m.reviewedAt)
-    : filterMembers(all, f);
+    : tab === 'quiet'
+      ? all
+          .filter((m) => isQuiet(m, now))
+          .sort((a, b) => (a.stats.lastCame?.getTime() ?? 0) - (b.stats.lastCame?.getTime() ?? 0))
+      : filterMembers(all, f);
+const quiet = all.filter((m) => isQuiet(m, now)).length;
 const counts = all;
 const csvHref = `/admin/members.csv?${new URLSearchParams(
   Object.entries(f).filter((e): e is [string, string] => !!e[1]),
@@ -146,14 +155,20 @@ const selects: {
 ];
 ---
 
-<AdminLayout title="Members">
-  <p class="mb-4 max-w-3xl text-sm text-muted">
-    Free individual membership from the Join page. People are members as soon as they confirm their
-    email. To review lists the new ones nobody has looked at yet: add a note if useful, then mark
-    them as reviewed (it changes nothing for them). Suspend anyone who should not be in the
-    community: they lose the member page's WhatsApp link. {total('active')} active,{' '}
-    {total('pending')} not confirmed yet, {total('suspended')} suspended.
-  </p>
+<AdminLayout
+  title="Members"
+  intro={`${total('active')} active, ${total('pending')} not confirmed yet, ${total('suspended')} suspended.`}
+>
+  <Fragment slot="help">
+    <p>
+      Free individual membership from the Join page. People are members as soon as they confirm
+      their email. <strong>To review</strong> lists the new ones nobody has looked at yet: add a
+      note if useful, then mark them as reviewed (it changes nothing for them).{' '}
+      <strong>Quiet</strong> lists active members who came to no event in the last 6 months, to
+      invite them back. Suspend anyone who should not be in the community: they lose the member
+      page's WhatsApp link.
+    </p>
+  </Fragment>
   {!settings.memberSignupOpen && (
     <Alert tone="warning" class="mb-4">
       Sign-up is closed: the form on the Join page shows once you tick "Open free individual
@@ -174,6 +189,7 @@ const selects: {
   <nav aria-label="Member lists" class="mb-4 flex flex-wrap gap-2">
     {[
       ['review', `To review (${toReview})`],
+      ['quiet', `Quiet (${quiet})`],
       ['all', `All members (${counts.length})`],
     ].map(([key, label]) => (
       <a
@@ -254,9 +270,15 @@ const selects: {
     )}
 
     {rows.length === 0 ? (
-      <p class="text-muted">
-        {tab === 'review' ? 'Nobody to review. 🎉' : 'No members match these filters.'}
-      </p>
+      <EmptyState
+        text={
+          tab === 'review'
+            ? 'Nobody to review.'
+            : tab === 'quiet'
+              ? 'No quiet member: every active member came to an event in the last 6 months.'
+              : 'No members match these filters.'
+        }
+      />
     ) : (
       <form method="post" data-bulk>
         <div
@@ -397,6 +419,11 @@ const selects: {
                 </td>
                 <td class="whitespace-nowrap" data-sort={m.stats.attended}>
                   {m.stats.attended} attended
+                  {m.stats.lastCame && (
+                    <span class="block text-xs text-muted">
+                      last {formatDate(m.stats.lastCame)}
+                    </span>
+                  )}
                   {m.stats.noShows > 0 && (
                     <span class="block text-xs text-muted">
                       {`${m.stats.noShows} no-show${m.stats.noShows === 1 ? '' : 's'} (${pct(m.stats.noShowRate)})`}
@@ -408,20 +435,29 @@ const selects: {
                   {formatDate(joinedAt(m))}
                   {m.howHeard && <span class="block text-xs">{m.howHeard}</span>}
                 </td>
-                <td class="min-w-48">
-                  <textarea
-                    id={`notes-${m.id}`}
-                    aria-label={`Notes on ${m.name}`}
-                    name="notes"
-                    form={`n-${m.id}`}
-                    rows={2}
-                    maxlength={4000}
-                    class="w-full rounded-lg border border-line px-2 py-1 text-xs"
-                    set:text={m.notes ?? ''}
-                  />
-                  <button type="submit" form={`n-${m.id}`} class="text-xs text-accent underline">
-                    Save note
-                  </button>
+                <td class="min-w-40">
+                  <details>
+                    <summary class="cursor-pointer text-xs">
+                      {m.notes ? (
+                        <span class="line-clamp-2 whitespace-pre-line text-muted">{m.notes}</span>
+                      ) : (
+                        <span class="text-accent">Add a note</span>
+                      )}
+                    </summary>
+                    <textarea
+                      id={`notes-${m.id}`}
+                      aria-label={`Notes on ${m.name}`}
+                      name="notes"
+                      form={`n-${m.id}`}
+                      rows={3}
+                      maxlength={4000}
+                      class="mt-1 w-full rounded-lg border border-line px-2 py-1 text-xs"
+                      set:text={m.notes ?? ''}
+                    />
+                    <button type="submit" form={`n-${m.id}`} class="text-xs text-accent underline">
+                      Save note
+                    </button>
+                  </details>
                 </td>
               </tr>
             ))}

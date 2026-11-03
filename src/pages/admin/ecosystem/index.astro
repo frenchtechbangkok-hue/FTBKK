@@ -1,6 +1,8 @@
 ---
 import { z } from 'zod';
 import { and, asc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
+import EmptyState from '../../../components/admin/EmptyState.astro';
+import PageTabs from '../../../components/admin/PageTabs.astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import Badge from '../../../components/Badge.astro';
 import Button from '../../../components/Button.astro';
@@ -24,7 +26,14 @@ import {
 import { saveSettings } from '../../../lib/settings';
 import { inviteToClaim } from '../../../lib/admin';
 import { DecisionForm, decide, reviewItems } from '../../../lib/moderation';
-import { CATEGORIES, ORG_STATUSES, editPartnerGroups, partnerGroups } from '../../../lib/directory';
+import {
+  CATEGORIES,
+  ORG_STATUSES,
+  editPartnerGroups,
+  listingGaps,
+  partnerGroups,
+} from '../../../lib/directory';
+import { menuCounts } from '../../../lib/admin-menu';
 import { formatDate } from '../../../lib/format';
 
 const actor = Astro.locals.adminEmail ?? 'admin';
@@ -106,6 +115,7 @@ if (Astro.request.method === 'POST') {
 const db = getDb();
 const now = new Date();
 const items = tab === 'queue' ? await reviewItems() : [];
+const queueCount = tab === 'queue' ? items.length : ((await menuCounts(now)).directory ?? 0);
 
 const status = Astro.url.searchParams.get('status') ?? '';
 const q = (Astro.url.searchParams.get('q') ?? '').toLowerCase();
@@ -116,12 +126,17 @@ const all =
           .select()
           .from(organisations)
           .where(
-            status ? eq(organisations.status, status as (typeof ORG_STATUSES)[number]) : undefined,
+            status && status !== 'to-complete'
+              ? eq(organisations.status, status as (typeof ORG_STATUSES)[number])
+              : undefined,
           )
           .orderBy(asc(organisations.name))
-      ).filter(
-        (o) => !q || o.name.toLowerCase().includes(q) || o.adminNotes?.toLowerCase().includes(q),
       )
+        .filter(
+          (o) => !q || o.name.toLowerCase().includes(q) || o.adminNotes?.toLowerCase().includes(q),
+        )
+        .map((o) => ({ ...o, gaps: o.status === 'published' ? listingGaps(o, now) : [] }))
+        .filter((o) => status !== 'to-complete' || o.gaps.length > 0)
     : [];
 
 // Partners: every listing with a partner group (any status, so a hidden one is not lost), and the
@@ -157,24 +172,23 @@ const statusTone = (s: string) =>
         : 'neutral';
 ---
 
-<AdminLayout title="Ecosystem">
-  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-    <nav aria-label="Ecosystem sections" class="flex flex-wrap gap-2">
-      {tabs.map((t) => (
-        <a
-          href={`?tab=${t.key}`}
-          aria-current={t.key === tab ? 'page' : undefined}
-          class="rounded-full border border-line bg-paper px-4 py-1.5 text-sm no-underline aria-[current=page]:border-navy aria-[current=page]:bg-navy aria-[current=page]:text-paper"
-        >
-          {t.label}
-          {t.key === 'queue' && tab === 'queue' && ` (${items.length})`}
-        </a>
-      ))}
-    </nav>
+<AdminLayout
+  title="Ecosystem"
+  intro="The organisations of the directory, their review and their renewals."
+>
+  <Fragment slot="actions">
     <Button href="/admin/ecosystem/new" size="sm">
       Add an organisation
     </Button>
-  </div>
+  </Fragment>
+  <PageTabs
+    label="Ecosystem sections"
+    tabs={tabs.map((t) => ({
+      href: `?tab=${t.key}`,
+      label: t.key === 'queue' ? `${t.label} (${queueCount})` : t.label,
+      current: t.key === tab,
+    }))}
+  />
   {error && (
     <Alert tone="danger" class="mb-4">
       {error}
@@ -187,7 +201,12 @@ const statusTone = (s: string) =>
         Oldest first. Target: answer within {MODERATION_TARGET_DAYS} days. Every decision is emailed
         to the person, with your reason when you reject.
       </p>
-      {items.length === 0 && <div class="admin-panel text-muted">Nothing to review. 🎉</div>}
+      {items.length === 0 && (
+        <EmptyState
+          text="Nothing to review."
+          hint="New listings, changes, claims and membership applications land here."
+        />
+      )}
       {items.map((it) => (
         <ReviewCard item={it} link />
       ))}
@@ -218,6 +237,9 @@ const statusTone = (s: string) =>
               {s}
             </option>
           ))}
+          <option value="to-complete" selected={status === 'to-complete'}>
+            To complete (published, something missing)
+          </option>
         </select>
         <Button type="submit" size="sm" variant="secondary">
           Filter
@@ -248,6 +270,9 @@ const statusTone = (s: string) =>
                 {o.partnerType && (
                   <span class="block text-xs text-muted">Partner: {groupLabel(o.partnerType)}</span>
                 )}
+                {o.gaps.length > 0 && (
+                  <span class="block text-xs text-warning">To complete: {o.gaps.join(', ')}</span>
+                )}
               </td>
               <td>{CATEGORIES[o.category].short}</td>
               <td>
@@ -261,22 +286,33 @@ const statusTone = (s: string) =>
                 )}
               </td>
               <td class="whitespace-nowrap">{o.renewalDueAt ? formatDate(o.renewalDueAt) : '–'}</td>
-              <td class="min-w-48">
-                <form method="post">
-                  <input type="hidden" name="action" value="notes" />
-                  <input type="hidden" name="id" value={o.id} />
-                  <textarea
-                    aria-label={`Team notes on ${o.name}`}
-                    name="adminNotes"
-                    rows={2}
-                    maxlength={4000}
-                    class="w-full rounded-lg border border-line px-2 py-1 text-xs"
-                    set:text={o.adminNotes ?? ''}
-                  />
-                  <button type="submit" class="text-xs text-accent underline">
-                    Save note
-                  </button>
-                </form>
+              <td class="min-w-40">
+                <details>
+                  <summary class="cursor-pointer text-xs">
+                    {o.adminNotes ? (
+                      <span class="line-clamp-2 whitespace-pre-line text-muted">
+                        {o.adminNotes}
+                      </span>
+                    ) : (
+                      <span class="text-accent">Add a note</span>
+                    )}
+                  </summary>
+                  <form method="post">
+                    <input type="hidden" name="action" value="notes" />
+                    <input type="hidden" name="id" value={o.id} />
+                    <textarea
+                      aria-label={`Team notes on ${o.name}`}
+                      name="adminNotes"
+                      rows={3}
+                      maxlength={4000}
+                      class="mt-1 w-full rounded-lg border border-line px-2 py-1 text-xs"
+                      set:text={o.adminNotes ?? ''}
+                    />
+                    <button type="submit" class="text-xs text-accent underline">
+                      Save note
+                    </button>
+                  </form>
+                </details>
               </td>
             </tr>
           ))}
@@ -340,7 +376,9 @@ const statusTone = (s: string) =>
           logo), then pick it here or set "Partner group" on its page.
         </p>
       </form>
-      {groups.length === 0 && <div class="admin-panel text-muted">No partner yet.</div>}
+      {groups.length === 0 && (
+        <EmptyState text="No partner yet." hint="Pick a listing and its group above to add one." />
+      )}
       {groups.map((g) => (
         <section class="admin-panel overflow-x-auto" aria-labelledby={`pg-${g.key}`}>
           <h2 id={`pg-${g.key}`} class="text-lg">
