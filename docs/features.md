@@ -281,6 +281,10 @@ screen by screen for the team.
   button. WhatsApp has no API for groups, so WhatsApp posts are always that email. A reminder
   whose event moved to another day, or a post about a cancelled or unpublished event or post, is
   cancelled instead of posted.
+  The **Connected pages** box says per network whether it is connected and which Worker value is
+  missing (`networkSetup()` in `lib/social.ts`: `LINKEDIN_ORGANIZATION_ID` /
+  `LINKEDIN_ACCESS_TOKEN`, `FACEBOOK_PAGE_ID` / `FACEBOOK_PAGE_TOKEN`), with a folding **How to
+  connect** guide per network (developer app, token, page ID, Cloudflare secret, `wrangler.jsonc`).
 - **Code of conduct** at `/code-of-conduct`: how everyone is expected to behave at events, in our
   online groups (WhatsApp, LinkedIn) and on the website, and how to report a problem. Linked in
   the footer, on every event page and in the registration form. The text is edited in the admin.
