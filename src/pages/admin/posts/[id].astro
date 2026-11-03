@@ -9,6 +9,7 @@ import MarkdownEditor from '../../../components/admin/MarkdownEditor.astro';
 import { getDb } from '../../../db';
 import {
   categories,
+  people,
   postCategories,
   posts,
   type Attachment,
@@ -41,6 +42,25 @@ if (id !== null) {
   if (!post) return Astro.redirect('/admin/posts');
 }
 const allCategories = await db.select().from(categories).orderBy(asc(categories.sortOrder));
+// Board members to pick as authors: the picker fills the row's name, role and LinkedIn.
+const boardMembers = (
+  await db
+    .select({
+      name: people.name,
+      title: people.title,
+      ftRole: people.ftRole,
+      linkedin: people.linkedin,
+      photoKey: people.photoKey,
+    })
+    .from(people)
+    .where(eq(people.group, 'board'))
+    .orderBy(asc(people.sortOrder), asc(people.name))
+).map((p) => ({
+  name: p.name,
+  role: p.ftRole || p.title || '',
+  url: p.linkedin ?? '',
+  photo: p.photoKey ? mediaUrl(p.photoKey) : '',
+}));
 let selected = post
   ? (
       await db
@@ -465,6 +485,30 @@ const autoImage = share?.imageUrl ?? (post?.coverKey ? mediaUrl(post.coverKey) :
         <div class="mt-2 grid gap-3" data-author-list>
           {(authorRows.length ? authorRows : [{ name: '' } as PostAuthor]).map((a) => (
             <div class="author-row grid gap-2 rounded-lg border border-line p-3">
+              {boardMembers.length > 0 && (
+                <label class="grid gap-1 text-xs font-semibold">
+                  Pick a board member
+                  <span class="flex items-center gap-2">
+                    <img
+                      src={boardMembers.find((b) => b.name === a.name)?.photo || undefined}
+                      alt=""
+                      width="32"
+                      height="32"
+                      class="size-8 shrink-0 rounded-full object-cover"
+                      hidden={!boardMembers.find((b) => b.name === a.name)?.photo}
+                      data-author-photo
+                    />
+                    <select class="admin-input min-w-0 flex-1" data-board-pick>
+                      <option value="">Someone else (type below)</option>
+                      {boardMembers.map((b, i) => (
+                        <option value={String(i)} selected={b.name === a.name}>
+                          {b.role ? `${b.name} (${b.role})` : b.name}
+                        </option>
+                      ))}
+                    </select>
+                  </span>
+                </label>
+              )}
               <label class="grid gap-1 text-xs font-semibold">
                 Name
                 <input name="authorNames" value={a.name} class="admin-input" />
@@ -497,6 +541,16 @@ const autoImage = share?.imageUrl ?? (post?.coverKey ? mediaUrl(post.coverKey) :
             </div>
           ))}
         </div>
+        {boardMembers.length > 0 && (
+          <p class="mt-2 text-xs text-muted">
+            A board member's photo from Board and speakers shows next to their name on the post.
+          </p>
+        )}
+        <script
+          type="application/json"
+          data-board-members
+          set:html={JSON.stringify(boardMembers).replace(/</g, '\\u003c')}
+        />
         {errors.authors && <p class="mt-2 text-sm text-danger">{errors.authors}</p>}
         <button type="button" class="mt-3 text-sm font-semibold text-accent" data-add-author>
           + Add an author
@@ -610,7 +664,7 @@ const autoImage = share?.imageUrl ?? (post?.coverKey ? mediaUrl(post.coverKey) :
     const first = authorList?.querySelector<HTMLElement>('.author-row');
     if (!authorList || !first) return;
     const row = first.cloneNode(true) as HTMLElement;
-    row.querySelectorAll('input').forEach((i) => (i.value = ''));
+    clearRow(row);
     authorList.appendChild(row);
     row.querySelector('input')?.focus();
   });
@@ -619,7 +673,53 @@ const autoImage = share?.imageUrl ?? (post?.coverKey ? mediaUrl(post.coverKey) :
     const row = button?.closest<HTMLElement>('.author-row');
     if (!row) return;
     if (authorList.querySelectorAll('.author-row').length > 1) row.remove();
-    else row.querySelectorAll('input').forEach((i) => (i.value = ''));
+    else clearRow(row);
+  });
+  // Picking a board member fills the row; "Someone else" leaves it free to type.
+  const boardMembers: { name: string; role: string; url: string; photo: string }[] = JSON.parse(
+    document.querySelector('[data-board-members]')?.textContent || '[]',
+  );
+  function showPhoto(row: HTMLElement, src: string) {
+    const img = row.querySelector<HTMLImageElement>('[data-author-photo]');
+    if (!img) return;
+    if (src) img.src = src;
+    else img.removeAttribute('src');
+    img.hidden = !src;
+  }
+  function clearRow(row: HTMLElement) {
+    row.querySelectorAll('input').forEach((i) => (i.value = ''));
+    const pick = row.querySelector('[data-board-pick]') as unknown as HTMLSelectElement | null;
+    if (pick) pick.value = '';
+    showPhoto(row, '');
+  }
+  authorList?.addEventListener('change', (e) => {
+    const pick = (e.target as Element).closest(
+      '[data-board-pick]',
+    ) as unknown as HTMLSelectElement | null;
+    const row = (e.target as Element).closest<HTMLElement>('.author-row');
+    if (!pick || !row) return;
+    const member = pick.value === '' ? null : boardMembers[Number(pick.value)];
+    const field = (name: string) => row.querySelector<HTMLInputElement>(`[name="${name}"]`)!;
+    if (member) {
+      field('authorNames').value = member.name;
+      field('authorRoles').value = member.role;
+      field('authorUrls').value = member.url;
+      showPhoto(row, member.photo);
+    } else {
+      clearRow(row);
+      field('authorNames').focus();
+    }
+  });
+  // Typing another name by hand unlinks the row from the board member.
+  authorList?.addEventListener('input', (e) => {
+    const input = (e.target as Element).closest<HTMLInputElement>('[name="authorNames"]');
+    const row = input?.closest<HTMLElement>('.author-row');
+    const pick = row?.querySelector('[data-board-pick]') as unknown as HTMLSelectElement | null;
+    if (!input || !row || !pick || pick.value === '') return;
+    if (boardMembers[Number(pick.value)]?.name !== input.value) {
+      pick.value = '';
+      showPhoto(row, '');
+    }
   });
 
   // ---------- attachments: upload now, insert a download tag in the text ----------
