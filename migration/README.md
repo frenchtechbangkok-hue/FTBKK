@@ -45,3 +45,19 @@ review. `scripts/import.ts` uses a captured file when it exists and falls back t
 
 33 events (one "test-title" marked junk), 11 posts, 31 sponsors, 10 board members, 3 institutional
 representatives.
+
+## Importing Wix guest lists
+
+To bring an event's registrations over from Wix, export its guest list in Wix (Events > the event >
+Guests > Export; ticketed and RSVP events both work) and run `npm run import:guests -- <Guest_list_….csv>` (add `--remote` for the
+live database). It adds one registration per email with the Wix order date and Wix check-ins
+(attended), takes the role from the job title or "Which best describes you?" question, puts
+LinkedIn URLs (mistyped ones are repaired) and free-text answers on the contact cards, sends no
+email, and can be re-run. For a folder of exports:
+`for f in ~/Downloads/Guest_list_*.csv; do npm run -s import:guests -- "$f" --remote; done`.
+Add `--extra-tickets-as-guests` when people booked several tickets under one email: the extra
+tickets of one order become anonymous guests (+1, +2…, up to 5) on their registration, also for
+people imported earlier (a second order under the same email is not a guest). Leave it off for the
+older exports that listed every ticket twice (numbers ending in 1P and 1Q). One-off jobs that
+create an event Wix still holds and import its guests live in `scripts/one-off/` (for example
+`scripts/one-off/2026-10-27-game-over/run.sh <export.csv> --remote`).

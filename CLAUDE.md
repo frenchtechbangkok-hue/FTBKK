@@ -2,7 +2,7 @@
 
 Rebuild of https://www.french-tech-bangkok.com/ (Wix) as one Cloudflare Worker.
 Public sections: Home, Ecosystem, Events, Blog, About. Private `/admin` for blog posts,
-events, registrations and the ecosystem directory. Full plan: `docs/plan.md`. Cloudflare setup: `docs/deploy.md`. Admin guide: `docs/admin.md`.
+events, registrations and the ecosystem directory. Full plan: `docs/plan.md`. Every feature in detail: `docs/features.md`. Cloudflare setup: `docs/deploy.md`. Admin guide: `docs/admin.md`.
 
 ## Stack
 
@@ -30,7 +30,8 @@ events, registrations and the ecosystem directory. Full plan: `docs/plan.md`. Cl
   verifies the `Cf-Access-Jwt-Assertion` JWT against `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` (skipped
   only locally, when `ACCESS_AUD` is empty, using `DEV_ADMIN_EMAIL`).
 - Old Wix URLs keep working through redirects.
-- Every feature PR also updates `README.md` (and `docs/admin.md` for admin features).
+- Every feature PR also updates `docs/features.md` (the detail), `README.md` when the short summary
+  changes, and `docs/admin.md` for admin features.
 - Every PR adds its entry at the top of `src/lib/changelog.ts` (Settings > Change history): next
   version number, merge date, PR number, a short title and one plain-language sentence for the
   team. If another PR merged first, renumber before merging (`npm test` checks the order).
