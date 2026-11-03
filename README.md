@@ -240,7 +240,7 @@ Public pages:
   person (details, events with their own answers and feedback, tags), lets them unsubscribe from
   the newsletter, and lets them delete all their data after a confirmation step (the same as
   "Delete this contact" in the admin: freed seats go to the waitlist). Deleting a contact also
-  strips their details from the admin change history (the deletion itself is logged under a short
+  strips their details from the admin actions log (the deletion itself is logged under a short
   hash, not their email). Opening the link never deletes anything. People without an event email
   to hand use **Delete my data** in the footer (also offered on `/privacy`): `/my-data` asks for
   their email (with Turnstile and a rate limit) and, only if the site holds data for it, emails a
@@ -267,11 +267,18 @@ speakers), **Ecosystem** (to review, all listings, partners, renewals), **Blog**
 files), **Website pages** (one screen per public page: Home, About, Join, Tech Pulse, Thai page,
 code of conduct and privacy), **Emails and social media** (email the community, social media
 posts, automatic emails), **Reports** (events and attendance, membership: `/admin/reports/*`) and
-**Settings** (general, membership, default event covers, social links, change history: one
-`/admin/settings?section=` screen each, plus `/admin/history`). Old admin addresses redirect
+**Settings** (general, membership, default event covers, social links, guide pages: one
+`/admin/settings?section=` screen each, plus **Change history** at `/admin/changes` and **Actions
+log** at `/admin/actions-log`). Old admin addresses redirect
 (`src/lib/redirects.ts`). The groups fold and unfold, the current one open. Anyone who can sign in
 to the admin can do everything; there are no roles. See
 [docs/admin.md](docs/admin.md).
+
+**Change history** (`/admin/changes`) lists every version of the site, newest first: each merged
+pull request is a new version (1.0 was the first full site, then 1.1, 1.2...), with its date, a
+short plain-language summary and a link to the pull request. The entries live in
+`src/lib/changelog.ts` and every PR adds its own at the top. **Actions log** (`/admin/actions-log`,
+formerly `/admin/history`, which redirects) is the record of who changed what in the admin.
 
 **Automatic emails** (`/admin/emails`) lists the emails the site sends on its own, grouped (Events,
 Ecosystem, Membership, Community, Privacy, Admin notifications), each with who receives it, when it goes out and whether its text is the
