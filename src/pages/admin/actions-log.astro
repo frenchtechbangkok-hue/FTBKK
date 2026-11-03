@@ -1,63 +1,268 @@
 ---
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, type SQL } from 'drizzle-orm';
 import AdminLayout from '../../layouts/AdminLayout.astro';
+import Badge from '../../components/Badge.astro';
 import { getDb } from '../../db';
-import { auditLog, organisations } from '../../db/schema';
-import { formatDate } from '../../lib/format';
+import {
+  auditLog,
+  contactGroups,
+  events,
+  members,
+  organisations,
+  people,
+  posts,
+  registrations,
+} from '../../db/schema';
+import {
+  AREAS,
+  actorLabel,
+  describeAction,
+  emptyNames,
+  type Area,
+  type LogNames,
+} from '../../lib/actions-log';
+import { EMAIL_TEMPLATES } from '../../lib/email-templates';
+import { formatDate, formatTime } from '../../lib/format';
 
-// Settings > Actions log: the last 200 changes made in the admin, by anyone (was /admin/history).
-const log = await getDb()
-  .select({ a: auditLog, name: organisations.name, orgId: organisations.id })
+// Settings > Actions log: what was done in the admin (and by the site on its own), as plain
+// sentences grouped by day, newest first. Filter by area or by person; 100 actions per page.
+const PAGE = 100;
+const q = Astro.url.searchParams;
+const area = AREAS.find((a) => a.key === q.get('area'));
+const who = (q.get('who') ?? '').slice(0, 320);
+const before = Number(q.get('before')) || 0;
+
+const db = getDb();
+const where: SQL[] = [];
+if (area) where.push(inArray(auditLog.entity, area.entities));
+if (who) where.push(eq(auditLog.actor, who));
+if (before > 0) where.push(lt(auditLog.id, before));
+const rows = await db
+  .select()
   .from(auditLog)
-  .leftJoin(
-    organisations,
-    and(eq(auditLog.entity, 'organisation'), eq(auditLog.entityId, organisations.id)),
-  )
+  .where(where.length ? and(...where) : undefined)
   .orderBy(desc(auditLog.id))
-  .limit(200);
-const short = (v: unknown) => {
-  const s = v === null || v === undefined ? '' : JSON.stringify(v);
-  return s.length > 140 ? `${s.slice(0, 139)}…` : s;
+  .limit(PAGE + 1);
+const more = rows.length > PAGE;
+const shown = rows.slice(0, PAGE);
+
+// Everyone who appears in the log, for the "Who" filter (admins first, then the site itself).
+const actors = (await db.selectDistinct({ actor: auditLog.actor }).from(auditLog).limit(200)).map(
+  (r) => r.actor,
+);
+actors.sort((a, b) => Number(!a.includes('@')) - Number(!b.includes('@')) || a.localeCompare(b));
+
+// Names of what the rows point at, in one query per kind.
+const ids = (entity: string) => [
+  ...new Set(
+    shown.filter((r) => r.entity === entity && r.entityId != null).map((r) => r.entityId!),
+  ),
+];
+const names: LogNames = emptyNames();
+const regIds = ids('registration');
+const regs = regIds.length
+  ? await db
+      .select({ id: registrations.id, name: registrations.name, eventId: registrations.eventId })
+      .from(registrations)
+      .where(inArray(registrations.id, regIds))
+  : [];
+for (const r of regs) names.registrations.set(r.id, { name: r.name, eventId: r.eventId });
+const eventIds = [
+  ...new Set([...ids('event'), ...ids('social_post'), ...regs.map((r) => r.eventId)]),
+];
+const postIds = [...new Set([...ids('post'), ...ids('social_post')])];
+const [ev, po, org, mem, ppl, grp] = await Promise.all([
+  eventIds.length
+    ? db.select({ id: events.id, n: events.title }).from(events).where(inArray(events.id, eventIds))
+    : [],
+  postIds.length
+    ? db.select({ id: posts.id, n: posts.title }).from(posts).where(inArray(posts.id, postIds))
+    : [],
+  ids('organisation').length
+    ? db
+        .select({ id: organisations.id, n: organisations.name })
+        .from(organisations)
+        .where(inArray(organisations.id, ids('organisation')))
+    : [],
+  ids('member').length
+    ? db
+        .select({ id: members.id, n: members.name })
+        .from(members)
+        .where(inArray(members.id, ids('member')))
+    : [],
+  ids('person').length
+    ? db
+        .select({ id: people.id, n: people.name })
+        .from(people)
+        .where(inArray(people.id, ids('person')))
+    : [],
+  ids('contact_group').length
+    ? db
+        .select({ id: contactGroups.id, n: contactGroups.name })
+        .from(contactGroups)
+        .where(inArray(contactGroups.id, ids('contact_group')))
+    : [],
+]);
+for (const r of ev) names.events.set(r.id, r.n);
+for (const r of po) names.posts.set(r.id, r.n);
+for (const r of org) names.organisations.set(r.id, r.n);
+for (const r of mem) names.members.set(r.id, r.n);
+for (const r of ppl) names.people.set(r.id, r.n);
+for (const r of grp) names.groups.set(r.id, r.n);
+names.templates = Object.fromEntries(Object.entries(EMAIL_TEMPLATES).map(([k, t]) => [k, t.label]));
+
+const AREA_TONE: Record<Area, 'brand' | 'accent' | 'neutral' | 'success' | 'warning'> = {
+  events: 'accent',
+  community: 'success',
+  ecosystem: 'brand',
+  blog: 'warning',
+  emails: 'neutral',
+  settings: 'neutral',
 };
+const areaLabel = (a: Area) => AREAS.find((x) => x.key === a)!.label;
+
+// Group by day, Bangkok time.
+const days: { label: string; items: (typeof shown)[number][] }[] = [];
+for (const r of shown) {
+  const label = formatDate(r.at, { weekday: 'long' });
+  const last = days.at(-1);
+  if (last?.label === label) last.items.push(r);
+  else days.push({ label, items: [r] });
+}
+
+const url = (over: Record<string, string | null>) => {
+  const p = new URLSearchParams();
+  const next = { area: area?.key ?? null, who: who || null, ...over };
+  for (const [k, v] of Object.entries(next)) if (v) p.set(k, v);
+  const s = p.toString();
+  return `/admin/actions-log${s ? `?${s}` : ''}`;
+};
+const chip =
+  'rounded-full border border-line bg-paper px-4 py-1.5 text-sm no-underline aria-[current=page]:border-navy aria-[current=page]:bg-navy aria-[current=page]:text-paper';
 ---
 
 <AdminLayout title="Actions log">
   <p class="mb-6 max-w-3xl text-sm text-muted">
-    Who changed what in the admin, and when: the last 200 changes, newest first.
+    Everything done in the admin, and what the site did on its own or what people did from their
+    links, newest first. What changed in the website itself, version by version, is in{' '}
+    <a href="/admin/changes">Change history</a>.
   </p>
-  <div class="admin-panel overflow-x-auto">
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th>When</th>
-          <th>Who</th>
-          <th>What</th>
-          <th>Details</th>
-        </tr>
-      </thead>
-      <tbody>
-        {log.map(({ a, name, orgId }) => (
-          <tr>
-            <td class="whitespace-nowrap">
-              {formatDate(a.at, { hour: '2-digit', minute: '2-digit' })}
-            </td>
-            <td class="break-all">{a.actor}</td>
-            <td>
-              {a.action} {a.entity}{' '}
-              {orgId ? (
-                <a href={`/admin/ecosystem/${orgId}`}>{name}</a>
-              ) : a.entityId ? (
-                `#${a.entityId}`
-              ) : (
-                ''
-              )}
-            </td>
-            <td class="font-mono text-xs break-all text-muted">
-              {short(a.before)} {a.after ? `→ ${short(a.after)}` : ''}
-            </td>
-          </tr>
+
+  <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <nav aria-label="Area" class="flex flex-wrap gap-2">
+      <a
+        href={url({ area: null, before: null })}
+        aria-current={!area ? 'page' : undefined}
+        class={chip}
+      >
+        Everything
+      </a>
+      {AREAS.map((a) => (
+        <a
+          href={url({ area: a.key, before: null })}
+          aria-current={area?.key === a.key ? 'page' : undefined}
+          class={chip}
+        >
+          {a.label}
+        </a>
+      ))}
+    </nav>
+    <form method="get" class="flex items-center gap-2">
+      {area && <input type="hidden" name="area" value={area.key} />}
+      <label for="who" class="text-sm text-muted">
+        Who
+      </label>
+      <select id="who" name="who" class="admin-input w-auto max-w-64" onchange="this.form.submit()">
+        <option value="">Everyone</option>
+        {actors.map((a) => (
+          <option value={a} selected={a === who}>
+            {actorLabel(a).name}
+          </option>
         ))}
-      </tbody>
-    </table>
+      </select>
+      <noscript>
+        <button class="admin-input w-auto">Show</button>
+      </noscript>
+    </form>
   </div>
+
+  {shown.length === 0 && (
+    <p class="admin-panel text-sm text-muted">Nothing recorded for this filter yet.</p>
+  )}
+
+  {days.map((d) => (
+    <section class="mb-8">
+      <h2 class="mb-3 text-sm font-semibold tracking-wide text-muted uppercase">{d.label}</h2>
+      <ol class="admin-panel divide-y divide-line !py-0">
+        {d.items.map((r) => {
+          const { area: a, parts, details } = describeAction(r, names);
+          const actor = actorLabel(r.actor);
+          return (
+            <li class="flex flex-col gap-1 py-3 sm:flex-row sm:gap-5">
+              <time
+                datetime={new Date(r.at).toISOString()}
+                class="shrink-0 pt-0.5 text-sm text-muted tabular-nums sm:w-12"
+              >
+                {formatTime(r.at)}
+              </time>
+              <div class="min-w-0 flex-1">
+                <p class="text-ink">
+                  {parts.map((p) =>
+                    typeof p === 'string' ? (
+                      p
+                    ) : p.href ? (
+                      <a
+                        href={p.href}
+                        class="font-semibold underline decoration-line underline-offset-2 hover:decoration-navy"
+                      >
+                        {p.text}
+                      </a>
+                    ) : (
+                      <strong>{p.text}</strong>
+                    ),
+                  )}
+                </p>
+                <p class="mt-0.5 text-xs break-all text-muted">
+                  by <span class="text-ink">{actor.name}</span>
+                  {actor.note && ` (${actor.note})`}
+                </p>
+                {details.length > 0 && (
+                  <details class="mt-1 text-sm">
+                    <summary class="cursor-pointer text-xs text-muted">
+                      Details ({details.length})
+                    </summary>
+                    <dl class="mt-2 grid gap-x-4 gap-y-1 rounded-lg bg-surface p-3 text-xs sm:grid-cols-[10rem_1fr]">
+                      {details.map((x) => (
+                        <>
+                          <dt class="font-semibold text-muted">{x.field}</dt>
+                          <dd class="break-words text-ink">
+                            {x.before && x.after ? (
+                              <>
+                                <span class="text-muted line-through">{x.before}</span> → {x.after}
+                              </>
+                            ) : (
+                              x.after || <span class="text-muted">was {x.before}</span>
+                            )}
+                          </dd>
+                        </>
+                      ))}
+                    </dl>
+                  </details>
+                )}
+              </div>
+              <div class="shrink-0 sm:pt-0.5">
+                <Badge tone={AREA_TONE[a]}>{areaLabel(a)}</Badge>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  ))}
+
+  {more && (
+    <a class="inline-block text-sm font-semibold" href={url({ before: String(shown.at(-1)!.id) })}>
+      Older actions →
+    </a>
+  )}
 </AdminLayout>
