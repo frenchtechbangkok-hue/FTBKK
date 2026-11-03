@@ -32,7 +32,7 @@ import {
 
 // Home, after the board's mockup: hero, about with the pillars, key numbers, next events, the
 // ecosystem directory, news, the community, partners and a closing call. Texts come from Site
-// texts; photos from the photo slots in Website pages > Home, else the defaults (lib/home.ts).
+// texts; photos from the photo slots in Website > Page texts > Home, else the defaults (lib/home.ts).
 const settings = await getSettings();
 const [home, upcoming, posts, postCats, orgs] = await Promise.all([
   homeData(settings.homePartners.length ? settings.homePartners : DEFAULT_PARTNERS),

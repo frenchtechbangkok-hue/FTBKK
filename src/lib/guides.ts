@@ -3,7 +3,7 @@ import { checkAdmin } from './auth';
 import type { Settings } from './settings';
 
 /**
- * The two Thailand guides can be put online or kept offline from Admin > Settings > Guide pages,
+ * The two Thailand guides can be put online or kept offline from Admin > Website > Guide pages,
  * so the board can check the content first. Offline, the page answers 404 to the public and its
  * links leave the header, footer, sitemap and the other guide; a logged-in admin still sees it,
  * with a "not online" banner.

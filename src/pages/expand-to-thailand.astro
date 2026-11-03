@@ -69,7 +69,7 @@ const specs = (m: (typeof MODELS)[number]) => [
   { label: 'Capital', value: m.capital },
   { label: 'Setup', value: m.setup },
 ];
-// Offline guides answer 404 to the public; admins see a preview (Admin > Settings > Guide pages).
+// Offline guides answer 404 to the public; admins see a preview (Admin > Website > Guide pages).
 const settings = await getSettings();
 const mode = await guideMode(Astro, settings, '/expand-to-thailand');
 if (mode === 'hidden') return Astro.rewrite('/404');

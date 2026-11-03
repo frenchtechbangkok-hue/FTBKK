@@ -16,7 +16,7 @@ import { listSuppressions, unsuppress } from '../../lib/email-suppressions';
 import { audit, siteUrl } from '../../lib/orgs';
 import { formatDate } from '../../lib/format';
 
-// Emails and social media > Email delivery: which service sends the site's emails, a test send
+// Settings > Email delivery: which service sends the site's emails, a test send
 // through either one (to try Amazon SES before switching), and the addresses no longer emailed
 // because they bounced or marked an email as spam.
 const actor = Astro.locals.adminEmail ?? 'admin';

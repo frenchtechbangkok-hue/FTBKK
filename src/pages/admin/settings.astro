@@ -14,12 +14,12 @@ import { COVER_KINDS, DEFAULT_EVENT_COVERS, KIND_NAMES } from '../../lib/event-c
 import { GUIDES } from '../../lib/guides';
 
 // Site-wide settings, one screen per section (?section=, listed under Settings in the admin menu).
-// Each screen saves only its own fields. The texts shown on public pages are in Website pages
+// Each screen saves only its own fields. The texts shown on public pages are in Website > Page texts
 // (/admin/site-texts).
 const SECTIONS = {
   general: 'General settings',
   membership: 'Membership settings',
-  'event-covers': 'Default event covers',
+  'event-covers': 'Event covers',
   'social-links': 'Social links',
   guides: 'Guide pages',
 } as const;
@@ -137,7 +137,7 @@ if (form?.get('intent') === 'test-notify') {
 }
 const INTROS: Record<Section, string> = {
   general:
-    'The site name, the contact email, who gets the team emails, and analytics. The texts of the public pages are under Website pages.',
+    'The site name, the contact email, who gets the team emails, and analytics. The texts of the public pages are under Website > Page texts.',
   membership:
     'Switches for individual membership, company membership and member priority on events.',
   'event-covers':

@@ -2,23 +2,27 @@
 
 The admin lives at `/admin`. Cloudflare Access asks for your email and sends a one-time code;
 only emails on the Access policy get in. Every change is saved straight to the live site (public
-pages refresh within a minute) and recorded in Settings > Actions log.
+pages refresh within a minute) and recorded in History > Actions log.
 
-The menu has a group per kind of work, then the figures, then the switches:
+The menu has a group per kind of work, then the figures, the switches and the records:
 
-| Group                       | What is in it                                                                                                                                                                             |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Events**                  | All events, Registrations, Check-in                                                                                                                                                       |
-| **Community**               | Members, Contacts, Tags and groups, Messages, Board and speakers                                                                                                                          |
-| **Ecosystem**               | To review, All listings, Partners, Renewals                                                                                                                                               |
-| **Blog**                    | Posts, PDFs and files                                                                                                                                                                     |
-| **Website pages**           | The texts and photos of each public page: Home, About, Join, Tech Pulse, Thai page, Code of conduct and privacy (one screen each, with its own Save button)                               |
-| **Emails and social media** | Email the community, Social media posts (share and schedule events and posts), Automatic emails, Email delivery                                                                           |
-| **Reports**                 | Events and attendance, Membership, Website traffic, Emails (tabs of the same Reports screen, for the board)                                                                               |
-| **Settings**                | General (site name, contact email, admin notifications, analytics), Membership (the sign-up switches), Default event covers, Social links (the footer links to our pages), Change history |
+| Group                       | What is in it                                                                                                                                                                     |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Events**                  | All events, Registrations, Check-in                                                                                                                                               |
+| **Community**               | Members, Contacts, Tags and groups, Messages                                                                                                                                      |
+| **Ecosystem**               | To review, All listings, Partners, Renewals                                                                                                                                       |
+| **Website**                 | Blog posts, PDFs and files, Page texts (Home, About, Join, Tech Pulse, Thai page, code of conduct and privacy as tabs), Board and speakers, Guide pages                           |
+| **Emails and social media** | Email the community, Social media posts (share and schedule events and posts), Automatic emails                                                                                   |
+| **Reports**                 | Events and attendance, Membership, Website traffic, Emails (tabs of the same Reports screen, for the board)                                                                       |
+| **Settings**                | General (site name, contact email, admin notifications, analytics), Membership (the sign-up switches), Event covers, Social links (the footer links to our pages), Email delivery |
+| **History**                 | Actions log (who did what in the admin), Change history (what changed in the website, version by version)                                                                         |
 
-As a rule: what visitors read is under **Website pages**, what we post or send is under **Emails
-and social media**, and switches and site-wide values are under **Settings**. Click a group's
+As a rule: what visitors read is under **Website**, what we post or send is under **Emails and
+social media**, switches and site-wide values are under **Settings**, and records to look things
+up in are under **History**. A small red number next to Members, Messages, To review or Social
+media posts shows what is waiting there (the same counts as the dashboard's "Waiting for you");
+a folded group shows the total. The box at the top of the menu finds a person (contact or
+member), an event, a post or an ecosystem listing by name. Click a group's
 title to fold or unfold it; the group of the page you are on is always open, and the others stay
 as you left them in this browser. On a phone, open it with the **Menu** button. Old addresses
 (`/admin/events/stats`, `/admin/reports`, Ecosystem's History tab) redirect to the new screens.
@@ -40,7 +44,7 @@ The **Dashboard** greets you and says when the next event is. Then, from top to 
 - **Upcoming events**: the next five, with the days to go, how full they are, a link to the
   registrations and, on the day, a **Check in** link.
 - **Latest activity**: the last registrations, new members, listings and messages.
-- **New on the site**: the latest line of Settings > Change history.
+- **New on the site**: the latest line of History > Change history.
 
 ## Posts
 
@@ -73,7 +77,7 @@ uses any more.
 
 - **New event**: title, type (French Tech Connect, French Tech Talk, French Tech Select, or Other
   with a series name such as Workshop), start time (Bangkok time), venue, then publish. Connect,
-  Talk and Select events without a cover show the default image from Settings > Default event covers.
+  Talk and Select events without a cover show the default image from Settings > Event covers.
 - **Private and listing** (on the event form):
   - **Private: registration by invitation link only**. The event page shows the event with
     "Registration is by invitation only" instead of the form. Save, then copy the **Invitation
@@ -306,7 +310,7 @@ uses any more.
   you saved a contact card (your notes are not shown; the page tells them to ask for a copy). They can **Unsubscribe from the newsletter** (recorded on their contact
   card as "Not subscribed" with today's date) or **Delete my data** (asks to confirm, then does
   exactly what **Delete this contact** does: their card, registrations and feedback go, and freed
-  seats go to the waitlist). An unsubscribe shows in Settings > Actions log with the actor
+  seats go to the waitlist). An unsubscribe shows in History > Actions log with the actor
   `self-service:<their email>`. Deleting a contact (here or with **Delete this contact**) also
   wipes the old values of their contact entries in the history and logs the deletion under
   `deleted:<short code>` instead of their email. After a deletion the link stops working. If someone asks by email
@@ -529,7 +533,7 @@ tables.
   before, a chart per week or month, and a table per subject, so you can compare one community
   email with another. Open rates are estimates: Apple Mail opens every email by itself and some
   apps block the tracking. Keep spam complaints under 0.1%. Addresses that bounced for good or
-  complained are skipped from then on (Emails and social media > Email delivery). The figures come
+  complained are skipped from then on (Settings > Email delivery). The figures come
   from Resend (or Amazon SES) as each email is delivered or opened, and start on the day that
   connection was set up (docs/deploy.md); until then the tab explains what to do.
 - **Export CSV** downloads what is shown: on Events, one line per event (or, with one event
@@ -537,7 +541,7 @@ tables.
   the members at each event; on Website traffic, visits per week or month or the most viewed
   pages; on Emails, the emails per week or month or the table per email.
 
-## Board and speakers, Messages, Website pages, Settings
+## Board and speakers, Messages, Website, Settings
 
 - **Board and speakers** (formerly People): board and institutional partners on the About page, with their job title and
   company. Board members also have a **French Tech responsibility** (President, Commission
@@ -568,7 +572,7 @@ tables.
     analytics token.
   - **Membership**: the switches for individual sign-up on the Join page, company membership
     applications and member priority on events.
-  - **Default event covers**: the cover shown for French Tech Connect, French Tech Talk and
+  - **Event covers**: the cover shown for French Tech Connect, French Tech Talk and
     French Tech Select events that have none of their own (built-in images for Connect and Talk
     until you upload others; Select has none until you upload one).
   - **Social links**: the links to our LinkedIn, Instagram, Facebook and YouTube pages shown in
@@ -592,7 +596,7 @@ tables.
     post or contact, who did it and an area label. **Details** opens what changed (old value
     crossed out, new value after it). Filter by area (Events, Community, Ecosystem, Blog and files,
     Emails and social media, Settings) or by person with **Who**; **Older actions** loads the next 100. It was called Change history before November 2026; the old address still works.
-- **Home page** (Website pages > Home): every photo has its own slot: **Main header** (the big
+- **Home page** (Website > Page texts > Home): every photo has its own slot: **Main header** (the big
   photo at the top, also faint in the red closing band; its description is the small caption;
   default: the Bangkok skyline), **About us** (the arched photo; default: a photo from the latest
   event recap) and **Community photo 1, 2, 3** (left, middle and right of the community block;
@@ -606,7 +610,7 @@ tables.
   The community block's heading and text and the closing band's heading fall back to a default
   text when empty. The home directory carousel picks 15 organisations at random (for All and
   each category) on every refresh.
-- **Website pages** (formerly Site texts): the home page, "You can join us" cards, the Join the community page (why join,
+- **Page texts** (Website > Page texts, formerly Website pages and Site texts; one tab per page): the home page, "You can join us" cards, the Join the community page (why join,
   and the membership block; empty = a default text), the About page, the Tech Pulse page's
   introduction, the Thai page, the code of conduct and the privacy notice. The **Tech Pulse page**
   lists by itself every published post with "Tech Pulse" in its title: to add an edition, publish
@@ -707,7 +711,7 @@ event's page) is written each time, so it is only listed. Every save and reset i
 
 ## Email delivery
 
-**Emails and social media > Email delivery** shows which service sends the site's emails (Resend
+**Settings > Email delivery** shows which service sends the site's emails (Resend
 or Amazon SES, set by `EMAIL_PROVIDER` in `wrangler.jsonc`) and whether each one has its key.
 
 - **Send a test** emails any address through the service you pick, so Amazon SES can be tried

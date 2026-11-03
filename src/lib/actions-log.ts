@@ -1,5 +1,5 @@
 /**
- * Settings > Actions log: turns raw audit_log rows into plain sentences ("Checked in Anna Lee at
+ * History > Actions log: turns raw audit_log rows into plain sentences ("Checked in Anna Lee at
  * Connect #52") with a link to the thing changed, an area for the filter chips, and readable
  * before/after details. Pure functions: the page loads the names (event titles, member names...)
  * and passes them in, so tests need no database.

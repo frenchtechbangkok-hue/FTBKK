@@ -29,7 +29,7 @@ export const GET: APIRoute = async () => {
     { loc: 'events' },
     { loc: 'blog' },
     { loc: 'tech-pulse' },
-    // The guides are listed once they are online (Admin > Settings > Guide pages).
+    // The guides are listed once they are online (Admin > Website > Guide pages).
     ...['founders-guide', 'expand-to-thailand']
       .filter((loc) => linkOnline(settings, `/${loc}`))
       .map((loc) => ({ loc })),

@@ -50,7 +50,7 @@ const allSources = sourceList(
   EXTRA_SOURCES,
 );
 const thb = (n: number) => `THB ${n.toLocaleString('en-US')}`;
-// Offline guides answer 404 to the public; admins see a preview (Admin > Settings > Guide pages).
+// Offline guides answer 404 to the public; admins see a preview (Admin > Website > Guide pages).
 const settings = await getSettings();
 const mode = await guideMode(Astro, settings, '/founders-guide');
 if (mode === 'hidden') return Astro.rewrite('/404');

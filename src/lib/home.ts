@@ -13,7 +13,7 @@ export const DEFAULT_HERO = {
   alt: 'Bangkok, innovation hub of Southeast Asia',
 };
 
-/** The community collage until Website pages > Home has its own photos. */
+/** The community collage until Website > Page texts > Home has its own photos. */
 export const DEFAULT_COMMUNITY_PHOTOS = [1, 2, 3].map((i) => ({
   src: `/brand/home/community-${i}.jpg`,
   alt: '',
@@ -99,7 +99,7 @@ type PartnerRow = LogoRow & { partnerHome: boolean; partnerOrder: number };
 
 /**
  * The partners strip on Home: the partner listings ticked "Show on Home", by their order then
- * name. Until there is one, the older list (Website pages > Home, or DEFAULT_PARTNERS) with logos
+ * name. Until there is one, the older list (Website > Page texts > Home, or DEFAULT_PARTNERS) with logos
  * from the directory.
  */
 export function homePartners(

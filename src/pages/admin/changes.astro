@@ -3,7 +3,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 import { RELEASES, REPO_URL } from '../../lib/changelog';
 import { formatDate } from '../../lib/format';
 
-// Settings > Change history: every version of the site, newest first, from src/lib/changelog.ts.
+// History > Change history: every version of the site, newest first, from src/lib/changelog.ts.
 // Each merged pull request is one version. The admin edits made by people are in Actions log.
 const current = RELEASES[0]!;
 // Group by month so the long list stays easy to scan.
