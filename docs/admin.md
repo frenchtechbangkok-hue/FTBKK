@@ -84,6 +84,10 @@ The **Dashboard** greets you and says when the next event is. Then, from top to 
 ## Posts
 
 - **New post**: title, text (Markdown), then **Save**. Leave it as _Draft_ until it is ready.
+- **Preview the page ↗** (top right of the post, while it is a draft or scheduled for a later date)
+  opens the post page as visitors will see it, with a yellow _Preview_ band. It shows the last
+  saved version, so **Save** first. Only admins can open it, and search engines are told to skip
+  it. Once the post is online the link becomes **View on the site ↗**.
 - **Insert image** in the editor uploads an image and inserts it where your cursor is. Use
   **Preview** to see the result.
 - **PDFs**: **Attach PDF** in the editor, or the **PDF attachments** panel on the right, uploads the

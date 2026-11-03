@@ -4,7 +4,13 @@ import PageTabs from './PageTabs.astro';
 // The screens of one event (or one post) as tabs, the same on each of them.
 interface Props {
   kind: 'event' | 'post';
-  item: { id: number; slug: string; status: string; startsAt?: Date | null };
+  item: {
+    id: number;
+    slug: string;
+    status: string;
+    startsAt?: Date | null;
+    publishedAt?: Date | null;
+  };
   current: 'details' | 'registrations' | 'email' | 'share' | 'feedback';
 }
 const { kind, item, current } = Astro.props;
@@ -27,7 +33,10 @@ const tabs =
         { key: 'details', href: `/admin/posts/${item.id}`, label: 'Details' },
         { key: 'share', href: `/admin/social/post/${item.id}`, label: 'Share on social media' },
       ];
-const live = item.status !== 'draft';
+// A post is online once published and its date has come; before that, admins get a preview.
+const live =
+  item.status !== 'draft' &&
+  (kind === 'event' || !item.publishedAt || item.publishedAt <= new Date());
 const publicHref = kind === 'event' ? `/events/${item.slug}` : `/blog/${item.slug}`;
 ---
 
@@ -40,6 +49,16 @@ const publicHref = kind === 'event' ? `/events/${item.slug}` : `/blog/${item.slu
     {live && (
       <a href={publicHref} target="_blank" rel="noopener">
         View on the site ↗
+      </a>
+    )}
+    {kind === 'post' && !live && (
+      <a
+        href={`/admin/posts/${item.id}/preview`}
+        target="_blank"
+        rel="noopener"
+        title="Opens the post page as visitors will see it, from the last saved version. Only admins can open it."
+      >
+        Preview the page ↗
       </a>
     )}
     {kind === 'event' && <a href={`/admin/events/new?from=${item.id}`}>Duplicate</a>}
