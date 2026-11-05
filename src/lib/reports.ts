@@ -48,6 +48,7 @@ export async function loadEventStatData() {
         status: events.status,
         inviteOnly: events.inviteOnly,
         listed: events.listed,
+        noRegistration: events.noRegistration,
       })
       .from(events),
     db

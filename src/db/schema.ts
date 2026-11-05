@@ -61,6 +61,8 @@ export const events = sqliteTable(
     /** null = unlimited */
     capacity: integer('capacity'),
     registrationOpen: integer('registration_open', { mode: 'boolean' }).notNull().default(true),
+    /** Information only: nobody registers, people just come along (walk-in welcome). */
+    noRegistration: integer('no_registration', { mode: 'boolean' }).notNull().default(false),
     /** null = open as soon as the event is published. Members may start memberEarlyDays before. */
     registrationOpensAt: ts('registration_opens_at'),
     registrationClosesAt: ts('registration_closes_at'),

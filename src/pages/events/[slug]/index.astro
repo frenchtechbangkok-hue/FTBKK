@@ -244,6 +244,9 @@ const jsonLd = {
           <div class="flex flex-wrap gap-2">
             <Badge tone="accent">{event.series}</Badge>
             {event.inviteOnly && <Badge>By invitation</Badge>}
+            {event.noRegistration && upcoming && event.status !== 'cancelled' && (
+              <Badge tone="success">Walk-in welcome</Badge>
+            )}
             {event.status === 'cancelled' && <Badge tone="danger">Cancelled</Badge>}
             {!upcoming && <Badge>Past event</Badge>}
           </div>

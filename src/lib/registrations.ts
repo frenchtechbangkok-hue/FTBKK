@@ -109,6 +109,7 @@ type EventRules = Pick<
   | 'startsAt'
   | 'capacity'
   | 'registrationOpen'
+  | 'noRegistration'
   | 'registrationOpensAt'
   | 'registrationClosesAt'
   | 'memberEarlyDays'
@@ -119,7 +120,7 @@ export interface RegistrationState {
   /** Can this person register (or join the waitlist) right now? */
   open: boolean;
   /** Why not, in words for the page. */
-  reason?: 'closed' | 'not_yet' | 'ended';
+  reason?: 'closed' | 'not_yet' | 'ended' | 'none';
   /** When the public opens, if it is not open yet. */
   opensAt?: Date;
   /** Seats this person can take; null = unlimited. */
@@ -148,6 +149,8 @@ export function registrationState(
   const spotsLeft = capacity === null ? null : Math.max(0, capacity - taken);
   const base = { capacity, spotsLeft, full: spotsLeft === 0 };
 
+  // Information only: nobody registers, people just come along.
+  if (e.noRegistration) return { ...base, open: false, reason: 'none' };
   if (e.status !== 'published' || !e.registrationOpen)
     return { ...base, open: false, reason: 'closed' };
   if (now >= closesAt) return { ...base, open: false, reason: 'ended' };

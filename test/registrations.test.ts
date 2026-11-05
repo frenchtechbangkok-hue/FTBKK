@@ -17,6 +17,7 @@ const event = (over: Partial<Parameters<typeof registrationState>[0]> = {}) => (
   startsAt: new Date(now.getTime() + 10 * DAY),
   capacity: 50 as number | null,
   registrationOpen: true,
+  noRegistration: false,
   registrationOpensAt: null as Date | null,
   registrationClosesAt: null as Date | null,
   memberEarlyDays: 0,
@@ -52,6 +53,11 @@ describe('registrationState', () => {
     expect(registrationState(event({ status: 'draft' }), 0, now).reason).toBe('closed');
     expect(registrationState(event({ status: 'cancelled' }), 0, now).reason).toBe('closed');
     expect(registrationState(event({ registrationOpen: false }), 0, now).reason).toBe('closed');
+    // No registration needed wins over an open registration: nobody can register.
+    expect(registrationState(event({ noRegistration: true }), 0, now)).toMatchObject({
+      open: false,
+      reason: 'none',
+    });
     expect(
       registrationState(event({ registrationClosesAt: new Date(now.getTime() - 1) }), 0, now)
         .reason,

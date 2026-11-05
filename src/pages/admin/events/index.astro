@@ -164,6 +164,7 @@ const sections = [
                       </Badge>
                       {e.inviteOnly && <Badge tone="accent">private</Badge>}
                       {!e.listed && <Badge>unlisted</Badge>}
+                      {e.noRegistration && <Badge>no registration</Badge>}
                     </td>
                   </tr>
                 );

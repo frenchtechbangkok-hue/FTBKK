@@ -81,6 +81,11 @@ describe('social post texts', () => {
     expect(eventReminderText(event, url)).toBe(
       `Tomorrow: French Tech Connect #53\n18:30, True Digital Park\n\nNot registered yet? ${url}`,
     );
+    const walkIn = { ...event, noRegistration: true };
+    expect(eventLaunchText(walkIn, url)).toMatch(
+      /No registration needed, just come along\. Details: https:\/\/x\.test\/events\/c53$/,
+    );
+    expect(eventReminderText(walkIn, url)).toMatch(/Walk-ins welcome: https:\/\/x\.test/);
     expect(postLaunchText({ title: 'T', excerpt: null }, url)).toBe(
       `New on our blog: T\n\nRead it: ${url}`,
     );
