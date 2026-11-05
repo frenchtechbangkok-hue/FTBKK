@@ -447,6 +447,10 @@ export function describeAction(row: LogRow, names: LogNames = emptyNames()): Des
           return P(
             `Switched email sending to ${str(a.provider) === 'ses' ? 'Amazon SES' : 'Resend'}`,
           );
+        if (action === 'cloudflare-plan')
+          return P(
+            `Set the Cloudflare plan to ${str(a.plan) === 'paid' ? 'Workers Paid' : 'Workers Free'}`,
+          );
         if (action === 'test-email')
           return P(`Sent a test email to ${str(a.to)}`, a.ok === false ? ' (it failed)' : '');
         if (action === 'test-notify')

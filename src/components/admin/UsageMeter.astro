@@ -1,0 +1,44 @@
+---
+import { usageLevel } from '../../lib/cloudflare-usage';
+
+// One usage bar against a limit (Reports > Cloudflare usage): navy within the limit, amber from
+// 80%, red at or over it.
+interface Props {
+  label: string;
+  used: number;
+  limit: number;
+  /** How to print the figures ("2.4M", "12 MB"). */
+  format: (n: number) => string;
+  note?: string | undefined;
+}
+const { label, used, limit, format, note } = Astro.props;
+const lv = usageLevel(used, limit);
+const bar = { ok: 'bg-navy', warning: 'bg-warning', danger: 'bg-danger' };
+const tone = { ok: 'text-muted', warning: 'text-warning', danger: 'text-danger' };
+const share = limit > 0 ? Math.min(1, used / limit) : 0;
+const percent = limit > 0 ? Math.round((used / limit) * 100) : 0;
+---
+
+<div>
+  <p class="flex flex-wrap items-baseline justify-between gap-x-2 text-sm">
+    <span class="font-semibold text-navy">{label}</span>
+    <span>
+      <strong class="text-lg text-navy">{format(used)}</strong>
+      <span class="text-muted"> of {format(limit)}</span>
+    </span>
+  </p>
+  <div
+    class="mt-1.5 h-2.5 overflow-hidden rounded-full bg-surface"
+    role="meter"
+    aria-label={label}
+    aria-valuemin={0}
+    aria-valuemax={limit}
+    aria-valuenow={Math.min(used, limit)}
+    aria-valuetext={`${format(used)} of ${format(limit)} (${percent}%)`}
+  >
+    <span class={`block h-full rounded-full ${bar[lv]}`} style={`width:${share * 100}%`}></span>
+  </div>
+  <p class={`mt-1 text-xs ${tone[lv]}`}>
+    {percent}% {note && `· ${note}`}
+  </p>
+</div>

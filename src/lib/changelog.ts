@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.110',
+    date: '2026-11-05',
+    pr: 125,
+    title: 'Cloudflare usage report',
+    summary:
+      'Reports has a new Cloudflare usage tab showing how much of the Cloudflare plan the website uses (page requests, computing time, database and file storage), with bars that turn orange near a limit and red over it; pick Workers Free or Workers Paid on the page and the limits follow.',
+  },
+  {
     version: '1.109',
     date: '2026-11-05',
     pr: 124,

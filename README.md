@@ -38,7 +38,7 @@ are no roles. The menu:
 | **Ecosystem**               | Listings to review, all listings, partners, renewals                                                            |
 | **Website**                 | Blog posts, files, page texts, board and speakers, guide pages                                                  |
 | **Emails and social media** | Email the community, scheduled social media posts (with how to connect LinkedIn and Facebook), automatic emails |
-| **Reports**                 | Events and attendance, membership, website traffic (Cloudflare), emails sent                                    |
+| **Reports**                 | Events and attendance, membership, website traffic (Cloudflare), emails sent, Cloudflare usage vs plan          |
 | **Settings**                | General, membership switches, event covers, social links, email delivery                                        |
 | **History**                 | Actions log (who did what in the admin), Change history (each version of the site)                              |
 

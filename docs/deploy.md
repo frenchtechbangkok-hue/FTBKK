@@ -304,6 +304,12 @@ Admin > Reports > Website traffic reads Cloudflare's analytics with an API token
 
 When the domain moves, change `SITE_URL` as planned: the report follows the new host.
 
+Admin > Reports > **Cloudflare usage** uses the same token: Worker, D1 and R2 usage all come from
+the GraphQL Analytics API, which Account Analytics: Read covers. If a card says it could not be
+loaded with an authorization error, edit the token (My Profile > API Tokens > Edit) and add
+**Account > D1 > Read** and/or **Account > Workers R2 Storage > Read**; nothing else changes.
+When the account moves to Workers Paid, pick it at the top of that page so the limits follow.
+
 ## Backups and restore
 
 - D1 keeps 30 days of history: `npx wrangler d1 time-travel restore ftbkk --timestamp=<ISO date>`

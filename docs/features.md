@@ -156,6 +156,24 @@ screen by screen for the team.
   site `CF_WEB_ANALYTICS_SITE_TAG`, or the one whose beacon token is in Settings when the token may
   list sites); long periods are split into the spans Cloudflare allows and clamped to what it keeps (about six
   months of visits, three of Worker requests). Each part loads on its own and shows its error.
+- **Cloudflare usage** (`/admin/reports/cloudflare`, `src/lib/cloudflare-usage.ts`): the fifth
+  Reports tab compares what the Cloudflare account uses with its plan's limits, with the same token
+  as the traffic report (no extra permission). The plan (Workers Free or Workers Paid) is picked on
+  the page and stored in the `cloudflarePlan` setting (no migration; the change goes in the
+  Actions log). One card per limit, each with bars that turn amber at 80% and red at the limit:
+  Worker requests (Free: 100,000 a day, shown for today and the busiest of the last 30 days; Paid:
+  10 million a month, this month and the month-end projection), CPU time (Free: the slowest 1% of
+  requests against 10 ms per request, and requests stopped for exceeding it; Paid: 30 million ms a
+  month), D1 rows read (5 million a day / 25 billion a month) and written (100,000 a day / 50
+  million a month), D1 storage (5 GB in all, 500 MB / 10 GB per database), R2 storage (10 GB) and
+  class A / class B operations (1 and 10 million a month). Daily charts of requests and rows read
+  and written with the daily limit dashed on Free. A plan line says whether everything is within
+  the plan, and gives the estimated bill on Paid ($5 plus overage at the list prices in
+  `PLAN_LIMITS`) or, on Free, what Paid would cost for the same usage. Limits are account-wide
+  and counted in UTC days and months, as Cloudflare does; queries read
+  `workersInvocationsAdaptive`, `d1AnalyticsAdaptiveGroups`, `d1StorageAdaptiveGroups`,
+  `r2OperationsAdaptiveGroups` and `r2StorageAdaptiveGroups`, and each product shows its own
+  error if it fails.
 - **Email report** (`/admin/reports/emails`, `src/lib/email-metrics.ts`): the fourth Reports
   tab shows what happened to the emails the site sent, with the same period picker: emails sent,
   delivered, opened and clicked (rates against delivered), bounced and marked as spam, each with

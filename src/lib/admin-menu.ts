@@ -78,6 +78,7 @@ export const MENU: NavGroup[] = [
       { href: '/admin/reports/members', label: 'Membership' },
       { href: '/admin/reports/traffic', label: 'Website traffic' },
       { href: '/admin/reports/emails', label: 'Emails' },
+      { href: '/admin/reports/cloudflare', label: 'Cloudflare usage' },
     ],
   },
   {
