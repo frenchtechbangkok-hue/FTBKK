@@ -134,6 +134,13 @@ uses any more.
     next to the status.
 - **Duplicate** (on an event page) copies everything except the dates, handy for the next French
   Tech Connect.
+- **Do people register?** has three choices:
+  - **Registration open**: people register on the event page.
+  - **Registration closed**: the page says "Registration is closed for this event."
+  - **No registration needed**: for an event that is information only or walk-in. The page shows
+    "No registration needed: just come along" and a "Walk-in welcome" label, with no form. The
+    capacity and registration dates are hidden, since they don't apply. The events list shows "no
+    registration" next to the status.
 - **Capacity** empty means unlimited. When full, people join the waitlist.
 - **Cancel the event** keeps it on the site with a "Cancelled" label and closes registration.
 - Below the event form, **Speakers**, **Sponsors and hosts** and **Recap** each have their own

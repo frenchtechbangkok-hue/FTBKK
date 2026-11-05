@@ -30,6 +30,11 @@ screen by screen for the team.
   old one); everyone else sees "Registration is by invitation only". Members-only registration
   still applies on top. Any event can also be unlisted: its page works by direct link but it stays
   off the events page, home page, sitemap and welcome email, and gets `noindex` (migration 0038).
+- **Events with no registration**: an event can be information only ("No registration needed" in
+  the admin, `events.no_registration`, migration 0042). Its page shows a "Walk-in welcome" label and
+  "No registration needed: just come along" instead of the form or "Registration is closed", and
+  nobody can register (`registrationState` returns `reason: 'none'`). The social post texts say
+  "just come along" instead of "Register".
 - **About**: the community, the board (each card shows the member's French Tech responsibility,
   such as President or Commission lead, instead of their company), "Speakers we've hosted" (everyone who spoke
   at a past event, most recent first), institutional partners, "You can join us" cards and the

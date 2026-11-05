@@ -11,8 +11,8 @@ https://ft-bkk-site.edelattre.workers.dev until the domain moves over.
 - **Home**: hero, about us, key numbers, next events, a carousel of the ecosystem directory, latest
   posts, ways to join, partners.
 - **Events**: upcoming and past events with built-in registration (capacity, waitlist, guests,
-  members-only and private invite-link events), QR tickets, reminders, feedback emails, speakers,
-  sponsors and recaps.
+  members-only and private invite-link events), or no registration at all for walk-in events; QR
+  tickets, reminders, feedback emails, speakers, sponsors and recaps.
 - **Ecosystem**: a directory of French companies, startups and partners in Thailand. Owners manage
   their listing through email links, no accounts.
 - **Blog** with RSS, and **Resources**: Thailand Tech Pulse (PDFs for members while membership is

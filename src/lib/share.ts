@@ -90,21 +90,26 @@ const join = (...parts: (string | null | undefined | false)[]) =>
 
 /** The announcement: what, when, where, and the link. */
 export function eventLaunchText(
-  e: Pick<Event, 'title' | 'startsAt' | 'venue' | 'summary'>,
+  e: Pick<Event, 'title' | 'startsAt' | 'venue' | 'summary'> & { noRegistration?: boolean },
   url: string,
 ) {
   return join(
     `${e.title}\n${eventDateLine(e)}${e.venue ? `, ${e.venue}` : ''}`,
     e.summary,
-    `Register: ${url}`,
+    e.noRegistration
+      ? `No registration needed, just come along. Details: ${url}`
+      : `Register: ${url}`,
   );
 }
 
 /** The day-before reminder. */
-export function eventReminderText(e: Pick<Event, 'title' | 'startsAt' | 'venue'>, url: string) {
+export function eventReminderText(
+  e: Pick<Event, 'title' | 'startsAt' | 'venue'> & { noRegistration?: boolean },
+  url: string,
+) {
   return join(
     `Tomorrow: ${e.title}\n${formatTime(e.startsAt)}${e.venue ? `, ${e.venue}` : ''}`,
-    `Not registered yet? ${url}`,
+    e.noRegistration ? `Walk-ins welcome: ${url}` : `Not registered yet? ${url}`,
   );
 }
 

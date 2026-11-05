@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.109',
+    date: '2026-11-05',
+    pr: 124,
+    title: 'Events with no registration',
+    summary:
+      'An event can now be set to "No registration needed": its page says to just come along (walk-ins welcome) instead of showing a form or "Registration is closed".',
+  },
+  {
     version: '1.108',
     date: '2026-11-03',
     pr: 123,

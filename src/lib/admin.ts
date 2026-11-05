@@ -133,7 +133,8 @@ export const EventSchema = z
     address: optionalText(1000),
     mapUrl: optionalUrl(4000),
     capacity: optionalInt,
-    registrationOpen: z.boolean().optional().default(false),
+    /** open = the form, closed = "Registration is closed", none = no registration, just come along. */
+    registration: z.enum(['open', 'closed', 'none']).default('closed'),
     registrationOpensAt: optionalLocalDate,
     registrationClosesAt: optionalLocalDate,
     memberEarlyDays: optionalInt.transform((v) => v ?? 0),
@@ -145,7 +146,12 @@ export const EventSchema = z
   .refine((e) => !e.endsAt || e.endsAt > e.startsAt, {
     path: ['endsAt'],
     message: 'The end must be after the start.',
-  });
+  })
+  .transform(({ registration, ...e }) => ({
+    ...e,
+    registrationOpen: registration === 'open',
+    noRegistration: registration === 'none',
+  }));
 
 /** Slug unique within a table (posts or events), ignoring the row being edited. */
 export async function uniqueContentSlug(

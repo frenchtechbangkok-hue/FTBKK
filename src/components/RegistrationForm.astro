@@ -46,7 +46,9 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
 ---
 
 <div id="register" class="scroll-mt-24 rounded-card border border-line p-6">
-  <h2 class="text-xl">Registration</h2>
+  <h2 class="text-xl">
+    {state.reason === 'none' && !result ? 'No registration needed' : 'Registration'}
+  </h2>
   {result ? (
     result.status === 'invited' ? (
       <Alert tone="success" class="mt-4">
@@ -76,6 +78,10 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
         confirmation with a calendar invite is on its way to {result.email}.
       </Alert>
     )
+  ) : state.reason === 'none' ? (
+    <p class="mt-2 text-muted">
+      Just come along: walk-ins are welcome. Add it to your calendar so you don't miss it.
+    </p>
   ) : !state.open ? (
     <Alert class="mt-4">
       {state.reason === 'not_yet' && state.opensAt

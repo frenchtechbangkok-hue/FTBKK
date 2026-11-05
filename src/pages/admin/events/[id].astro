@@ -83,6 +83,7 @@ const asValues = (e: Event): Record<string, unknown> => ({
   endsAt: toLocalInput(e.endsAt),
   registrationOpensAt: toLocalInput(e.registrationOpensAt),
   registrationClosesAt: toLocalInput(e.registrationClosesAt),
+  registration: e.noRegistration ? 'none' : e.registrationOpen ? 'open' : 'closed',
 });
 
 // "Duplicate" opens a new event prefilled from another one (dates left empty).
@@ -156,7 +157,7 @@ let values: Record<string, unknown> = event
         registrationClosesAt: '',
         status: 'draft',
       }
-    : { status: 'draft', series: 'French Tech Connect', registrationOpen: true, listed: true };
+    : { status: 'draft', series: 'French Tech Connect', registration: 'open', listed: true };
 
 // Only the recap form can carry this much (other uploads are 5 MB at most). Refuse it before
 // buffering the body, which could exceed the Worker's memory.
@@ -540,6 +541,19 @@ const KINDS = [
   { value: 'select', label: SELECT },
   { value: 'other', label: 'Other' },
 ];
+const REGISTRATION_CHOICES = [
+  { value: 'open', label: 'Registration open', hint: 'People register on the event page.' },
+  {
+    value: 'closed',
+    label: 'Registration closed',
+    hint: 'The page says "Registration is closed for this event."',
+  },
+  {
+    value: 'none',
+    label: 'No registration needed',
+    hint: 'Information only: the page says to just come along (walk-in welcome), with no form.',
+  },
+];
 // The share image redraws itself in the browser when the title, date, venue or cover changed.
 const share = event ? await eventShareItem(event, settings.eventCovers) : null;
 const inviteLink =
@@ -692,61 +706,75 @@ const inviteLink =
         </div>
       </div>
 
-      <div class="admin-panel grid gap-4">
+      <div class="registration-panel admin-panel grid gap-4">
         <h2 class="text-lg">Registration</h2>
-        <FormField
-          name="registrationOpen"
-          label="Registration open"
-          type="checkbox"
-          checked={!!values.registrationOpen}
-        />
-        <FormField
-          name="capacity"
-          label="Capacity"
-          type="number"
-          value={str('capacity')}
-          error={errors.capacity}
-          hint="Empty = unlimited. When full, people join the waitlist."
-        />
-        <FormField
-          name="registrationOpensAt"
-          label="Registration opens"
-          type="datetime-local"
-          value={str('registrationOpensAt')}
-          hint="Empty = as soon as the event is published."
-        />
-        <FormField
-          name="registrationClosesAt"
-          label="Registration closes"
-          type="datetime-local"
-          value={str('registrationClosesAt')}
-          hint="Empty = when the event starts."
-        />
-        {settings.memberPriority ? (
-          <>
-            <FormField
-              name="memberEarlyDays"
-              label="Member early access (days)"
-              type="number"
-              value={str('memberEarlyDays')}
-            />
-            <FormField
-              name="memberReservedSeats"
-              label="Seats reserved for members"
-              type="number"
-              value={str('memberReservedSeats')}
-            />
-          </>
-        ) : (
-          <>
-            <input type="hidden" name="memberEarlyDays" value={str('memberEarlyDays') || '0'} />
-            <input
-              type="hidden"
-              name="memberReservedSeats"
-              value={str('memberReservedSeats') || '0'}
-            />
-          </>
-        )}
+        <fieldset class="grid gap-2">
+          <legend class="text-sm font-semibold text-ink">Do people register?</legend>
+          {REGISTRATION_CHOICES.map((c) => (
+            <label class="flex items-start gap-2">
+              <input
+                type="radio"
+                name="registration"
+                value={c.value}
+                checked={(str('registration') || 'closed') === c.value}
+                class="mt-1 size-4 shrink-0 accent-brand"
+              />
+              <span>
+                {c.label}
+                <span class="block text-sm text-muted">{c.hint}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        <div data-registration-details class="grid gap-4">
+          <FormField
+            name="capacity"
+            label="Capacity"
+            type="number"
+            value={str('capacity')}
+            error={errors.capacity}
+            hint="Empty = unlimited. When full, people join the waitlist."
+          />
+          <FormField
+            name="registrationOpensAt"
+            label="Registration opens"
+            type="datetime-local"
+            value={str('registrationOpensAt')}
+            hint="Empty = as soon as the event is published."
+          />
+          <FormField
+            name="registrationClosesAt"
+            label="Registration closes"
+            type="datetime-local"
+            value={str('registrationClosesAt')}
+            hint="Empty = when the event starts."
+          />
+          {settings.memberPriority ? (
+            <>
+              <FormField
+                name="memberEarlyDays"
+                label="Member early access (days)"
+                type="number"
+                value={str('memberEarlyDays')}
+              />
+              <FormField
+                name="memberReservedSeats"
+                label="Seats reserved for members"
+                type="number"
+                value={str('memberReservedSeats')}
+              />
+            </>
+          ) : (
+            <>
+              <input type="hidden" name="memberEarlyDays" value={str('memberEarlyDays') || '0'} />
+              <input
+                type="hidden"
+                name="memberReservedSeats"
+                value={str('memberReservedSeats') || '0'}
+              />
+            </>
+          )}
+        </div>
       </div>
 
       <div id="access" class="admin-panel grid gap-4">
@@ -1432,3 +1460,11 @@ const inviteLink =
       });
     });
 </script>
+
+<style>
+  /* No registration needed: capacity and registration dates don't apply, so they step aside. */
+  .registration-panel:has(input[name='registration'][value='none']:checked)
+    [data-registration-details] {
+    display: none;
+  }
+</style>
