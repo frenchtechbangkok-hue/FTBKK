@@ -70,6 +70,8 @@ export interface Settings {
   emailProvider: '' | 'resend' | 'ses';
   /** Contacts > Possible duplicates: pairs marked "not the same person" (see pairKey). */
   notDuplicates: string[];
+  /** Reports > Cloudflare usage: the Workers plan the account is on, for its limits. */
+  cloudflarePlan: 'free' | 'paid';
 }
 
 /** Fallbacks used when a key has never been saved (fresh database). Real copy is seeded by the import. */
@@ -113,6 +115,7 @@ export const defaultSettings: Settings = {
   notDuplicates: [],
   partnerGroups: [],
   emailProvider: '',
+  cloudflarePlan: 'free',
 };
 
 export type Card = { title: string; text: string; link?: string };

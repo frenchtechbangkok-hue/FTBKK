@@ -24,6 +24,7 @@ import { parsePeriod, periodBuckets } from './report-period';
 import { getSettings } from './settings';
 import { siteOrigin } from './site';
 import { loadTraffic, oldestTraffic, type TrafficReport } from './traffic';
+import { loadCloudflareUsage, type CloudflareUsage } from './cloudflare-usage';
 
 // Loads what the Reports tabs (and their CSV exports) need, with the filters in the URL.
 
@@ -241,6 +242,25 @@ export async function loadTrafficReport(url: URL, now = new Date()) {
     }
   }
   return { period, beacon, connected: !!token, report, error };
+}
+
+/**
+ * Reports > Cloudflare usage: the account's usage this month and over the last 30 days, read from
+ * Cloudflare's API with the traffic report's token, and the plan chosen on the page.
+ */
+export async function loadCloudflareUsageReport(now = new Date()) {
+  const settings = await getSettings();
+  const token = env.CF_ANALYTICS_TOKEN ?? '';
+  let usage: CloudflareUsage | null = null;
+  let error: string | null = null;
+  if (token) {
+    try {
+      usage = await loadCloudflareUsage(trafficConfig(token, settings.analyticsToken), now);
+    } catch (e) {
+      error = (e as Error).message;
+    }
+  }
+  return { plan: settings.cloudflarePlan, connected: !!token, usage, error };
 }
 
 /**

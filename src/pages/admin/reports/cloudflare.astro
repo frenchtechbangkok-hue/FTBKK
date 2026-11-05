@@ -1,0 +1,405 @@
+---
+import { z } from 'zod';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import LineChart from '../../../components/admin/LineChart.astro';
+import ReportTabs from '../../../components/admin/ReportTabs.astro';
+import UsageMeter from '../../../components/admin/UsageMeter.astro';
+import Alert from '../../../components/Alert.astro';
+import Button from '../../../components/Button.astro';
+import { loadCloudflareUsageReport } from '../../../lib/reports';
+import { audit } from '../../../lib/orgs';
+import { getSettings, saveSettings } from '../../../lib/settings';
+import {
+  CPU_PER_REQUEST_MS,
+  D1_DATABASE_MAX,
+  estimateMonthlyCost,
+  formatBytes,
+  formatCount,
+  METRIC_HINTS,
+  METRIC_LABELS,
+  monthlyProjection,
+  monthPace,
+  PLAN_LIMITS,
+  PLAN_NAMES,
+  usageLevel,
+  type CfPlan,
+  type DailySummary,
+  type MetricKey,
+} from '../../../lib/cloudflare-usage';
+
+// Reports > Cloudflare usage: how much of the Cloudflare plan the site uses (Worker requests and
+// CPU, D1 database, R2 files), read from Cloudflare's API at each visit (src/lib/cloudflare-usage.ts).
+// The plan is chosen here, so the limits follow a switch to Workers Paid.
+const actor = Astro.locals.adminEmail ?? 'admin';
+let notice = '';
+if (Astro.request.method === 'POST') {
+  const form = Object.fromEntries(await Astro.request.formData());
+  const parsed = z.object({ plan: z.enum(['free', 'paid']) }).safeParse(form);
+  if (parsed.success) {
+    const before = (await getSettings()).cloudflarePlan;
+    if (parsed.data.plan !== before) {
+      await saveSettings({ cloudflarePlan: parsed.data.plan });
+      await audit(actor, 'cloudflare-plan', 'settings', null, { plan: before }, parsed.data);
+    }
+    notice = `Limits now follow ${PLAN_NAMES[parsed.data.plan]}.`;
+  }
+}
+
+const now = new Date();
+const { plan, connected, usage: u, error } = await loadCloudflareUsageReport(now);
+const limits = PLAN_LIMITS[plan];
+const when = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const dayLabel = (d: string) => when.format(new Date(`${d}T00:00:00Z`));
+const resetsAt = new Intl.DateTimeFormat('en-GB', {
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'Asia/Bangkok',
+}).format(new Date(Date.UTC(2026, 0, 1)));
+const usd = (n: number) =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 3,
+  }).format(n);
+
+interface Meter {
+  label: string;
+  used: number;
+  limit: number;
+  note?: string;
+}
+interface Card {
+  key: MetricKey;
+  meters: Meter[];
+  lines: string[];
+  format: (n: number) => string;
+}
+
+// Meters for a figure counted per day or per month, as the plan counts it.
+function counted(key: MetricKey, s: DailySummary, format = formatCount): Card {
+  const l = limits[key];
+  const meters: Meter[] =
+    l.window === 'day'
+      ? [
+          { label: 'Today', used: s.today, limit: l.included, note: `resets ${resetsAt} Bangkok` },
+          {
+            label: s.peak ? `Busiest day (${dayLabel(s.peak.date)})` : 'Busiest day',
+            used: s.peak?.value ?? 0,
+            limit: l.included,
+            note: 'last 30 days',
+          },
+        ]
+      : [
+          { label: 'This month', used: s.month, limit: l.included },
+          {
+            label: 'At this pace by month end',
+            used: s.projected,
+            limit: l.included,
+            note: 'estimate',
+          },
+        ];
+  const lines =
+    l.window === 'day'
+      ? [`This month so far: ${format(s.month)}.`]
+      : [
+          `Busiest day of the last 30 days: ${s.peak ? `${format(s.peak.value)} (${dayLabel(s.peak.date)})` : 'none'}.`,
+        ];
+  return { key, meters, lines, format };
+}
+
+const cards: Card[] = [];
+const errors: { title: string; message: string }[] = [];
+const w = u?.workers.data;
+const cpu = u?.cpu.data;
+const d1 = u?.d1.data;
+const r2 = u?.r2.data;
+if (u) {
+  if (w) {
+    const c = counted('requests', w.requests);
+    if (w.scripts.length > 1)
+      c.lines.push(
+        `This month by Worker: ${w.scripts.map(([s, n]) => `${s} ${formatCount(n)}`).join(', ')}.`,
+      );
+    if (w.errors)
+      c.lines.push(`${formatCount(w.errors)} requests ended in an error in the last 30 days.`);
+    cards.push(c);
+  } else errors.push({ title: METRIC_LABELS.requests, message: u.workers.error ?? '' });
+
+  if (cpu) {
+    const ms = (n: number) => `${formatCount(n)} ms`;
+    const perRequest = CPU_PER_REQUEST_MS[plan];
+    const slow: Meter[] =
+      cpu.p99Max !== null
+        ? [
+            {
+              label: 'Slowest 1% of requests',
+              used: cpu.p99Max,
+              limit: perRequest,
+              note: 'worst day, last 30 days',
+            },
+          ]
+        : [];
+    const fmtMs = (n: number) => `${n < 10 ? n.toFixed(1) : formatCount(n)} ms`;
+    if (plan === 'free')
+      cards.push({
+        key: 'cpu',
+        meters: slow,
+        format: fmtMs,
+        lines: [
+          `On Workers Free each request may use ${perRequest} ms of CPU; a request over it fails.`,
+          cpu.p50 !== null ? `A typical request uses ${fmtMs(cpu.p50)}.` : '',
+          w?.exceeded
+            ? `${formatCount(w.exceeded)} requests were stopped for using too much CPU or memory in the last 30 days.`
+            : 'No request was stopped for using too much CPU in the last 30 days.',
+        ].filter(Boolean),
+      });
+    else {
+      const c = counted('cpu', cpu.ms, ms);
+      c.lines.push(cpu.p50 !== null ? `A typical request uses ${fmtMs(cpu.p50)}.` : '');
+      c.lines = c.lines.filter(Boolean);
+      cards.push(c);
+    }
+  } else errors.push({ title: METRIC_LABELS.cpu, message: u.cpu.error ?? '' });
+
+  if (d1) {
+    const read = counted('d1Read', d1.read);
+    read.lines.push(`${formatCount(d1.queries)} queries this month.`);
+    cards.push(read, counted('d1Written', d1.written));
+    const biggest = d1.databases[0];
+    cards.push({
+      key: 'd1Storage',
+      format: formatBytes,
+      meters: [
+        { label: 'All databases', used: d1.storage, limit: limits.d1Storage.included },
+        ...(biggest
+          ? [
+              {
+                label: 'Largest database',
+                used: biggest.bytes,
+                limit: D1_DATABASE_MAX[plan],
+                note: 'limit per database',
+              },
+            ]
+          : []),
+      ],
+      lines: [
+        `${d1.databases.length} ${d1.databases.length === 1 ? 'database' : 'databases'} on the account.`,
+      ],
+    });
+  } else errors.push({ title: 'Database (D1)', message: u.d1.error ?? '' });
+
+  if (r2) {
+    cards.push({
+      key: 'r2Storage',
+      format: formatBytes,
+      meters: [{ label: 'Stored now', used: r2.storage, limit: limits.r2Storage.included }],
+      lines: [
+        `${formatCount(r2.objects)} files${r2.buckets.length > 1 ? `: ${r2.buckets.map((b) => `${b.name} ${formatBytes(b.bytes)}`).join(', ')}` : ''}.`,
+      ],
+    });
+    const ops = (key: 'r2ClassA' | 'r2ClassB', used: number): Card => ({
+      key,
+      format: formatCount,
+      meters: [
+        { label: 'This month', used, limit: limits[key].included },
+        {
+          label: 'At this pace by month end',
+          used: used * monthPace(now),
+          limit: limits[key].included,
+          note: 'estimate',
+        },
+      ],
+      lines: [],
+    });
+    cards.push(ops('r2ClassA', r2.classA), ops('r2ClassB', r2.classB));
+  } else errors.push({ title: 'File storage (R2)', message: u.r2.error ?? '' });
+}
+
+const worst = cards
+  .flatMap((c) => c.meters.map((m) => ({ c, m, lv: usageLevel(m.used, m.limit) })))
+  .filter((x) => x.lv !== 'ok');
+const projection = u ? monthlyProjection(u, now) : {};
+const costHere = estimateMonthlyCost(plan, projection);
+const costPaid = estimateMonthlyCost('paid', projection);
+const dash = u ? `https://dash.cloudflare.com/${u.accountId}/workers-and-pages` : null;
+const billing = u ? `https://dash.cloudflare.com/${u.accountId}/billing/subscriptions` : null;
+
+// Daily charts, with the plan's daily limit as a dashed line on Workers Free.
+const charts = [
+  w && { title: 'Worker requests per day', key: 'requests' as const, s: w.requests },
+  d1 && { title: 'Database rows read per day', key: 'd1Read' as const, s: d1.read },
+  d1 && { title: 'Database rows written per day', key: 'd1Written' as const, s: d1.written },
+].filter(
+  (c): c is { title: string; key: 'requests' | 'd1Read' | 'd1Written'; s: DailySummary } => !!c,
+);
+const plans: CfPlan[] = ['free', 'paid'];
+---
+
+<AdminLayout title="Reports: Cloudflare usage">
+  <ReportTabs />
+  <p class="mb-6 max-w-3xl text-sm text-muted">
+    How much of the Cloudflare plan the website uses: the Worker that answers every page, the
+    database and the file storage. Cloudflare counts days and months in UTC time (a new day starts
+    at 7:00 in Bangkok) and the limits are for the whole Cloudflare account. Figures can lag by a
+    few minutes.
+    {dash && (
+      <>
+        {' '}
+        Cloudflare's own figures: <a href={dash}>Workers &amp; Pages</a> and{' '}
+        <a href={billing!}>Billing</a>.
+      </>
+    )}
+  </p>
+
+  {notice && (
+    <Alert tone="success" class="mb-6">
+      {notice}
+    </Alert>
+  )}
+
+  <section class="admin-panel mb-6" aria-labelledby="plan-title">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div class="max-w-2xl">
+        <h2 id="plan-title" class="text-lg">
+          Plan: {PLAN_NAMES[plan]}
+        </h2>
+        {u && (
+          <p
+            class={`mt-1 text-sm ${worst.some((x) => x.lv === 'danger') ? 'text-danger' : worst.length ? 'text-warning' : 'text-success'}`}
+          >
+            {worst.length === 0
+              ? 'Everything is well within the plan.'
+              : worst.some((x) => x.lv === 'danger')
+                ? `Over the plan: ${[...new Set(worst.filter((x) => x.lv === 'danger').map((x) => METRIC_LABELS[x.c.key]))].join(', ')}.`
+                : `Close to the plan's limit (80% or more): ${[...new Set(worst.map((x) => METRIC_LABELS[x.c.key]))].join(', ')}.`}
+          </p>
+        )}
+        {u && (
+          <p class="mt-1 text-sm">
+            {plan === 'paid'
+              ? `Estimated bill this month: ${usd(costHere.total)} (${costHere.lines.length ? `$5 plan + ${costHere.lines.map((l) => `${METRIC_LABELS[l.key].toLowerCase()} ${usd(l.usd)}`).join(', ')}` : 'the $5 plan, nothing extra'}).`
+              : `Workers Free costs nothing; Cloudflare refuses what goes over a limit until it resets. ${costHere.total > 0 ? `R2 beyond its free allowance would cost about ${usd(costHere.total)} this month.` : ''} On Workers Paid, this usage would cost about ${usd(costPaid.total)} a month.`}
+          </p>
+        )}
+      </div>
+      <form method="post" class="flex flex-wrap items-end gap-3">
+        <fieldset>
+          <legend class="mb-1 text-sm font-semibold">Our Cloudflare plan</legend>
+          <div class="flex flex-wrap gap-2">
+            {plans.map((p) => (
+              <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm has-checked:border-accent has-checked:bg-accent/5">
+                <input type="radio" name="plan" value={p} checked={p === plan} />
+                {PLAN_NAMES[p]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <Button type="submit" variant="secondary">
+          Save
+        </Button>
+      </form>
+    </div>
+  </section>
+
+  {!connected && (
+    <div class="admin-panel mb-6 max-w-3xl">
+      <h2 class="text-lg">Connect Cloudflare to see the figures</h2>
+      <p class="mt-1 text-sm">
+        This page uses the same API token as Website traffic (secret <code>CF_ANALYTICS_TOKEN</code>
+        , permission Account &gt; Account Analytics &gt; Read). Set it up as explained on the
+        <a href="/admin/reports/traffic">Website traffic</a> tab, then reload this page.
+      </p>
+    </div>
+  )}
+
+  {error && (
+    <Alert tone="danger" class="mb-6">
+      <h2 class="text-lg text-danger">Cloudflare didn't answer</h2>
+      <p class="mt-1 text-sm text-ink">{error}</p>
+    </Alert>
+  )}
+
+  {errors.map((e) => (
+    <Alert tone="danger" class="mb-4">
+      {e.title} could not be loaded: {e.message}
+    </Alert>
+  ))}
+
+  {cards.length > 0 && (
+    <section
+      aria-label="Usage against the plan"
+      class="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+    >
+      {cards.map((c) => (
+        <div class="admin-panel grid content-start gap-3">
+          <div>
+            <h2 class="text-lg">{METRIC_LABELS[c.key]}</h2>
+            <p class="text-xs text-muted">{METRIC_HINTS[c.key]}</p>
+          </div>
+          {c.meters.map((m) => (
+            <UsageMeter
+              label={m.label}
+              used={m.used}
+              limit={m.limit}
+              format={c.format}
+              note={m.note}
+            />
+          ))}
+          {c.lines.length > 0 && (
+            <ul class="grid gap-1 text-xs text-muted">
+              {c.lines.map((l) => (
+                <li>{l}</li>
+              ))}
+            </ul>
+          )}
+          <p class="text-xs text-muted">
+            {c.key === 'cpu' && plan === 'free'
+              ? `Workers Free: ${CPU_PER_REQUEST_MS.free} ms per request.`
+              : limits[c.key].window === 'day'
+                ? `${PLAN_NAMES[plan]}: ${c.format(limits[c.key].included)} a day.`
+                : limits[c.key].window === 'month'
+                  ? `Included: ${c.format(limits[c.key].included)} a month${limits[c.key].overage ? `, then ${usd(limits[c.key].overage!.usd)} per ${c.format(limits[c.key].overage!.per)}` : ''}.`
+                  : `Included: ${c.format(limits[c.key].included)}${limits[c.key].overage ? `, then ${usd(limits[c.key].overage!.usd)} per ${c.format(limits[c.key].overage!.per)} a month` : ''}.`}
+          </p>
+        </div>
+      ))}
+    </section>
+  )}
+
+  {charts.length > 0 && (
+    <section aria-label="Daily usage" class="mb-6 grid gap-6 lg:grid-cols-2">
+      {charts.map((c) => (
+        <LineChart
+          title={`${c.title}, last 30 days`}
+          labels={c.s.days.map((d) => dayLabel(d.date))}
+          ticks={c.s.days.map((d, i) => (i % 5 === 0 || i === 29 ? dayLabel(d.date) : ''))}
+          series={[
+            { name: METRIC_LABELS[c.key], values: c.s.days.map((d) => d.value), tone: 'navy' },
+            ...(limits[c.key].window === 'day'
+              ? [
+                  {
+                    name: 'Daily limit',
+                    values: c.s.days.map(() => limits[c.key].included),
+                    tone: 'brand' as const,
+                    dashed: true,
+                  },
+                ]
+              : []),
+          ]}
+          empty="Nothing recorded in the last 30 days."
+        />
+      ))}
+    </section>
+  )}
+
+  {u && (
+    <p class="max-w-3xl text-xs text-muted">
+      Not shown: Workers Logs (the request logs kept for debugging:{' '}
+      {plan === 'free'
+        ? '200,000 log lines a day on Workers Free'
+        : '20 million a month on Workers Paid'}
+      , about one per request), which stay well within the plan while requests do. Limits and prices
+      are Cloudflare's published ones (November 2026).
+    </p>
+  )}
+</AdminLayout>

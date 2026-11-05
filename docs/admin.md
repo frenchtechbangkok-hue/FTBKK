@@ -13,7 +13,7 @@ The menu has a group per kind of work, then the figures, the switches and the re
 | **Ecosystem**               | To review, All listings, Partners, Renewals                                                                                                                                       |
 | **Website**                 | Blog posts, PDFs and files, Page texts (Home, About, Join, Tech Pulse, Thai page, code of conduct and privacy as tabs), Board and speakers, Guide pages                           |
 | **Emails and social media** | Email the community, Social media posts (share and schedule events and posts), Automatic emails                                                                                   |
-| **Reports**                 | Events and attendance, Membership, Website traffic, Emails (tabs of the same Reports screen, for the board)                                                                       |
+| **Reports**                 | Events and attendance, Membership, Website traffic, Emails, Cloudflare usage (tabs of the same Reports screen, for the board)                                                     |
 | **Settings**                | General (site name, contact email, admin notifications, analytics), Membership (the sign-up switches), Event covers, Social links (the footer links to our pages), Email delivery |
 | **History**                 | Actions log (who did what in the admin), Change history (what changed in the website, version by version)                                                                         |
 
@@ -585,6 +585,15 @@ tables.
   complained are skipped from then on (Settings > Email delivery). The figures come
   from Resend (or Amazon SES) as each email is delivered or opened, and start on the day that
   connection was set up (docs/deploy.md); until then the tab explains what to do.
+- **Cloudflare usage**: whether the website stays within its Cloudflare plan. Pick the plan at
+  the top (Workers Free today; switch to Workers Paid when the account moves to it, and the limits
+  follow). One card per limit: Worker requests (every page, form and admin screen answered),
+  CPU time, database rows read and written, database size, stored files and file operations. Each
+  bar turns orange at 80% and red at the limit. On Workers Free the daily limits show today and the
+  busiest day of the last 30 days (Cloudflare refuses what goes over until 7:00 Bangkok time the
+  next day); on Workers Paid the monthly ones show this month and where the month will end at the
+  same pace, with the estimated bill. Charts show the last 30 days. It uses the same Cloudflare
+  connection as Website traffic.
 - **Export CSV** downloads what is shown: on Events, one line per event (or, with one event
   picked, its figures and comments); on Membership, the growth table (joined, lapsed, total) or
   the members at each event; on Website traffic, visits per week or month or the most viewed
