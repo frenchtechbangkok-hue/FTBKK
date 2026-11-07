@@ -78,7 +78,7 @@
     // Reports > Website traffic reads Cloudflare's Analytics API with the secret CF_ANALYTICS_TOKEN
     // (docs/deploy.md, "Website traffic report"). Both can stay empty: the account is the only one
     // the token reads, the site is the Web Analytics site whose token is in Settings.
-    "CF_ACCOUNT_ID": "",
+    "CF_ACCOUNT_ID": "e7a57ef939b5164fe76c7f5fc8da9d07",
     "CF_WEB_ANALYTICS_SITE_TAG": "",
   },
   "triggers": {
