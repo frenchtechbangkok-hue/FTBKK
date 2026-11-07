@@ -44,10 +44,10 @@
     "TURNSTILE_SITE_KEY": "0x4AAAAAAF3DXozO_czZrbCo",
     // Base of the links in emails. The workers.dev address until the domain moves here (phase 10),
     // since www.french-tech-bangkok.com still serves the Wix site.
-    "SITE_URL": "https://ft-bkk-site.frenchtechbangkok.workers.dev",
+    "SITE_URL": "https://www.french-tech-bangkok.com",
     // Sender, on mail.delattre.me (verified in Resend) until french-tech-bangkok.com's DNS moves to
     // us. Then switch to "La French Tech Bangkok <hello@french-tech-bangkok.com>".
-    "EMAIL_FROM": "La French Tech Bangkok <noreply@mail.delattre.me>",
+    "EMAIL_FROM": "La French Tech Bangkok <noreply@mail.french-tech-bangkok.com>",
     // Emails Resend sends per day (its free plan: 100). Email the community warns when an audience
     // is bigger than what is left today. Ignored while Amazon SES sends (no daily cap).
     "EMAIL_DAILY_LIMIT": "100",
