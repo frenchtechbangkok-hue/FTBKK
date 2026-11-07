@@ -2,7 +2,7 @@
 
 The new website of La French Tech Bangkok, replacing the Wix site at
 https://www.french-tech-bangkok.com/. It runs as one Cloudflare Worker and is live at
-https://ft-bkk-site.edelattre.workers.dev until the domain moves over.
+https://ft-bkk-site.frenchtechbangkok.workers.dev until the domain moves over.
 
 ## What the site does
 
@@ -84,7 +84,7 @@ npm run check:redirects -- <url>  # every old Wix URL must end on a 200
 ## Deploy
 
 The repo is connected to Cloudflare Workers Builds: every merge to `main` applies D1 migrations
-and uploads a new Worker version, testable at `https://dev-ft-bkk-site.edelattre.workers.dev`. It
+and uploads a new Worker version, testable at `https://dev-ft-bkk-site.frenchtechbangkok.workers.dev`. It
 goes live only when it is promoted in Cloudflare > ft-bkk-site > Deployments (rollback is there
 too). Migrations must only add tables and columns. Other branches get a preview URL. Cloudflare setup (R2, build
 settings, Access, Turnstile, email, social media, traffic report, backups, domain) is in

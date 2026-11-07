@@ -1,5 +1,7 @@
 # Copy to .dev.vars for local development. Never commit .dev.vars.
-# Cloudflare's always-pass Turnstile test secret:
+# Cloudflare's always-pass Turnstile test keys (the real site key in wrangler.jsonc only works on
+# the site's own hostnames):
+TURNSTILE_SITE_KEY=1x00000000000000000000AA
 TURNSTILE_SECRET=1x0000000000000000000000000000000AA
 # Leave empty locally: emails are logged to the console instead of sent.
 RESEND_API_KEY=

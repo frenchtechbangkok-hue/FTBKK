@@ -1,6 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "ft-bkk-site",
+  // La French Tech Bangkok's Cloudflare account (since 7 Nov 2026; before: Eric's personal one).
+  // Builds and `wrangler` on a computer logged in to several accounts always target this one.
+  "account_id": "e7a57ef939b5164fe76c7f5fc8da9d07",
   // Custom entry: Astro's fetch handler + our scheduled (cron) handler.
   "main": "./src/worker.ts",
   "compatibility_date": "2026-10-01",
@@ -31,16 +34,17 @@
     },
   ],
   "vars": {
-    // Cloudflare Zero Trust team domain(s), comma-separated: the team was renamed from delattre to
-    // ftbkk, keys come from ftbkk while tokens are still issued by delattre.
-    "ACCESS_TEAM_DOMAIN": "ftbkk.cloudflareaccess.com,delattre.cloudflareaccess.com",
+    // Cloudflare Zero Trust team domain(s), comma-separated (the French Tech account's team; add the
+    // new name here, comma-separated, before renaming the team).
+    "ACCESS_TEAM_DOMAIN": "blue-moon-6a6f.cloudflareaccess.com",
     // Audience tag of the Access application protecting /admin. Emptied locally by .dev.vars.
-    "ACCESS_AUD": "55b16ed23629446d19a82aaf7ee44d0188f91cf1fd2470504b342112a15d321f",
-    // Public Turnstile site key. This is Cloudflare's always-pass test key.
-    "TURNSTILE_SITE_KEY": "1x00000000000000000000AA",
+    "ACCESS_AUD": "0751b83324bb0e3642e7ea896ae4620a40a6c76e4c0166302aaed28f9e651e07",
+    // Public Turnstile site key (widget "FT Bangkok site" in the French Tech account); its secret is the
+    // Worker secret TURNSTILE_SECRET.
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAF3DXozO_czZrbCo",
     // Base of the links in emails. The workers.dev address until the domain moves here (phase 10),
     // since www.french-tech-bangkok.com still serves the Wix site.
-    "SITE_URL": "https://ft-bkk-site.edelattre.workers.dev",
+    "SITE_URL": "https://ft-bkk-site.frenchtechbangkok.workers.dev",
     // Sender, on mail.delattre.me (verified in Resend) until french-tech-bangkok.com's DNS moves to
     // us. Then switch to "La French Tech Bangkok <hello@french-tech-bangkok.com>".
     "EMAIL_FROM": "La French Tech Bangkok <noreply@mail.delattre.me>",

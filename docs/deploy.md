@@ -3,6 +3,12 @@
 The site is one Cloudflare Worker, `ft-bkk-site`, deployed by **Workers Builds** from GitHub.
 Everything below is done once, in the Cloudflare dashboard, by the account owner.
 
+Since 7 November 2026 everything lives in La French Tech Bangkok's own Cloudflare account
+(`account_id` in `wrangler.jsonc`, workers.dev subdomain `frenchtechbangkok`) and the code in the
+GitHub organization `frenchtechbangkok-hue`. Before that it was Eric's personal account; the move
+(D1 export/import, R2 copy, new Access and Turnstile, secrets typed again) is written up in the
+project files, `cloudflare-account-move.md`.
+
 ## 1. Image storage (R2 bucket)
 
 Before the first deploy, create the bucket by hand (wrangler does not create it if R2 has never
@@ -41,11 +47,11 @@ you want to go back: put it back as the Deploy command and every merge is live a
 **Where to test.** After each merge to `main` (about two minutes, the build shows on the commit in
 GitHub and in Worker > Deployments), the new version answers at
 
-    https://dev-ft-bkk-site.edelattre.workers.dev
+    https://dev-ft-bkk-site.frenchtechbangkok.workers.dev
 
 That address always follows the latest upload of `main`. Each version also has its own address,
-`https://<8 characters>-ft-bkk-site.edelattre.workers.dev`, shown in Deployments next to it. The
-live site, `https://ft-bkk-site.edelattre.workers.dev` (and the domain later), does not change.
+`https://<8 characters>-ft-bkk-site.frenchtechbangkok.workers.dev`, shown in Deployments next to it. The
+live site, `https://ft-bkk-site.frenchtechbangkok.workers.dev` (and the domain later), does not change.
 
 **Make it live (promote).**
 
@@ -285,7 +291,7 @@ share image, so the site must be reachable without the Access login: Access must
 Admin > Reports > Website traffic reads Cloudflare's analytics with an API token.
 
 1. Turn on visitor counting if it isn't yet: Cloudflare dashboard > Analytics & Logs > Web
-   Analytics > Add a site, enter the site's host (`ft-bkk-site.edelattre.workers.dev` today), pick
+   Analytics > Add a site, enter the site's host (`ft-bkk-site.frenchtechbangkok.workers.dev` today), pick
    the JavaScript snippet option, copy the token from the snippet (`"token": "…"`) and paste it in
    Admin > Settings > General > **Cloudflare Web Analytics token**.
 2. Create the API token: My Profile > API Tokens > Create Token > **Create Custom Token**. Name

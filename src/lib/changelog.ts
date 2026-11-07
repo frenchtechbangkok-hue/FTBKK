@@ -15,9 +15,17 @@ export interface Release {
   summary: string;
 }
 
-export const REPO_URL = 'https://github.com/eriiiic/ftbkk';
+export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
+  {
+    version: '1.111',
+    date: '2026-11-07',
+    pr: 126,
+    title: "Moved to La French Tech Bangkok's own accounts",
+    summary:
+      "The website now runs in La French Tech Bangkok's own Cloudflare account and GitHub organization instead of Eric's personal ones, with a new admin login and real anti-spam keys on the forms; the test address is now ft-bkk-site.frenchtechbangkok.workers.dev.",
+  },
   {
     version: '1.110',
     date: '2026-11-05',
