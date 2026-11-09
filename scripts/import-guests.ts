@@ -14,9 +14,11 @@
  *   --dry-run          print the SQL instead of running it
  *
  * One registration per email, dated with the Wix order date; guests checked in on Wix are marked
- * as attended (checked in at the event start time). LinkedIn URLs and "Anything we
- * should know?" answers go on the person's contact card. Re-running is safe: people already
- * registered for the event are left as they are, and contact cards only get empty fields filled.
+ * as attended (checked in at the event start time). "Anything we should know?" answers become
+ * the registration's note (shown in Registrations > What attendees told us) and also go on the
+ * person's contact card, with LinkedIn URLs. Re-running is safe: people already registered for
+ * the event are left as they are (only an empty note is filled in), and contact cards only get
+ * empty fields filled.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
@@ -60,12 +62,20 @@ for (const g of guests) {
   const status = g.checkedIn ? 'attended' : 'registered';
   const extra = ticketsAsGuests ? g.extraTickets : 0;
   sql.push(
-    `INSERT INTO registrations (event_id, name, email, company, role, photo_consent, walk_in, guests, status, token, created_at, checked_in_at, reminder_sent_at)
-     SELECT ${event}, ${q(g.name)}, ${q(g.email)}, ${q(g.company)}, ${q(g.role)}, 0, 0, ${extra}, '${status}', ${q(token())}, ${g.orderedAt}, ${g.checkedIn ? `(SELECT starts_at FROM events WHERE slug = ${q(slug)})` : 'NULL'}, ${reminded}
+    `INSERT INTO registrations (event_id, name, email, company, role, photo_consent, walk_in, guests, status, token, created_at, checked_in_at, reminder_sent_at, note)
+     SELECT ${event}, ${q(g.name)}, ${q(g.email)}, ${q(g.company)}, ${q(g.role)}, 0, 0, ${extra}, '${status}', ${q(token())}, ${g.orderedAt}, ${g.checkedIn ? `(SELECT starts_at FROM events WHERE slug = ${q(slug)})` : 'NULL'}, ${reminded}, ${q(g.notes)}
      WHERE ${event} IS NOT NULL
      ON CONFLICT (event_id, email) DO ${
-       // Someone imported before without their extra tickets gets them now.
-       extra ? `UPDATE SET guests = max(registrations.guests, ${extra})` : 'NOTHING'
+       // Someone imported before without their extra tickets gets them now, and an answer
+       // imported before only onto the contact card now shows on the registration too.
+       extra || g.notes
+         ? `UPDATE SET ${[
+             extra && `guests = max(registrations.guests, ${extra})`,
+             g.notes && `note = coalesce(nullif(trim(registrations.note), ''), excluded.note)`,
+           ]
+             .filter(Boolean)
+             .join(', ')}`
+         : 'NOTHING'
      };`,
   );
   if (g.linkedin || g.notes) {
@@ -87,9 +97,10 @@ for (const g of guests) {
 }
 
 const cards = guests.filter((g) => g.linkedin || g.notes).length;
+const noted = guests.filter((g) => g.notes).length;
 const extraSeats = ticketsAsGuests ? guests.reduce((n, g) => n + g.extraTickets, 0) : 0;
 console.log(
-  `${guests.length} guests for "${slug}"${extraSeats ? ` bringing ${extraSeats} more people (extra tickets)` : ''} (${cards} with a LinkedIn URL or a note for their contact card).`,
+  `${guests.length} guests for "${slug}"${extraSeats ? ` bringing ${extraSeats} more people (extra tickets)` : ''} (${noted} answered "Anything we should know?"; ${cards} with a LinkedIn URL or a note for their contact card).`,
 );
 if (flag('--dry-run')) {
   console.log(sql.join('\n'));
