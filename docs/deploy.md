@@ -321,6 +321,35 @@ loaded with an authorization error, edit the token (My Profile > API Tokens > Ed
 **Account > D1 > Read** and/or **Account > Workers R2 Storage > Read**; nothing else changes.
 When the account moves to Workers Paid, pick it at the top of that page so the limits follow.
 
+## 10. Speed: Cloudflare's edge cache
+
+`"cache": { "enabled": true }` in `wrangler.jsonc` (needs Wrangler 4.69 or later) puts
+Cloudflare's cache in front of the Worker: a public page it already has is sent from the nearest
+Cloudflare data centre without running the Worker or reading the database.
+
+- **Public pages** (BaseLayout) send `Cloudflare-CDN-Cache-Control: max-age=60,
+stale-while-revalidate=600, stale-if-error=86400`: the edge keeps a copy one minute, then
+  refreshes it in the background while still answering at once (and keeps answering for a day if
+  the Worker fails). Browsers get `max-age=0, must-revalidate`, so they always ask again. An edit
+  in the admin shows on the public site within about a minute; every deploy starts a fresh cache.
+- **Never stored**: pages with `cache={false}` (member page, tickets, forms with a token, my
+  data…), admin and `/api/admin`, every POST (forms, webhooks), any answer that sets a cookie,
+  redirects, errors and 404s, and anything without a Cache-Control header. `src/worker.ts` passes
+  every answer through `edgeSafe()` (`src/lib/edge-cache.ts`), which marks all of these
+  `private, no-store`.
+- **Only the public address is stored.** The cache key is the path and query, not the host, so
+  answers for www, workers.dev and preview URLs are never stored (otherwise the www redirect or the
+  workers.dev `noindex` header could be served on the real site). A www request for a page the
+  edge already has gets that page instead of the 301; its canonical tag still points to the bare
+  domain. For a strict redirect, add a Redirect Rule in Cloudflare (Rules > Redirect Rules,
+  hostname equals `www.french-tech-bangkok.com` → `https://french-tech-bangkok.com${path}`, 301).
+- **Files**: `public/_headers` keeps `/_astro/*` (CSS and JS, renamed at each change) a year and
+  `/brand/*` images a day; uploaded images and PDFs under `/media/` are kept a year.
+- **Check**: `curl -sI https://french-tech-bangkok.com/events | grep -i cf-cache-status` twice: the
+  second says `HIT`. `curl -sI https://french-tech-bangkok.com/member` says `BYPASS` or no status.
+- **Cost**: with the cache on, every request (static files too) counts as a Workers request
+  (10 million a month included in Workers Paid), but cached answers use no CPU time.
+
 ## Backups and restore
 
 - D1 keeps 30 days of history: `npx wrangler d1 time-travel restore ftbkk --timestamp=<ISO date>`

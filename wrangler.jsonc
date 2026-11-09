@@ -13,6 +13,8 @@
     "binding": "ASSETS",
   },
   "observability": { "enabled": true },
+  // Cloudflare's cache in front of the Worker (needs Wrangler 4.69+). What may be stored: src/lib/edge-cache.ts.
+  "cache": { "enabled": true },
   // The live site is on workers.dev until the domain moves. Preview URLs give each uploaded version
   // its own address; production builds upload versions that are promoted by hand in Cloudflare
   // (docs/deploy.md, "Validate, then promote").

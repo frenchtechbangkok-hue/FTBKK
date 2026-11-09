@@ -5,6 +5,7 @@ import Footer from '../components/Footer.astro';
 import { getSettings } from '../lib/settings';
 import { DEFAULT_DESCRIPTION, siteUrl } from '../lib/site';
 import { SHARE_HEIGHT, SHARE_WIDTH } from '../lib/share';
+import { EDGE_HEADER, PUBLIC_PAGE } from '../lib/edge-cache';
 
 interface Props {
   title?: string;
@@ -53,10 +54,10 @@ const DEFAULT_SHARE_IMAGE = '/brand/share-default.jpg';
 const ogImage = siteUrl(image || DEFAULT_SHARE_IMAGE);
 const knownSize = shareImage || !image;
 const ogLocale = lang === 'th' ? 'th_TH' : 'en_US';
-Astro.response.headers.set(
-  'Cache-Control',
-  cache ? 'public, s-maxage=60, stale-while-revalidate=300' : 'private, no-store',
-);
+// Public pages: kept 60 s at Cloudflare's edge and refreshed in the background, never kept by
+// browsers (lib/edge-cache.ts). Pages for one person (cache={false}) are never stored anywhere.
+Astro.response.headers.set('Cache-Control', cache ? PUBLIC_PAGE.browser : 'private, no-store');
+if (cache) Astro.response.headers.set(EDGE_HEADER, PUBLIC_PAGE.edge);
 const orgLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',

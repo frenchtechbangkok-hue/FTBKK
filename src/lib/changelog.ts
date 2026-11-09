@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.04',
+    date: '2026-11-09',
+    title: "Faster pages with Cloudflare's edge cache",
+    summary:
+      "Public pages (home, events, blog, guides…) are now kept for a minute in Cloudflare's data centres and sent from the one nearest the visitor, refreshed in the background, so they open faster and the database is read far less. Admin, member pages, tickets, forms and anything personal are never kept; an edit in the admin shows on the site within about a minute.",
+  },
+  {
     version: '26.11.03',
     date: '2026-11-09',
     title: 'Write automatic emails in Markdown',

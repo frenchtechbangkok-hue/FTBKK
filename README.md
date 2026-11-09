@@ -87,8 +87,10 @@ The repo is connected to Cloudflare Workers Builds: every merge to `main` applie
 and uploads a new Worker version, testable at `https://dev-ft-bkk-site.frenchtechbangkok.workers.dev`. It
 goes live only when it is promoted in Cloudflare > ft-bkk-site > Deployments (rollback is there
 too). Migrations must only add tables and columns. Other branches get a preview URL. Cloudflare setup (R2, build
-settings, Access, Turnstile, email, social media, traffic report, backups, domain) is in
-[docs/deploy.md](docs/deploy.md).
+settings, Access, Turnstile, email, social media, traffic report, edge cache, backups, domain)
+is in [docs/deploy.md](docs/deploy.md). Public pages are kept 60 seconds at Cloudflare's edge
+(`"cache": { "enabled": true }` in `wrangler.jsonc`); admin, member pages, forms and API answers
+never are (`src/lib/edge-cache.ts`).
 
 ## Contributing
 

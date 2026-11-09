@@ -1,0 +1,14 @@
+# Browser cache for the files in public/ and the build (Cloudflare Workers Static Assets reads
+# this file). Pages and API answers set their own headers in the code: see src/lib/edge-cache.ts.
+
+# Built CSS and JS: the file name changes with every change, so they can be kept for a year.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Logos, photos and icons keep their names when replaced: one day.
+/brand/*
+  Cache-Control: public, max-age=86400
+/favicon-32.png
+  Cache-Control: public, max-age=86400
+/apple-touch-icon.png
+  Cache-Control: public, max-age=86400
