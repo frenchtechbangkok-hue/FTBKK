@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../lib/edge-cache';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Icon from '../components/Icon.astro';
 import PersonCard from '../components/PersonCard.astro';
@@ -60,12 +61,13 @@ if (isPost)
     settings,
     'About',
   );
+// Kept at Cloudflare's edge except in this case (lib/edge-cache.ts).
+if (!!isPost) privatePage(Astro);
 ---
 
 <BaseLayout
   title="About"
   description="La French Tech Bangkok is a volunteer-run community connecting French and Thai tech entrepreneurs since 2019."
-  cache={!isPost}
 >
   <section class="relative isolate overflow-hidden bg-navy text-paper">
     <div

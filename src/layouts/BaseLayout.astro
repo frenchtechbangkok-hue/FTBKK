@@ -5,7 +5,6 @@ import Footer from '../components/Footer.astro';
 import { getSettings } from '../lib/settings';
 import { DEFAULT_DESCRIPTION, siteUrl } from '../lib/site';
 import { SHARE_HEIGHT, SHARE_WIDTH } from '../lib/share';
-import { EDGE_HEADER, PUBLIC_PAGE } from '../lib/edge-cache';
 
 interface Props {
   title?: string;
@@ -18,8 +17,6 @@ interface Props {
   /** Keywords (blog posts): meta keywords and article:tag. */
   keywords?: string[];
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
-  /** Public pages are edge-cached for 60s; pass false for personal pages (manage, cancel). */
-  cache?: boolean;
   /** Language of the page content, for the html lang attribute (the /th page is in Thai). */
   lang?: string;
   /** Open Graph type: blog posts are articles, the rest are web pages. */
@@ -38,7 +35,6 @@ const {
   noindex = false,
   keywords = [],
   jsonLd,
-  cache = true,
   lang = 'en',
   ogType = 'website',
   published,
@@ -54,10 +50,8 @@ const DEFAULT_SHARE_IMAGE = '/brand/share-default.jpg';
 const ogImage = siteUrl(image || DEFAULT_SHARE_IMAGE);
 const knownSize = shareImage || !image;
 const ogLocale = lang === 'th' ? 'th_TH' : 'en_US';
-// Public pages: kept 60 s at Cloudflare's edge and refreshed in the background, never kept by
-// browsers (lib/edge-cache.ts). Pages for one person (cache={false}) are never stored anywhere.
-Astro.response.headers.set('Cache-Control', cache ? PUBLIC_PAGE.browser : 'private, no-store');
-if (cache) Astro.response.headers.set(EDGE_HEADER, PUBLIC_PAGE.edge);
+// Cache headers: set by the middleware (public pages) or by the page itself with
+// privatePage(Astro); a layout is too late, Astro has already sent the headers (lib/edge-cache.ts).
 const orgLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',

@@ -62,3 +62,28 @@ export function oldLinkRedirect(location: string, keepAtEdge: boolean) {
   } else headers.set('Cache-Control', NEVER);
   return new Response(null, { status: 301, headers });
 }
+
+/**
+ * Marks a page as personal or one-off: never kept by browsers or the edge. Call it in the page's
+ * own frontmatter (not in a layout or component: by then Astro has already sent the headers).
+ */
+export function privatePage(astro: { response: { headers: Headers } }) {
+  astro.response.headers.set('Cache-Control', NEVER);
+}
+
+/**
+ * Headers for a public HTML page answered by the Worker (set by the middleware): a GET or HEAD that ended
+ * in 200 with no Cache-Control of its own (privatePage sets one) and no admin login cookie.
+ */
+export function publicPageHeaders(request: Request, res: Response) {
+  const read = request.method === 'GET' || request.method === 'HEAD';
+  if (!read || res.status !== 200 || res.headers.has('Cache-Control')) return;
+  if (!(res.headers.get('Content-Type') ?? '').startsWith('text/html')) return;
+  // An admin (Cloudflare Access cookie) may see previews of hidden guides: never keep those.
+  if (/(?:^|;\s*)CF_Authorization=/.test(request.headers.get('Cookie') ?? '')) {
+    res.headers.set('Cache-Control', NEVER);
+    return;
+  }
+  res.headers.set('Cache-Control', PUBLIC_PAGE.browser);
+  res.headers.set(EDGE_HEADER, PUBLIC_PAGE.edge);
+}

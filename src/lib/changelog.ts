@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.06',
+    date: '2026-11-09',
+    title: "Fix: public pages now really kept at Cloudflare's edge",
+    summary:
+      'The edge cache added in 26.11.04 never kicked in: Cloudflare showed BYPASS on every page because the cache instruction was set too late in the page. Public pages are now marked as they leave the website, while member pages, tickets, forms with a link and anything an admin sees stay private.',
+  },
+  {
     version: '26.11.05',
     date: '2026-11-09',
     title: 'Old Wix links answered by Cloudflare',

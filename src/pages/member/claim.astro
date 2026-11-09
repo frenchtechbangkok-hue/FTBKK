@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../../lib/edge-cache';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Section from '../../components/Section.astro';
 import Alert from '../../components/Alert.astro';
@@ -63,9 +64,11 @@ if (address && Astro.request.method === 'POST') {
   // The guests they asked for on the event page (the field accepts 1 to GUESTS_MAX).
   values.guests = (Astro.url.searchParams.get('guests') ?? '').slice(0, 1);
 }
+// Personal or one-off page: never kept by browsers or Cloudflare's edge (lib/edge-cache.ts).
+privatePage(Astro);
 ---
 
-<BaseLayout title="Claim your membership" noindex cache={false}>
+<BaseLayout title="Claim your membership" noindex>
   <Section>
     <div class="max-w-2xl">
       <h1 class="text-3xl">

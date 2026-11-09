@@ -327,16 +327,19 @@ When the account moves to Workers Paid, pick it at the top of that page so the l
 Cloudflare's cache in front of the Worker: a public page it already has is sent from the nearest
 Cloudflare data centre without running the Worker or reading the database.
 
-- **Public pages** (BaseLayout) send `Cloudflare-CDN-Cache-Control: max-age=60,
-stale-while-revalidate=600, stale-if-error=86400`: the edge keeps a copy one minute, then
+- **Public pages** (any HTML page answering a GET with 200; the middleware sets it) send
+  `Cloudflare-CDN-Cache-Control: max-age=60, stale-while-revalidate=600, stale-if-error=86400`:
+  the edge keeps a copy one minute, then
   refreshes it in the background while still answering at once (and keeps answering for a day if
   the Worker fails). Browsers get `max-age=0, must-revalidate`, so they always ask again. An edit
   in the admin shows on the public site within about a minute; every deploy starts a fresh cache.
-- **Never stored**: pages with `cache={false}` (member page, tickets, forms with a token, my
-  data…), admin and `/api/admin`, every POST (forms, webhooks), any answer that sets a cookie,
+- **Never stored**: pages that call `privatePage(Astro)` in their own frontmatter (member page,
+  tickets, forms with a token, my data…), admin and `/api/admin`, every POST (forms, webhooks), any answer that sets a cookie,
   redirects, errors and 404s, and anything without a Cache-Control header. `src/worker.ts` passes
   every answer through `edgeSafe()` (`src/lib/edge-cache.ts`), which marks all of these
-  `private, no-store`.
+  `private, no-store`. Admins (Cloudflare Access cookie) are never stored either, so guide
+  previews stay private. A new personal page must call `privatePage(Astro)`: setting headers
+  from a layout or component does nothing, Astro has already sent them.
 - **Only the public address is stored.** The cache key is the path and query, not the host, so
   answers for www, workers.dev and preview URLs are never stored (otherwise the www redirect or the
   workers.dev `noindex` header could be served on the real site). A www request for a page the

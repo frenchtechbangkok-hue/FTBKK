@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../../lib/edge-cache';
 import { z } from 'zod';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Section from '../../components/Section.astro';
@@ -113,9 +114,11 @@ const downloadSlug = (Astro.url.searchParams.get('download') ?? '').slice(0, 200
 const download = active && downloadSlug ? await editionBySlug(downloadSlug) : null;
 if (download && member && !(await rememberedMember(Astro.cookies)))
   await rememberMember(Astro.cookies, member, Astro.url.protocol === 'https:');
+// Personal or one-off page: never kept by browsers or Cloudflare's edge (lib/edge-cache.ts).
+privatePage(Astro);
 ---
 
-<BaseLayout title="My membership" noindex cache={false}>
+<BaseLayout title="My membership" noindex>
   <Section>
     <div class="max-w-2xl">
       <h1 class="text-3xl">{member ? `Hi ${member.name.split(' ')[0]}` : 'My membership'}</h1>

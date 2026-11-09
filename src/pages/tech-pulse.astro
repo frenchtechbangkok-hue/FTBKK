@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../lib/edge-cache';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Button from '../components/Button.astro';
 import Icon from '../components/Icon.astro';
@@ -101,10 +102,11 @@ if (gate && form) {
     }
   }
 }
+// Kept at Cloudflare's edge except in this case (lib/edge-cache.ts).
+if (!!isPost) privatePage(Astro);
 ---
 
 <BaseLayout
-  cache={!isPost}
   title="Thailand Tech Pulse"
   description="Thailand Tech Pulse, La French Tech Bangkok's free quarterly report on the Thai tech ecosystem: digital infrastructure, AI, investment, startups and talent."
   image={latest?.cover}

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { EDGE_HEADER, PUBLIC_PAGE, edgeSafe, oldLinkRedirect } from '../src/lib/edge-cache';
+import {
+  EDGE_HEADER,
+  PUBLIC_PAGE,
+  edgeSafe,
+  oldLinkRedirect,
+  privatePage,
+  publicPageHeaders,
+} from '../src/lib/edge-cache';
 
 const HOST = 'french-tech-bangkok.com';
 const req = (url = `https://${HOST}/events`) => new Request(url);
@@ -74,5 +81,52 @@ describe('oldLinkRedirect', () => {
     const r = oldLinkRedirect(`https://${HOST}/events`, false);
     expect(cc(edgeSafe(req(), r, HOST))).toBe('private, no-store');
     expect(r.headers.has(EDGE_HEADER)).toBe(false);
+  });
+});
+
+describe('publicPageHeaders', () => {
+  const html = (headers: Record<string, string> = {}, status = 200) =>
+    new Response('<p>x</p>', {
+      status,
+      headers: { 'Content-Type': 'text/html', ...headers },
+    });
+
+  it('marks public HTML pages for the edge, for GET and HEAD (curl -I)', () => {
+    for (const method of ['GET', 'HEAD']) {
+      const r = html();
+      publicPageHeaders(new Request(`https://${HOST}/events`, { method }), r);
+      expect(cc(r), method).toBe(PUBLIC_PAGE.browser);
+      expect(r.headers.get(EDGE_HEADER)).toBe(PUBLIC_PAGE.edge);
+      expect(edgeSafe(req(), r, HOST)).toBe(r);
+    }
+  });
+
+  it('leaves pages that chose privatePage, other answers and admins alone', () => {
+    const own = html();
+    privatePage({ response: { headers: own.headers } });
+    publicPageHeaders(req(), own);
+    expect(cc(own)).toBe('private, no-store');
+
+    const json = new Response('{}', { headers: { 'Content-Type': 'application/json' } });
+    publicPageHeaders(req(), json);
+    expect(cc(json)).toBeNull();
+
+    const missing = html({}, 404);
+    publicPageHeaders(req(), missing);
+    expect(cc(missing)).toBeNull();
+
+    const post = html();
+    publicPageHeaders(new Request(`https://${HOST}/join`, { method: 'POST' }), post);
+    expect(cc(post)).toBeNull();
+
+    const admin = html();
+    publicPageHeaders(
+      new Request(`https://${HOST}/founders-guide`, {
+        headers: { Cookie: 'a=1; CF_Authorization=tok' },
+      }),
+      admin,
+    );
+    expect(cc(admin)).toBe('private, no-store');
+    expect(admin.headers.has(EDGE_HEADER)).toBe(false);
   });
 });

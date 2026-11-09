@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../../lib/edge-cache';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Section from '../../components/Section.astro';
 import Alert from '../../components/Alert.astro';
@@ -25,9 +26,11 @@ if (Astro.request.method === 'POST') {
   }
   valid = false;
 } else valid = Boolean(token && (await peekToken(token, 'member_confirm')));
+// Personal or one-off page: never kept by browsers or Cloudflare's edge (lib/edge-cache.ts).
+privatePage(Astro);
 ---
 
-<BaseLayout title="Confirm your membership" noindex cache={false}>
+<BaseLayout title="Confirm your membership" noindex>
   <Section>
     <div class="max-w-xl">
       <h1 class="text-3xl">Confirm your membership</h1>

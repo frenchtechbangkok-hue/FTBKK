@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../lib/edge-cache';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { guideMode, linkOnline } from '../lib/guides';
 import { getSettings } from '../lib/settings';
@@ -50,12 +51,13 @@ const mode = await guideMode(Astro, settings, '/come-work-in-france');
 if (mode === 'hidden') return Astro.rewrite('/404');
 const preview = mode === 'preview';
 const showFounders = linkOnline(settings, '/founders-guide');
+// Kept at Cloudflare's edge except in this case (lib/edge-cache.ts).
+if (!!preview) privatePage(Astro);
 ---
 
 <BaseLayout
   title="Come work in France: jobs, startups and the French Tech Visa"
   noindex={preview}
-  cache={!preview}
   description="Working, founding a startup or investing in France: why France, the French Tech Visa (a 4-year renewable Talent residence permit), how to apply from Thailand and where to find a job."
 >
   <GuideHero

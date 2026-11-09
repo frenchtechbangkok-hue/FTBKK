@@ -1,10 +1,13 @@
 ---
+import { privatePage } from '../lib/edge-cache';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Button from '../components/Button.astro';
 Astro.response.status = 404;
+// Personal or one-off page: never kept by browsers or Cloudflare's edge (lib/edge-cache.ts).
+privatePage(Astro);
 ---
 
-<BaseLayout title="Page not found" noindex cache={false}>
+<BaseLayout title="Page not found" noindex>
   <section class="container-page py-24 text-center">
     <p class="font-display text-6xl font-extrabold text-brand">404</p>
     <h1 class="mt-4 text-3xl">This page doesn't exist</h1>

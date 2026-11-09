@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../../lib/edge-cache';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Section from '../../components/Section.astro';
 import Alert from '../../components/Alert.astro';
@@ -16,9 +17,11 @@ if (Astro.request.method === 'POST') {
   member = null;
 }
 const usable = member && member.status !== 'suspended' && member.status !== 'pending';
+// Personal or one-off page: never kept by browsers or Cloudflare's edge (lib/edge-cache.ts).
+privatePage(Astro);
 ---
 
-<BaseLayout title="Keep your membership" noindex cache={false}>
+<BaseLayout title="Keep your membership" noindex>
   <Section>
     <div class="max-w-xl">
       <h1 class="text-3xl">Keep your membership</h1>
