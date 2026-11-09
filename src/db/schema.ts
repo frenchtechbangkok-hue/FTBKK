@@ -595,6 +595,21 @@ export const emailSuppressions = sqliteTable('email_suppressions', {
 });
 
 /**
+ * Admin > Email delivery > Setup (src/lib/email-setup.ts): Resend and SES keys, secrets and
+ * settings typed in the admin; a row wins over the Worker variable or secret of the same name.
+ * Not in `settings`, which public pages read.
+ */
+export const emailSetup = sqliteTable('email_setup', {
+  /** The Worker variable it replaces, such as RESEND_API_KEY. */
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedBy: text('updated_by'),
+  updatedAt: integer('updated_at')
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+/**
  * Reports > Emails: one row per email the provider reported on (Resend webhook, Amazon SES event
  * publishing), with the first time each step happened. No recipient address is kept.
  */

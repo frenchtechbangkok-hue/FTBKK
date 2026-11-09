@@ -12,6 +12,7 @@ import {
 } from './event-stats';
 import { memberReports } from './member-reports';
 import { emailProvider } from './email';
+import { emailEnv } from './email-setup';
 import {
   emailRecordSpan,
   providerSources,
@@ -268,13 +269,14 @@ export async function loadCloudflareUsageReport(now = new Date()) {
  * /api/resend-events; Amazon SES: /api/ses-events). Figures count the emails sent in the period.
  */
 export async function loadEmailReport(url: URL, now = new Date()) {
-  const provider = await emailProvider();
+  const e = await emailEnv();
+  const provider = await emailProvider(e);
   const setup = {
     provider,
-    resendWebhook: !!env.RESEND_WEBHOOK_SECRET,
+    resendWebhook: !!e.RESEND_WEBHOOK_SECRET,
     /** SES bounces and complaints arrive (SNS subscription), even without a configuration set. */
-    sesFeedback: !!env.SES_EVENTS_KEY,
-    sesEvents: !!env.SES_EVENTS_KEY && !!env.SES_CONFIGURATION_SET,
+    sesFeedback: !!e.SES_EVENTS_KEY,
+    sesEvents: !!e.SES_EVENTS_KEY && !!e.SES_CONFIGURATION_SET,
   };
   let span: { first: Date | null; last: Date | null } = { first: null, last: null };
   try {

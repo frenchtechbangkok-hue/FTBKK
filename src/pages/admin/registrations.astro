@@ -29,6 +29,7 @@ import { getSettings } from '../../lib/settings';
 import {
   GUESTS_MAX,
   NOTE_MAX,
+  attendeeNotes,
   fillSeats,
   guestsLabel,
   promoteFromWaitlist,
@@ -176,6 +177,7 @@ if (Astro.request.method === 'POST' && event) {
 
 const q = (Astro.url.searchParams.get('q') ?? '').toLowerCase();
 const statusFilter = Astro.url.searchParams.get('status') ?? '';
+const onlyNotes = Astro.url.searchParams.get('notes') === '1';
 const rows = event
   ? await db
       .select()
@@ -198,6 +200,7 @@ const counts = {
 const shown = rows.filter(
   (r) =>
     (!statusFilter || r.status === statusFilter) &&
+    (!onlyNotes || (r.note ?? '').trim() !== '') &&
     (!q ||
       `${r.name} ${r.email ?? ''} ${r.company ?? ''} ${r.note ?? ''}`.toLowerCase().includes(q)),
 );
@@ -228,6 +231,9 @@ const memberChoices = event
         .orderBy(asc(members.name))
     ).filter((m) => !registeredEmails.has(m.email))
   : [];
+// "What attendees told us": the notes of people coming or on the waitlist.
+const notes = attendeeNotes(rows);
+const notCancelled = rows.filter((r) => r.status !== 'cancelled').length;
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const peopleCount = (n: number) => (n === 1 ? '1 person' : `${n} people`);
 // "Who's coming" for an event not over yet: first-timers, returning people, members, companies.
@@ -346,6 +352,58 @@ const coming =
           </form>
         )}
       </div>
+
+      {notCancelled > 0 && (
+        <details id="notes" class="admin-panel mb-4" open={notes.length > 0}>
+          <summary class="cursor-pointer">
+            <h2 class="inline text-lg">What attendees told us</h2>
+            <span class="ml-2 text-sm text-muted">
+              {notes.length
+                ? `${notes.length} of ${plural(notCancelled, 'registration')} answered "Anything we should know, or something you're looking for?"`
+                : `Nobody answered "Anything we should know, or something you're looking for?" yet.`}
+            </span>
+          </summary>
+          {notes.length > 0 && (
+            <>
+              <ul class="mt-4 grid gap-3 md:grid-cols-2">
+                {notes.map((r) => (
+                  <li class="border-l-4 border-accent-soft pl-3">
+                    <p class="whitespace-pre-line">{r.note}</p>
+                    <p class="mt-1 text-sm text-muted">
+                      <span class="font-semibold text-ink">{r.name}</span>
+                      {r.company && <> · {r.company}</>}
+                      {r.role && <> · {r.role}</>}
+                      {r.guests > 0 && <> · {guestsLabel(r.guests)}</>}
+                      {r.status === 'waitlist' && (
+                        <>
+                          {' '}
+                          <Badge tone="warning">waitlist</Badge>
+                        </>
+                      )}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <div class="mt-4 flex flex-wrap gap-2">
+                <Button
+                  href={`/admin/events/${event.id}/registrations.csv?notes=1`}
+                  size="sm"
+                  variant="secondary"
+                >
+                  Download these notes (CSV)
+                </Button>
+                <Button
+                  href={`/admin/registrations?event=${event.id}&notes=1#list`}
+                  size="sm"
+                  variant="ghost"
+                >
+                  Show only them in the list below
+                </Button>
+              </div>
+            </>
+          )}
+        </details>
+      )}
 
       {added && (
         <Alert tone={added.added.length ? 'success' : 'warning'} class="mb-4">
@@ -646,8 +704,8 @@ const coming =
         </div>
       </details>
 
-      <div class="admin-panel overflow-x-auto">
-        <form method="get" role="search" class="mb-4 flex flex-wrap gap-2">
+      <div id="list" class="admin-panel overflow-x-auto">
+        <form method="get" role="search" class="mb-4 flex flex-wrap items-center gap-2">
           <input type="hidden" name="event" value={event.id} />
           <label for="q" class="sr-only">
             Search
@@ -670,6 +728,10 @@ const coming =
               </option>
             ))}
           </select>
+          <label class="flex items-center gap-1.5 text-sm">
+            <input type="checkbox" name="notes" value="1" checked={onlyNotes} />
+            Only people who left a note
+          </label>
           <Button type="submit" size="sm" variant="secondary">
             Filter
           </Button>
@@ -701,8 +763,8 @@ const coming =
                     {r.role && <span class="block text-xs text-muted">{r.role}</span>}
                     {r.walkIn && <span class="block text-xs text-muted">Walk-in</span>}
                     {r.note && (
-                      <span class="mt-1 block max-w-xs text-xs whitespace-pre-line text-muted">
-                        <span class="font-semibold">Note:</span> {r.note}
+                      <span class="mt-1 block max-w-xs border-l-2 border-accent-soft pl-2 text-sm whitespace-pre-line text-ink">
+                        <span class="font-semibold text-muted">Their note:</span> {r.note}
                       </span>
                     )}
                   </td>
@@ -779,9 +841,11 @@ const coming =
           </table>
         ) : (
           <EmptyState
-            text={q || statusFilter ? 'No registration matches.' : 'No registrations yet.'}
+            text={
+              q || statusFilter || onlyNotes ? 'No registration matches.' : 'No registrations yet.'
+            }
             hint={
-              q || statusFilter
+              q || statusFilter || onlyNotes
                 ? 'Try another name or status.'
                 : 'People appear here when they register on the event page, or when you add them.'
             }

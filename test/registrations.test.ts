@@ -4,6 +4,7 @@ import {
   MemberRegisterSchema,
   NOTE_MAX,
   RegisterSchema,
+  attendeeNotes,
   cleanNote,
   eventDetails,
   guestsLabel,
@@ -141,6 +142,26 @@ describe('cleanNote', () => {
   });
   it('keeps at most one blank line in a row and trims trailing spaces per line', () => {
     expect(cleanNote('one   \n\n\n\ntwo\t\nthree')).toBe('one\n\ntwo\nthree');
+  });
+});
+
+describe('attendeeNotes', () => {
+  const reg = (id: number, status: string, note: string | null, day = id) => ({
+    id,
+    status,
+    note,
+    createdAt: new Date(now.getTime() + day * DAY),
+  });
+  it('keeps only notes from people coming or waiting, coming first', () => {
+    const rows = [
+      reg(1, 'waitlist', 'Vegetarian'),
+      reg(2, 'registered', null),
+      reg(3, 'cancelled', 'Looking for a CTO'),
+      reg(4, 'attended', 'Hiring developers'),
+      reg(5, 'registered', '   '),
+      reg(6, 'registered', 'Wheelchair access?', 0),
+    ];
+    expect(attendeeNotes(rows).map((r) => r.id)).toEqual([6, 4, 1]);
   });
 });
 

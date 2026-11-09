@@ -232,7 +232,17 @@ screen by screen for the team.
   sent at `SES_SEND_RATE` per second. Test send through either provider. SES
   bounces and complaints arrive from SNS at `/api/ses-events?key=…` (handled in `src/worker.ts`
   before Astro), fill `email_suppressions` (migration 0040), and every send skips those
-  addresses; the page lists them with a Remove button. Setup: docs/deploy.md, section 6b.
+  addresses; the page lists them with a Remove button. **Setup** on the same page sets every
+  email value from the admin (`src/lib/email-setup.ts`): `EMAIL_FROM`, `RESEND_API_KEY`,
+  `RESEND_WEBHOOK_SECRET`, `EMAIL_DAILY_LIMIT`, `EMAIL_MONTHLY_LIMIT`, `AWS_SES_ACCESS_KEY_ID`,
+  `AWS_SES_SECRET_ACCESS_KEY`, `AWS_REGION`, `SES_SEND_RATE`, `SES_CONFIGURATION_SET`,
+  `SES_EVENTS_KEY` (with a Generate button) and `SES_EVENTS_TOPIC_ARN`, plus the Resend webhook
+  and SNS subscription addresses to copy. Values live in the `email_setup` table (migration
+  0043, kept out of `settings` because public pages read that one) and win over the Worker
+  variable or secret of the same name, read through `emailEnv()`; an empty admin value falls back
+  to the Worker's. Secrets are write-only (masked to their last four characters); the Actions log
+  records the names of the changed settings only. Setup outside the admin: docs/deploy.md,
+  section 6b.
 - **Member page** at `/member?token=…` (a reusable `member` link, 30 days, sent in every member
   email; no passwords): membership dates, the WhatsApp button, their events (coming up and past),
   their profile to edit, and **Leave**, which deletes the member row (event history stays until

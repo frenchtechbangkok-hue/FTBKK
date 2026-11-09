@@ -1,16 +1,17 @@
 /**
  * History > Change history: one entry per merged pull request, newest first. Each merge is a new
- * version of the site (1.0 was the first full site; the number after the dot goes up by one per
- * merge). Every PR adds its own entry at the top, in plain words for the team: what changes for
+ * version of the site. Since November 2026 versions read YY.MM.XX: year, month, then the release
+ * number within that month (26.11.01 is the first of November 2026). Older ones keep their
+ * "1.N" (1.0 was the first full site). Every change adds its own entry at the top, in plain words for the team: what changes for
  * visitors or admins, not how it is built. test/changelog.test.ts checks the order.
  */
 export interface Release {
-  /** "1.N": N goes up by one with every merged pull request. */
+  /** "YY.MM.XX" (XX counts the releases of that month, from 01); "1.N" before November 2026. */
   version: string;
   /** Merge day, Bangkok time (YYYY-MM-DD). */
   date: string;
-  /** Pull request number on GitHub. */
-  pr: number;
+  /** Pull request number on GitHub, when the change went through one. */
+  pr?: number;
   title: string;
   summary: string;
 }
@@ -18,6 +19,20 @@ export interface Release {
 export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
+  {
+    version: '26.11.02',
+    date: '2026-11-09',
+    title: 'Set up Resend and Amazon SES from the admin',
+    summary:
+      'Settings > Email delivery has a new Setup section where the sender, the Resend and Amazon SES keys, the webhook secret, the configuration set and the other email settings are typed in directly, with the webhook addresses to copy and a button to make the SES notifications key; secrets are never shown again once saved, and no terminal is needed any more.',
+  },
+  {
+    version: '26.11.01',
+    date: '2026-11-09',
+    title: 'See what registrants told us before an event',
+    summary:
+      'Registrations now has a "What attendees told us" box listing only the people who answered "Anything we should know, or something you\'re looking for?", with a CSV download and a filter to show just them in the list; each note also stands out under the person\'s name. From now on site versions read year.month.number (26.11.01).',
+  },
   {
     version: '1.112',
     date: '2026-11-09',

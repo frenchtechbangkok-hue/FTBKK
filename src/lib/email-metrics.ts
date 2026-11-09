@@ -164,11 +164,12 @@ export async function planUsage(provider: 'resend' | 'ses', now = new Date()) {
     .bind(provider)
     .first<{ first: number | null }>();
   const first = span?.first ? new Date(span.first * 1000) : null;
+  const limits = await providerLimits(provider);
   return {
     today: Number(row?.today ?? 0),
     month: Number(row?.month ?? 0),
-    dailyLimit: providerLimits(provider).daily,
-    monthlyLimit: providerLimits(provider).monthly,
+    dailyLimit: limits.daily,
+    monthlyLimit: limits.monthly,
     /** Counting started after the start of this month: the month figure is too low. */
     since: first && first > month ? first : null,
     /** When today's and this month's counts start again. */

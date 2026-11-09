@@ -447,6 +447,10 @@ export function describeAction(row: LogRow, names: LogNames = emptyNames()): Des
           return P(
             `Switched email sending to ${str(a.provider) === 'ses' ? 'Amazon SES' : 'Resend'}`,
           );
+        if (action === 'email-setup') {
+          const keys = Array.isArray(a.keys) ? a.keys.map(String) : [];
+          return P(`Changed the email setup${keys.length ? ` (${keys.join(', ')})` : ''}`);
+        }
         if (action === 'cloudflare-plan')
           return P(
             `Set the Cloudflare plan to ${str(a.plan) === 'paid' ? 'Workers Paid' : 'Workers Free'}`,

@@ -159,6 +159,11 @@ Until this is done, forms use Cloudflare's test keys, which let every submission
 
 Until this is done, no email is sent (confirmations, reminders and listing links are only logged).
 
+**Simplest: Admin > Email delivery > Setup.** Every value below (API key, sender, caps, webhook
+secret, and the SES ones in 6b) can be typed there instead of in `wrangler.jsonc` or as a Worker
+secret, and the page shows the webhook and SNS addresses to copy. A value saved in the admin wins
+over the Worker's; the steps below still work for a site set up from the terminal.
+
 1. Create an account at resend.com and add the domain `french-tech-bangkok.com`.
 2. Add the DNS records Resend lists (an SPF TXT and an MX on the `send` subdomain, a DKIM TXT on
    `resend._domainkey`, and optionally a DMARC TXT) where the domain's DNS is hosted, then click

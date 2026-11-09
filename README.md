@@ -42,8 +42,8 @@ are no roles. The menu:
 | **Settings**                | General, membership switches, event covers, social links, email delivery                                                |
 | **History**                 | Actions log (who did what in the admin), Change history (each version of the site)                                      |
 
-Emails go through Resend or Amazon SES, chosen in Settings > Email delivery, with a do-not-email list for
-bounces and spam complaints.
+Emails go through Resend or Amazon SES, chosen in Settings > Email delivery, where both services' keys,
+secrets and webhook addresses are also set up, with a do-not-email list for bounces and spam complaints.
 
 Full detail: [docs/features.md](docs/features.md) (every feature, with the files behind it) and
 [docs/admin.md](docs/admin.md) (how to use the admin).

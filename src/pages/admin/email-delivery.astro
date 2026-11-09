@@ -1,5 +1,4 @@
 ---
-import { env } from 'cloudflare:workers';
 import { z } from 'zod';
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import Alert from '../../components/Alert.astro';
@@ -17,19 +16,39 @@ import { listSuppressions, unsuppress } from '../../lib/email-suppressions';
 import { audit, siteUrl } from '../../lib/orgs';
 import { formatDate } from '../../lib/format';
 import { saveSettings } from '../../lib/settings';
+import {
+  cleanSetupValue,
+  emailEnv,
+  emailSetupStatus,
+  newEventsKey,
+  saveEmailSetup,
+  SETUP_FIELDS,
+  type EmailEnv,
+  type SetupGroup,
+} from '../../lib/email-setup';
 
-// Settings > Email delivery: which service sends the site's emails (chosen here, stored in the
+// Settings > Email delivery: the setup of Resend and Amazon SES (keys, secrets, webhook
+// addresses, typed here and kept in email_setup, else the Worker's values: src/lib/email-setup.ts),
+// which service sends the site's emails (chosen here, stored in the
 // settings table; EMAIL_PROVIDER in wrangler.jsonc until then), a test send
 // through either one (to try Amazon SES before switching), and the addresses no longer emailed
 // because they bounced or marked an email as spam.
 const actor = Astro.locals.adminEmail ?? 'admin';
-let current = await emailProvider();
 const PROVIDERS = Object.keys(PROVIDER_NAMES) as EmailProvider[];
-// Only a service with its key can be chosen; the one in use always shows.
-const choosable = PROVIDERS.filter((p) => providerReady(p) || p === current);
 const PROVIDER_NOTES: Record<EmailProvider, string> = {
   resend: 'Free plan: 100 emails a day, 3,000 a month. A community email stops at the daily cap.',
   ses: 'No daily cap once AWS grants production access. Until then (sandbox) it only delivers to addresses verified in SES, 200 a day: switch only after AWS approves.',
+};
+
+const GROUP_NAMES: Record<SetupGroup, string> = {
+  general: 'Sender',
+  resend: 'Resend',
+  ses: 'Amazon SES',
+};
+const SOURCE: Record<string, string> = {
+  admin: 'saved here',
+  worker: 'from Cloudflare (Worker variable or secret)',
+  none: 'not set',
 };
 
 const Action = z.discriminatedUnion('intent', [
@@ -40,12 +59,18 @@ const Action = z.discriminatedUnion('intent', [
   }),
   z.object({ intent: z.literal('unsuppress'), email: z.email() }),
   z.object({ intent: z.literal('provider'), provider: z.enum(['resend', 'ses']) }),
+  z.object({ intent: z.literal('setup'), group: z.enum(['general', 'resend', 'ses']) }),
+  z.object({ intent: z.literal('events-key') }),
 ]);
 
 let notice = '';
 let error = '';
 let testTo = actor.includes('@') ? actor : '';
+let current = await emailProvider();
 let testProvider: EmailProvider = current;
+// The Setup fold just saved (kept open), and values that could not be saved, shown back.
+let setupGroup: SetupGroup | null = null;
+const typed: Partial<EmailEnv> = {};
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
@@ -60,7 +85,7 @@ if (Astro.request.method === 'POST') {
         to,
         subject: `[Test] Sent through ${PROVIDER_NAMES[provider]}`,
         paragraphs: [
-          `This is a test from Admin > Email delivery, sent through ${PROVIDER_NAMES[provider]} from ${env.EMAIL_FROM}.`,
+          `This is a test from Admin > Email delivery, sent through ${PROVIDER_NAMES[provider]} from ${(await emailEnv()).EMAIL_FROM}.`,
           `If it landed in spam, the sending domain's DNS records (SPF, DKIM, DMARC) need a look. Sent by ${actor}.`,
         ],
         action: { label: 'Open the admin', url: siteUrl('/admin/email-delivery') },
@@ -75,8 +100,8 @@ if (Astro.request.method === 'POST') {
     } else error = `${PROVIDER_NAMES[provider]} refused the test: ${res.error ?? 'unknown error'}`;
   } else if (parsed.data.intent === 'provider') {
     const { provider } = parsed.data;
-    if (!providerReady(provider)) {
-      error = `${PROVIDER_NAMES[provider]} has no key yet, so it can't send. Add it first (docs/deploy.md).`;
+    if (!(await providerReady(provider))) {
+      error = `${PROVIDER_NAMES[provider]} has no key yet, so it can't send. Add it in Setup below first.`;
     } else if (provider !== current) {
       await saveSettings({ emailProvider: provider });
       await audit(actor, 'email-provider', 'settings', null, { provider: current }, { provider });
@@ -84,6 +109,45 @@ if (Astro.request.method === 'POST') {
       current = provider;
       testProvider = provider;
     }
+  } else if (parsed.data.intent === 'setup') {
+    const group = parsed.data.group;
+    const patch: Partial<EmailEnv> = {};
+    const problems: string[] = [];
+    for (const f of SETUP_FIELDS.filter((x) => x.group === group)) {
+      const raw = String(form.get(f.key) ?? '');
+      if (form.get(`${f.key}__remove`) === 'on') {
+        patch[f.key] = '';
+        continue;
+      }
+      // An empty secret box keeps the saved secret; an empty plain box removes the admin value.
+      if (f.secret && !raw.trim()) continue;
+      const clean = cleanSetupValue(f, raw);
+      if ('error' in clean) {
+        problems.push(clean.error);
+        if (!f.secret) typed[f.key] = raw;
+      } else patch[f.key] = clean.value;
+    }
+    if (problems.length) {
+      error = `Nothing saved. ${problems.join(' ')}`;
+      setupGroup = group;
+    } else {
+      const changed = await saveEmailSetup(patch, actor);
+      setupGroup = group;
+      // Only the names of what changed go in the log, never a value.
+      if (changed.length)
+        await audit(actor, 'email-setup', 'settings', null, null, { keys: changed });
+      notice = changed.length
+        ? `Saved. ${GROUP_NAMES[group]} uses the new values from now on.`
+        : 'Nothing changed.';
+      current = await emailProvider();
+      testProvider = current;
+    }
+  } else if (parsed.data.intent === 'events-key') {
+    await saveEmailSetup({ SES_EVENTS_KEY: newEventsKey() }, actor);
+    setupGroup = 'ses';
+    await audit(actor, 'email-setup', 'settings', null, null, { keys: ['SES_EVENTS_KEY'] });
+    notice =
+      'New notifications key saved. The SNS subscription address below changed: in AWS SNS, add a subscription with the new address (HTTPS) and delete the old one.';
   } else {
     await unsuppress(parsed.data.email);
     await audit(actor, 'unsuppress', 'email', null, { email: parsed.data.email }, null);
@@ -92,15 +156,23 @@ if (Astro.request.method === 'POST') {
 }
 
 const blocked = await listSuppressions();
-const eventsUrl = env.SES_EVENTS_KEY
-  ? siteUrl(`/api/ses-events?key=${encodeURIComponent(env.SES_EVENTS_KEY)}`)
+const setup = await emailEnv();
+const fields = await emailSetupStatus();
+const ready = Object.fromEntries(
+  await Promise.all(PROVIDERS.map(async (p) => [p, await providerReady(p, setup)] as const)),
+) as Record<EmailProvider, boolean>;
+// Only a service with its key can be chosen; the one in use always shows.
+const choosable = PROVIDERS.filter((p) => ready[p] || p === current);
+const eventsUrl = setup.SES_EVENTS_KEY
+  ? siteUrl(`/api/ses-events?key=${encodeURIComponent(setup.SES_EVENTS_KEY)}`)
   : '';
+const resendWebhookUrl = siteUrl('/api/resend-events');
 const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
 ---
 
 <AdminLayout
   title="Email delivery"
-  intro="Which service sends the site's emails, a test through either one, and the addresses the site no longer emails."
+  intro="Which service sends the site's emails, a test through either one, the Resend and Amazon SES setup, and the addresses the site no longer emails."
 >
   {notice && (
     <Alert tone="success" class="mb-6">
@@ -117,13 +189,13 @@ const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
     <section class="admin-panel grid gap-3">
       <h2 class="text-lg">Sending service</h2>
       <p>
-        Emails go through <strong>{PROVIDER_NAMES[current]}</strong>, from {env.EMAIL_FROM}.
+        Emails go through <strong>{PROVIDER_NAMES[current]}</strong>, from {setup.EMAIL_FROM}.
       </p>
       <ul class="grid gap-1 text-sm">
         {PROVIDERS.map((p) => (
           <li>
             {PROVIDER_NAMES[p]}:{' '}
-            {providerReady(p) ? (
+            {ready[p] ? (
               <span class="text-success">key set</span>
             ) : (
               <span class="text-muted">no key</span>
@@ -168,7 +240,7 @@ const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
       </form>
       <p class="text-sm text-muted">
         Switching takes effect at once and can be undone here at any time. A service shows only once
-        its key is set (docs/deploy.md, "Amazon SES"). Until a choice is saved, the site uses{' '}
+        its key is set in Setup below. Until a choice is saved, the site uses{' '}
         {PROVIDER_NAMES[defaultEmailProvider()]} (EMAIL_PROVIDER in wrangler.jsonc).
       </p>
     </section>
@@ -194,6 +266,140 @@ const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
           </Button>
         </div>
       </form>
+    </section>
+
+    <section class="admin-panel grid gap-4" id="setup" aria-labelledby="setup-title">
+      <div>
+        <h2 id="setup-title" class="text-lg">
+          Setup
+        </h2>
+        <p class="mt-1 text-sm text-muted">
+          Everything Resend and Amazon SES need, set here. A value saved here wins over the one in
+          Cloudflare (Worker variables and secrets); clear it to go back to Cloudflare's. Secrets
+          are never shown again once saved: type a new one to replace it.
+        </p>
+      </div>
+      {(['general', 'resend', 'ses'] as const).map((group) => (
+        <details class="rounded-lg border border-line p-4" open={setupGroup === group || undefined}>
+          <summary class="cursor-pointer font-semibold text-navy">
+            {GROUP_NAMES[group]}
+            <span class="ml-2 text-sm font-normal text-muted">
+              {group === 'general'
+                ? setup.EMAIL_FROM || 'not set'
+                : ready[group]
+                  ? `ready${group === current ? ', sends now' : ''}`
+                  : 'no key yet'}
+            </span>
+          </summary>
+          {group === 'resend' && (
+            <div class="mt-3 grid gap-2 text-sm">
+              <p>
+                <strong>Webhook address</strong> (Resend &gt; Webhooks &gt; Add webhook, events: all
+                the email.* ones), for Reports &gt; Emails:
+              </p>
+              <p class="flex flex-wrap items-center gap-2">
+                <code class="break-all">{resendWebhookUrl}</code>
+                <Button type="button" variant="secondary" size="sm" data-copy={resendWebhookUrl}>
+                  Copy
+                </Button>
+              </p>
+              <p class="text-muted">
+                Then copy the webhook's signing secret into the box below. For opens and clicks:
+                Resend &gt; Domains &gt; the sending domain &gt; Open and Click tracking on.
+              </p>
+            </div>
+          )}
+          {group === 'ses' && (
+            <div class="mt-3 grid gap-2 text-sm">
+              <p>
+                <strong>SNS subscription address</strong> (AWS &gt; SNS &gt; the topic &gt; Create
+                subscription, protocol HTTPS), for bounces, spam complaints and Reports &gt; Emails:
+              </p>
+              {eventsUrl ? (
+                <p class="flex flex-wrap items-center gap-2">
+                  <code class="break-all">{eventsUrl}</code>
+                  <Button type="button" variant="secondary" size="sm" data-copy={eventsUrl}>
+                    Copy
+                  </Button>
+                </p>
+              ) : (
+                <p class="text-muted">Generate a notifications key first (below).</p>
+              )}
+              <form method="post">
+                <input type="hidden" name="intent" value="events-key" />
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  size="sm"
+                  data-confirm={
+                    eventsUrl
+                      ? 'Make a new key? The address above stops working: SNS must get the new one.'
+                      : undefined
+                  }
+                >
+                  {eventsUrl ? 'Generate a new notifications key' : 'Generate a notifications key'}
+                </Button>
+              </form>
+              <p class="text-muted">
+                For the full report (sends, deliveries, opens, clicks): SES &gt; Configuration sets
+                &gt; Create set, add an event destination to the same SNS topic with all event
+                types, and type the set's name below.
+              </p>
+            </div>
+          )}
+          <form method="post" class="mt-4 grid gap-4" autocomplete="off">
+            <input type="hidden" name="intent" value="setup" />
+            <input type="hidden" name="group" value={group} />
+            {fields
+              .filter((f) => f.group === group)
+              .map((f) => (
+                <div class="grid gap-1">
+                  <FormField
+                    name={f.key}
+                    label={f.label}
+                    type={f.secret ? 'password' : f.number ? 'number' : 'text'}
+                    autocomplete={f.secret ? 'new-password' : 'off'}
+                    value={
+                      f.secret
+                        ? ''
+                        : setupGroup === group && typed[f.key] !== undefined
+                          ? typed[f.key]
+                          : f.source === 'admin'
+                            ? f.shown
+                            : ''
+                    }
+                    placeholder={
+                      f.secret
+                        ? f.source === 'none'
+                          ? f.placeholder
+                          : `Set (${f.shown}). Type a new one to replace it.`
+                        : f.source === 'worker'
+                          ? f.shown
+                          : f.placeholder && `For example ${f.placeholder}`
+                    }
+                    hint={`${f.hint} Now: ${SOURCE[f.source]}${!f.secret && f.source === 'worker' ? ` (${f.shown})` : ''}.`}
+                  />
+                  {f.source === 'admin' && (
+                    <label class="flex items-center gap-2 text-xs text-muted">
+                      <input
+                        type="checkbox"
+                        name={`${f.key}__remove`}
+                        class="size-4 accent-brand"
+                      />
+                      Remove the value saved here
+                      {f.secret ? ' (Cloudflare’s applies again, if any)' : ''}
+                    </label>
+                  )}
+                </div>
+              ))}
+            <div>
+              <Button type="submit" size="sm">
+                Save {GROUP_NAMES[group]}
+              </Button>
+            </div>
+          </form>
+        </details>
+      ))}
     </section>
 
     <section class="admin-panel grid gap-3">
@@ -245,16 +451,6 @@ const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
           </table>
         </div>
       )}
-      <details class="text-sm">
-        <summary class="cursor-pointer">Address for SES notifications (SNS subscription)</summary>
-        {eventsUrl ? (
-          <p class="mt-2 font-mono text-xs break-all">{eventsUrl}</p>
-        ) : (
-          <p class="mt-2 text-muted">
-            Add the secret SES_EVENTS_KEY to the Worker first (docs/deploy.md, "Amazon SES").
-          </p>
-        )}
-      </details>
     </section>
   </div>
 </AdminLayout>
