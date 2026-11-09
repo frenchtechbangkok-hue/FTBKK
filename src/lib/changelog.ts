@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.03',
+    date: '2026-11-09',
+    title: 'Write automatic emails in Markdown',
+    summary:
+      'In Automatic emails the message can now use Markdown: **bold**, headings, lists and links (with an Insert link button), and the preview updates as you type. The test email and every real email show the formatting; messages written in plain text look exactly as before.',
+  },
+  {
     version: '26.11.02',
     date: '2026-11-09',
     title: 'Set up Resend and Amazon SES from the admin',

@@ -60,6 +60,7 @@ if (Astro.request.method === 'POST' && !claimed) {
       to: parsed.data.email,
       subject: w.subject,
       paragraphs: w.paragraphs,
+      bodyHtml: w.bodyHtml,
       action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/claim/verify?token=${token}`) },
     });
     sent = true;

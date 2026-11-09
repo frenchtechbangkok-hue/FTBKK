@@ -170,6 +170,7 @@ export async function sendModeratorDigest(now: Date) {
     to: await adminNotifyEmails(),
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     details: [
       ['New listings', String(q.pendingOrgs.length)],
       ['Owner changes', String(q.changes.length)],

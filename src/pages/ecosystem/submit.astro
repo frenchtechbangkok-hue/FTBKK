@@ -81,6 +81,7 @@ if (isPost) {
         to: d.ownerEmail,
         subject: w.subject,
         paragraphs: w.paragraphs,
+        bodyHtml: w.bodyHtml,
         action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/verify?token=${token}`) },
       });
       done = d.ownerEmail;

@@ -87,6 +87,7 @@ if (Astro.request.method === 'POST' && row && org) {
         to: await adminNotifyEmails(),
         subject: w.subject,
         paragraphs: w.paragraphs,
+        bodyHtml: w.bodyHtml,
         details: [
           [
             'Contact',
@@ -154,6 +155,7 @@ if (Astro.request.method === 'POST' && row && org) {
             to: await adminNotifyEmails(),
             subject: w.subject,
             paragraphs: w.paragraphs,
+            bodyHtml: w.bodyHtml,
             action: { label: w.buttonLabel, url: siteUrl('/admin/ecosystem') },
           });
         }

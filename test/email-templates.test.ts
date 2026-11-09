@@ -11,6 +11,7 @@ import {
   placeholdersIn,
   renderTemplate,
   sampleEmail,
+  sampleVars,
   splitParagraphs,
   templateSchema,
   defaultText,
@@ -33,8 +34,10 @@ const event = {
 } as unknown as Event;
 const r = { name: 'Ann', email: 'ann@x.com', token: 'tok' };
 const vars = eventVars(event, r.name);
+/** The words of a rendered email without its HTML version (checked in "Markdown messages"). */
+const words = ({ bodyHtml: _html, ...rest }: ReturnType<typeof applyTemplate>) => rest;
 const t = (key: keyof typeof EMAIL_TEMPLATES, v: Record<string, string> = vars) =>
-  applyTemplate(EMAIL_TEMPLATES[key], null, v);
+  words(applyTemplate(EMAIL_TEMPLATES[key], null, v));
 
 describe('fillPlaceholders', () => {
   it('fills known placeholders and leaves unknown ones as typed', () => {
@@ -215,12 +218,12 @@ describe('default templates', () => {
       const m = sampleEmail(def, defaultText(def), 'me@x.com');
       expect(m.subject).not.toMatch(/\{\w+\}/);
       expect(!!m.action).toBe(def.buttonLabel !== undefined);
-      expect(renderEmail(m).html).toContain(m.paragraphs[0]!.replace(/'/g, '&#39;'));
+      expect(renderEmail(m).html).toContain(m.paragraphs[0]!.split('\n')[0]!);
     }
   });
 
   it('falls back to the default when the database cannot be read', async () => {
-    expect(await renderTemplate('event.reminder', vars)).toEqual(t('event.reminder'));
+    expect(words(await renderTemplate('event.reminder', vars))).toEqual(t('event.reminder'));
   });
 });
 
@@ -267,13 +270,13 @@ describe('edited templates', () => {
       { subject: ' ', body: '\n\n', buttonLabel: '' },
       vars,
     );
-    expect(w).toEqual(t('event.cancelled'));
+    expect(words(w)).toEqual(t('event.cancelled'));
   });
 });
 
 describe('directory, team and admin emails', () => {
   const d = (key: keyof typeof EMAIL_TEMPLATES, v: TemplateVars) =>
-    applyTemplate(EMAIL_TEMPLATES[key], null, v);
+    words(applyTemplate(EMAIL_TEMPLATES[key], null, v));
   const org = 'Acme';
 
   it('reproduce the wording they had before they became editable', () => {
@@ -472,7 +475,7 @@ describe('directory, team and admin emails', () => {
 
 describe('membership emails', () => {
   const d = (key: keyof typeof EMAIL_TEMPLATES, v: TemplateVars) =>
-    applyTemplate(EMAIL_TEMPLATES[key], null, v);
+    words(applyTemplate(EMAIL_TEMPLATES[key], null, v));
   const intro =
     "Welcome, Ann! You are now a member of La French Tech Bangkok. Membership is free; we'll ask you to confirm it once a year.";
   const outro =
@@ -563,5 +566,88 @@ describe('list placeholders', () => {
     const m = sampleEmail(def, defaultText(def));
     expect(m.paragraphs.length).toBe(3);
     expect(m.paragraphs[1]).toMatch(/^Renewal due: /);
+  });
+});
+
+describe('Markdown messages', () => {
+  const def = EMAIL_TEMPLATES['member.confirm'];
+  const origin = 'https://site.test';
+  const md = (body: string, v: TemplateVars = { name: 'Ann' }) =>
+    applyTemplate(def, { subject: 'S', body, buttonLabel: 'Go' }, v, origin);
+  // The HTML the emails had before Markdown: one <p> per paragraph, line breaks as <br>.
+  const oldHtml = (paragraphs: string[]) =>
+    paragraphs.map((p) => `<p style="margin:0 0 12px">${p.replace(/\n/g, '<br>')}</p>`).join('');
+  const visible = (html: string) =>
+    html
+      .replace(/>\s+</g, '><')
+      .replace(/<br>\s*/g, '<br>')
+      .trim()
+      .replace(/&#39;|&#x27;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&');
+
+  it('leave every default plain-text email looking as before', () => {
+    for (const k of TEMPLATE_KEYS) {
+      const d = EMAIL_TEMPLATES[k];
+      const r = applyTemplate(d, null, sampleVars(d), origin);
+      expect(visible(r.bodyHtml), k).toBe(visible(oldHtml(r.paragraphs)));
+    }
+  });
+
+  it('render bold, headings, lists and links, with placeholders inside them', () => {
+    const r = md(
+      'Hi **{name}**,\n\n## Why it matters\n\n- Events\n- *News*\n\n[Your page]({link}) or [about](/about)',
+      { name: 'Ann', link: 'https://site.test/member?t=1&x=2' },
+    );
+    expect(r.bodyHtml).toContain('<strong>Ann</strong>');
+    expect(r.bodyHtml).toMatch(/<h2 style="[^"]+">Why it matters<\/h2>/);
+    expect(r.bodyHtml).toMatch(/<ul style="[^"]+">\s*<li style="[^"]+">Events<\/li>/);
+    expect(r.bodyHtml).toContain('<em>News</em>');
+    expect(r.bodyHtml).toContain('href="https://site.test/member?t=1&amp;x=2"');
+    expect(r.bodyHtml).toContain('href="https://site.test/about"');
+    // The plain-text version drops the marks and spells the links out.
+    expect(r.paragraphs).toEqual([
+      'Hi Ann,',
+      'Why it matters',
+      '- Events\n- News',
+      'Your page (https://site.test/member?t=1&x=2) or about (https://site.test/about)',
+    ]);
+  });
+
+  it('never read placeholder values as Markdown or HTML', () => {
+    const r = md('Dear {name},\n\n{reason}', {
+      name: '**Bob** <script>x</script>',
+      reason: 'line one\n# not a heading',
+    });
+    expect(r.bodyHtml).toContain('Dear **Bob** &lt;script&gt;x&lt;/script&gt;,');
+    expect(r.bodyHtml).toContain('line one<br># not a heading');
+    expect(r.bodyHtml).not.toContain('<h1');
+    expect(r.paragraphs).toEqual(['Dear **Bob** <script>x</script>,', 'line one\n# not a heading']);
+  });
+
+  it('only link a placeholder to a web or mail address', () => {
+    expect(md('[x]({link})', { link: 'javascript:alert(1)' }).bodyHtml).toContain('href="#"');
+    expect(md('[x]({link})', { link: '/member' }).bodyHtml).toContain(
+      'href="https://site.test/member"',
+    );
+  });
+
+  it('keep list placeholders as one paragraph per item and drop empty optional ones', () => {
+    const r = md('Hi\n\n{tasks}\n\n**{whatsapp}**', { tasks: ['One', 'Two'], whatsapp: '' });
+    expect(r.paragraphs).toEqual(['Hi', 'One', 'Two']);
+    expect(r.bodyHtml.match(/<p /g)).toHaveLength(3);
+    expect(r.bodyHtml).not.toContain('<strong>');
+  });
+
+  it('show in the test email and the preview', () => {
+    const m = sampleEmail(def, {
+      subject: 'S',
+      body: '## Welcome\n\n**Hi** {name}',
+      buttonLabel: 'Go',
+    });
+    const html = renderEmail(m).html;
+    expect(html).toMatch(/<h2 style="[^"]+">Welcome<\/h2>/);
+    expect(html).toContain('<strong>Hi</strong> Camille Martin');
+    expect(renderEmail(m).text).toContain('Welcome\n\nHi Camille Martin');
   });
 });

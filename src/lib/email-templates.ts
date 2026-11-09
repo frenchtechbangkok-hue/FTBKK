@@ -9,6 +9,9 @@ import { getDb } from '../db';
 import { emailTemplates } from '../db/schema';
 import type { EmailMessage } from './email';
 import { formatEventDate } from './format';
+import { renderMarkdown } from './markdown';
+import { markdownText, styleHtml } from './email-markdown';
+import { siteOrigin } from './site';
 
 export type TemplateGroup =
   'Events' | 'Ecosystem' | 'Membership' | 'Community' | 'Privacy' | 'Admin notifications';
@@ -41,7 +44,7 @@ export interface EmailTemplateDef {
   /** When it goes out. */
   trigger: string;
   subject: string;
-  /** Plain text paragraphs, a blank line between them. */
+  /** Markdown (plain text works as before), a blank line between paragraphs. */
   body: string;
   /** Only for emails with a button. */
   buttonLabel?: string;
@@ -65,7 +68,10 @@ export interface EmailText {
 
 export interface RenderedTemplate {
   subject: string;
+  /** The plain-text version: Markdown marks taken out, one entry per paragraph. */
   paragraphs: string[];
+  /** The HTML version of the message (Markdown, inline-styled), for EmailMessage.bodyHtml. */
+  bodyHtml: string;
   /** '' when the email has no button. */
   buttonLabel: string;
 }
@@ -994,11 +1000,47 @@ export type TemplateVars = Record<string, string | readonly string[]>;
 const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k);
 const STANDALONE = /^\{([A-Za-z][\w-]*)\}$/;
 
-/** The words of an email: the edited text (or the default) with its placeholders filled. */
+const escHtml = (s: string) =>
+  s.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
+  );
+
+/** Stands for a placeholder value while the Markdown is rendered (letters only: never styled). */
+const token = (i: number) => `ftbkkph${i}z`;
+const TOKEN = /ftbkkph(\d+)z/g;
+
+/**
+ * The message's Markdown as email HTML. Placeholder values go in after the Markdown is rendered,
+ * HTML-escaped with their line breaks kept, so a name or a typed reason is never read as
+ * Markdown or HTML. In a link target ([text]({url})) a value must be a web or mailto address.
+ */
+function messageHtml(md: string, values: string[], origin: string) {
+  const html = styleHtml(renderMarkdown(md, { breaks: true }), origin);
+  return html
+    .replace(/\b(href|src)="([^"]*)"/g, (all, attr: string, url: string) => {
+      if (!url.includes('ftbkkph')) return all;
+      const full = url.replace(TOKEN, (_m, i: string) => values[Number(i)] ?? '').trim();
+      const safe = /^(https?:|mailto:|tel:)/i.test(full)
+        ? full
+        : full.startsWith('/') && !full.startsWith('//')
+          ? `${origin}${full}`
+          : '#';
+      return `${attr}="${escHtml(safe)}"`;
+    })
+    .replace(TOKEN, (_m, i: string) => escHtml(values[Number(i)] ?? '').replace(/\n/g, '<br>'));
+}
+
+/**
+ * The words of an email: the edited text (or the default) with its placeholders filled. The
+ * message is Markdown: `bodyHtml` is the HTML version, `paragraphs` the plain-text one. A plain
+ * text message (no Markdown marks) looks as it always did: paragraphs, line breaks kept.
+ */
 export function applyTemplate(
   def: EmailTemplateDef,
   text: EmailText | null | undefined,
   vars: TemplateVars,
+  origin: string = siteOrigin().origin,
 ): RenderedTemplate {
   const t = text ?? defaultText(def);
   const flat = (sep: string) =>
@@ -1008,18 +1050,36 @@ export function applyTemplate(
   const inSubject = flat(', ');
   const inBody = flat('\n');
   const source = splitParagraphs(t.body);
-  const paragraphs = (source.length ? source : splitParagraphs(def.body)).flatMap((p) => {
+  const values: string[] = [];
+  const hold = (v: string) => token(values.push(v) - 1);
+  const paragraphs: string[] = [];
+  const md: string[] = [];
+  for (const p of source.length ? source : splitParagraphs(def.body)) {
     const k = STANDALONE.exec(p)?.[1];
     const v = k && has(vars, k) ? vars[k] : undefined;
-    return v !== undefined && typeof v !== 'string' ? [...v] : [fillPlaceholders(p, inBody)];
-  });
-  // An optional placeholder left empty (e.g. {whatsapp} with no link) leaves no blank paragraph.
-  const filled = paragraphs.filter((p) => p.trim());
+    if (v !== undefined && typeof v !== 'string') {
+      // A list on a line of its own: one paragraph per item.
+      for (const item of v) {
+        if (!item.trim()) continue;
+        paragraphs.push(item);
+        md.push(hold(item));
+      }
+      continue;
+    }
+    // An optional placeholder left empty (e.g. {whatsapp} with no link) leaves no blank paragraph.
+    const plain = fillPlaceholders(markdownText(p, origin), inBody);
+    if (!plain.trim()) continue;
+    paragraphs.push(plain);
+    md.push(
+      p.replace(PLACEHOLDER, (m, key: string) => (has(inBody, key) ? hold(inBody[key]!) : m)),
+    );
+  }
   return {
     subject:
       oneLine(fillPlaceholders(t.subject, inSubject)) ||
       oneLine(fillPlaceholders(def.subject, inSubject)),
-    paragraphs: filled,
+    paragraphs,
+    bodyHtml: messageHtml(md.join('\n\n'), values, origin),
     buttonLabel:
       def.buttonLabel === undefined
         ? ''
@@ -1060,6 +1120,7 @@ export function sampleEmail(def: EmailTemplateDef, t: EmailText, to = ''): Email
     to,
     subject: r.subject,
     paragraphs: r.paragraphs,
+    bodyHtml: r.bodyHtml,
     ...rest,
     action: r.buttonLabel ? { label: r.buttonLabel, url: buttonUrl ?? SITE } : undefined,
   };

@@ -179,6 +179,7 @@ export async function requestMembership(
     to: sendTo,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: {
       label: w.buttonLabel,
       url: siteUrl(`/member/confirm?token=${encodeURIComponent(token)}${then}`),
@@ -274,6 +275,7 @@ export async function notifyNewMember(m: Member, event: string | null) {
     replyTo: m.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     details,
     action: { label: w.buttonLabel, url: siteUrl('/admin/members') },
   });
@@ -301,6 +303,7 @@ async function sendWelcome(m: Member, link: string) {
     to: m.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl(memberPagePath(link)) },
     links: whatsapp ? [{ label: 'Join the WhatsApp community', url: whatsapp }] : undefined,
   });
@@ -427,6 +430,7 @@ export async function sendMemberLink(m: Member, repeat = false) {
     to: m.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl(memberPagePath(token)) },
     footer: 'The link works for 30 days.',
   });
@@ -645,6 +649,7 @@ export async function inviteToJoin(
       to: c.email!,
       subject: w.subject,
       paragraphs: w.paragraphs,
+      bodyHtml: w.bodyHtml,
       action: {
         label: w.buttonLabel,
         url: siteUrl(`/member/claim?token=${encodeURIComponent(token)}`),
@@ -720,6 +725,7 @@ export async function inviteForEvent(
     to: sendTo,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: {
       label: w.buttonLabel,
       url: siteUrl(
@@ -807,6 +813,7 @@ async function sendRenewalEmail(m: Member, key: 'member.renewal' | 'member.lapse
     to: m.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: {
       label: w.buttonLabel,
       url: siteUrl(`/member/renew?token=${encodeURIComponent(token)}`),

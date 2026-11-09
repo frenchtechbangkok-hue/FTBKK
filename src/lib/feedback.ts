@@ -54,6 +54,7 @@ export function feedbackEmail(
     to: r.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     choices: {
       question: 'Your rating',
       options: RATINGS.map((n) => ({

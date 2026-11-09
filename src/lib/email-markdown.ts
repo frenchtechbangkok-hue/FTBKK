@@ -1,4 +1,5 @@
-// Markdown messages in emails (Email the community): the text is rendered like the site's
+// Markdown messages in emails (Email the community; Automatic emails use styleHtml and
+// markdownText through email-templates.ts): the text is rendered like the site's
 // Markdown (same sanitiser), then every tag gets inline styles, since email clients ignore
 // stylesheets. Lines such as {{event: slug}} or {{post: slug}} become a card for that event or
 // blog post, built with tables so it holds up in Gmail, Outlook and Apple Mail.
@@ -70,7 +71,7 @@ const STYLES: Record<string, string> = {
 };
 
 /** Absolute links and image sources (uploaded images are /media/…), plus inline styles. */
-function styleHtml(html: string, origin: string) {
+export function styleHtml(html: string, origin: string) {
   return html
     .replace(/\b(href|src)="\/(?!\/)/g, `$1="${origin}/`)
     .replace(/<(\w+)(\s[^>]*)?>/g, (all, tag: string, attrs = '') => {
@@ -83,7 +84,7 @@ function styleHtml(html: string, origin: string) {
 }
 
 /** Plain-text version of a Markdown chunk: links as "text (url)", images as their URL. */
-function markdownText(md: string, origin: string) {
+export function markdownText(md: string, origin: string) {
   const abs = (u: string) => (u.startsWith('/') && !u.startsWith('//') ? `${origin}${u}` : u);
   return md
     .replace(/!\[([^\]]*)\]\(([^)\s]+)[^)]*\)/g, (_a, alt: string, u: string) =>

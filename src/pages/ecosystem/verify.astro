@@ -38,6 +38,7 @@ if (Astro.request.method === 'POST') {
       to: await adminNotifyEmails(),
       subject: w.subject,
       paragraphs: w.paragraphs,
+      bodyHtml: w.bodyHtml,
       details: [
         ['Category', org.category],
         ['Website', org.website ?? '-'],

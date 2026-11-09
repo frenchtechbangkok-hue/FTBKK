@@ -97,6 +97,7 @@ export async function handleContactForm(
       replyTo: data.email,
       subject: w.subject,
       paragraphs: w.paragraphs,
+      bodyHtml: w.bodyHtml,
       details: [
         ['From', `${data.name} <${data.email}>`],
         ['Company', data.company ?? '-'],

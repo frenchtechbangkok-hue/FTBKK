@@ -449,6 +449,7 @@ export async function sendConfirmation(
     to: r.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     details: [...eventDetails(e, r.guests), ...sp.details],
     logos: sp.logos,
     action: map && !waitlist && w.buttonLabel ? { label: w.buttonLabel, url: map } : undefined,
@@ -470,6 +471,7 @@ export async function sendPromotion(e: Event, r: RegistrationRow) {
     to: r.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     details: [...eventDetails(e, r.guests), ...sp.details],
     logos: sp.logos,
     links: [
@@ -495,6 +497,7 @@ export function reminderEmail(
     to: r.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     details: [...eventDetails(e, r.guests), ...sp.details],
     logos: sp.logos,
     action: map && w.buttonLabel ? { label: w.buttonLabel, url: map } : undefined,
@@ -538,6 +541,7 @@ export function eventCancelledEmail(
     to: r.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl('/events') },
     dataUrl: r.token ? myDataUrl(r.token) : undefined,
   };

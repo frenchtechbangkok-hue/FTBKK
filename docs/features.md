@@ -393,8 +393,13 @@ action gets its sentence there (unknown ones still read as words).
 **Automatic emails** (`/admin/emails`) lists the emails the site sends on its own, grouped (Events,
 Ecosystem, Membership, Community, Privacy, Admin notifications), each with who receives it, when it goes out and whether its text is the
 default or edited (when, by whom). Opening one edits its subject, message and button label, with
-placeholders such as `{name}`, `{event}`, `{date}` and `{venue}`, a preview in the real email
-layout with sample values, **Send me a test** and **Back to the default text**. Only the words
+placeholders such as `{name}`, `{event}`, `{date}` and `{venue}`. The message is Markdown
+(**bold**, _italic_, `##` headings, `-` lists, links; a plain-text message looks as it always
+did) and placeholders work inside it, even in bold or as a link target (`[my page]({url})`);
+their values are never read as Markdown, so a name with `*` stays as typed. The HTML version is
+inline-styled like Email the community (`src/lib/email-markdown.ts`), and the plain-text version
+drops the marks and spells links out. There is a live preview in the real email layout with
+sample values (`/api/admin/email-template-preview`), **Send me a test** and **Back to the default text**. Only the words
 are editable: dates, venue, logos, the ticket, links and attachments stay in the code. Edits are
 rows in the `email_templates` table; without a row (or if the table can't be read) the built-in
 default from `src/lib/email-templates.ts` is used. Every automatic email is a template: the

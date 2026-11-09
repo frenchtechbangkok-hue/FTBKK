@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import FormField from '../../../components/FormField.astro';
+import MarkdownEditor from '../../../components/admin/MarkdownEditor.astro';
 import Button from '../../../components/Button.astro';
 import Alert from '../../../components/Alert.astro';
 import Badge from '../../../components/Badge.astro';
@@ -190,15 +191,18 @@ const hasButton = def.buttonLabel !== undefined;
           value={values.subject}
           error={errors.subject}
         />
-        <FormField
+        <MarkdownEditor
           name="body"
           label="Message"
-          required
-          rows={10}
+          rows={12}
           maxlength={5000}
           value={values.body}
           error={errors.body}
-          hint="Plain text. Leave a blank line between paragraphs."
+          breaks
+          uploads={false}
+          previewTab={false}
+          insertedNote="Inserted. The preview shows how it looks."
+          hint="Markdown: **bold**, *italic*, ## heading, - list, [link text](https://…). Leave a blank line between paragraphs; plain text works as before. Placeholders work anywhere, even in bold or in a link."
         />
         {hasButton && (
           <FormField
@@ -298,15 +302,19 @@ const hasButton = def.buttonLabel !== undefined;
         Preview
       </h2>
       <p class="mt-1 text-sm text-muted">
-        With sample values. Click Preview to see your changes before saving.
+        With sample values. It follows your typing; nothing is saved until you click Save.
       </p>
       <p class="mt-3 text-sm">
         <span class="text-muted">Subject:</span>{' '}
-        <span class="font-semibold">{sampleEmail(def, values).subject}</span>
+        <span class="font-semibold" data-preview-subject>
+          {sampleEmail(def, values).subject}
+        </span>
       </p>
       <iframe
         title={`Preview of the email: ${def.label}`}
         srcdoc={preview}
+        data-preview-frame
+        data-key={key}
         sandbox=""
         loading="lazy"
         class="mt-3 h-[40rem] w-full rounded-lg border border-line bg-paper"
@@ -316,6 +324,45 @@ const hasButton = def.buttonLabel !== undefined;
 </AdminLayout>
 
 <script>
+  // Live preview: the email is rebuilt on the server (same code as the real send) as you type.
+  {
+    const form = document.querySelector<HTMLFormElement>('[data-template-form]');
+    const frame = document.querySelector<HTMLIFrameElement>('[data-preview-frame]');
+    const subject = document.querySelector<HTMLElement>('[data-preview-subject]');
+    if (form && frame) {
+      const field = (n: string) =>
+        form.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name=${n}]`)?.value ?? null;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let seq = 0;
+      const refresh = async () => {
+        const mine = ++seq;
+        try {
+          const res = await fetch('/api/admin/email-template-preview', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              key: frame.dataset.key,
+              subject: field('subject') ?? '',
+              body: field('body') ?? '',
+              buttonLabel: field('buttonLabel'),
+            }),
+          });
+          if (!res.ok || !res.headers.get('content-type')?.includes('json')) return;
+          const data = (await res.json()) as { html: string; subject: string };
+          if (mine !== seq) return;
+          frame.srcdoc = data.html;
+          if (subject) subject.textContent = data.subject || '…';
+        } catch {
+          // Offline or signed out: the Preview button still works.
+        }
+      };
+      form.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(refresh, 400);
+      });
+    }
+  }
+
   // Placeholder buttons add {key} at the cursor of the last focused field (the message by default).
   const form = document.querySelector<HTMLFormElement>('[data-template-form]');
   let target: HTMLInputElement | HTMLTextAreaElement | null =

@@ -62,6 +62,7 @@ if (Astro.request.method === 'POST') {
           to: email,
           subject: w.subject,
           paragraphs: w.paragraphs,
+          bodyHtml: w.bodyHtml,
           action: { label: w.buttonLabel, url: link },
         });
       }

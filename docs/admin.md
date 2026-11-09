@@ -752,8 +752,12 @@ and when:
 
 A **Default** badge means the text the site came with; **Edited** shows when and by whom.
 
-Open an email to change its **subject**, **message** (plain text, an empty line between
-paragraphs) and **button label**. Placeholders in braces are replaced in each email: `{name}`
+Open an email to change its **subject**, **message** and **button label**. The message is
+written in Markdown: `**bold**`, `*italic*`, `## Heading`, a line starting with `- ` for a
+list, `[link text](https://…)` (or **Insert link**), and an empty line between paragraphs. A
+message without any of these looks exactly as before, so plain text still works. Placeholders
+can go anywhere, even in bold (`**{name}**`) or as a link (`[your page]({url})`). The preview on
+the right follows your typing. Placeholders in braces are replaced in each email: `{name}`
 (the person's name), `{event}` (the event title), `{date}` (day and time), `{venue}` (venue and
 address), `{org}` (the organisation), `{reason}` (what the moderator typed when declining), and
 others per email. The list under the form shows which ones that email knows; click one to insert
@@ -766,7 +770,8 @@ no WhatsApp link) and `{next-events}` is "Coming up next:" with the next three e
 none is planned); when one is empty, its paragraph is simply left out. Put a list on a line of its own to get one paragraph per
 item. After Preview or a test, the page says "Not saved yet" and warns you before you leave.
 
-- **Preview** shows the email in its real layout with sample values, without saving.
+- **Preview** shows the email in its real layout with sample values, without saving (the preview
+  also updates by itself as you type).
 - **Send me a test** emails that preview to you, subject starting with "[Test]".
 - **Save** applies it to every email sent from then on.
 - **Back to the default text** drops your changes (it asks first).
