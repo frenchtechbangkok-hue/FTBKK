@@ -19,6 +19,14 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '1.112',
+    date: '2026-11-09',
+    pr: 127,
+    title: 'Email report shows Resend and Amazon SES',
+    summary:
+      "Reports > Emails now counts and lists both sending services side by side (emails sent, delivered, opened, clicked and the last update each one sent), so Resend's figures stay visible after the switch to Amazon SES, and the page explains what to set up when SES or Resend stops reporting.",
+  },
+  {
     version: '1.111',
     date: '2026-11-07',
     pr: 126,

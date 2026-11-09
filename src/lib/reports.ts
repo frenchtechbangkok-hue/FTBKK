@@ -14,7 +14,7 @@ import { memberReports } from './member-reports';
 import { emailProvider } from './email';
 import {
   emailRecordSpan,
-  emailsByProvider,
+  providerSources,
   emailsBySubject,
   emailTimeline,
   emailTotals,
@@ -272,6 +272,8 @@ export async function loadEmailReport(url: URL, now = new Date()) {
   const setup = {
     provider,
     resendWebhook: !!env.RESEND_WEBHOOK_SECRET,
+    /** SES bounces and complaints arrive (SNS subscription), even without a configuration set. */
+    sesFeedback: !!env.SES_EVENTS_KEY,
     sesEvents: !!env.SES_EVENTS_KEY && !!env.SES_CONFIGURATION_SET,
   };
   let span: { first: Date | null; last: Date | null } = { first: null, last: null };
@@ -289,12 +291,12 @@ export async function loadEmailReport(url: URL, now = new Date()) {
   }
   const period = parsePeriod(url.searchParams, now, span.first ?? now);
   const { unit, buckets } = periodBuckets(period);
-  const [totals, previous, timeline, subjects, providers, usage] = await Promise.all([
+  const [totals, previous, timeline, subjects, sources, usage] = await Promise.all([
     emailTotals(period),
     period.previous ? emailTotals(period.previous) : Promise.resolve(null),
     emailTimeline(period),
     emailsBySubject(period),
-    emailsByProvider(period),
+    providerSources(period),
     planUsage(provider, now),
   ]);
   const series = (pick: (t: (typeof timeline)[number]) => boolean) =>
@@ -316,7 +318,7 @@ export async function loadEmailReport(url: URL, now = new Date()) {
       openedSeries: series((t) => t.opened),
       clickedSeries: series((t) => t.clicked),
       subjects,
-      providers,
+      sources,
       usage,
     },
   };

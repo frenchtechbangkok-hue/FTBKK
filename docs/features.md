@@ -177,8 +177,10 @@ screen by screen for the team.
 - **Email report** (`/admin/reports/emails`, `src/lib/email-metrics.ts`): the fourth Reports
   tab shows what happened to the emails the site sent, with the same period picker: emails sent,
   delivered, opened and clicked (rates against delivered), bounced and marked as spam, each with
-  the change against the previous period, a chart per week or month, a split per provider while
-  both are used, and a table per subject (one community email, one event's reminders…). Neither
+  the change against the previous period, a chart per week or month, a **By provider** table that
+  always lists Resend and Amazon SES (emails sent, delivered, opened, clicked in the period, the last
+  update each one sent, and whether it is connected), so Resend's figures stay visible after the
+  switch to SES and a webhook that went quiet shows, and a table per subject (one community email, one event's reminders…). Neither
   provider has a statistics API (Resend's email list only gives each email's latest status and
   keeps 30 days), so the figures come from their webhooks into the `email_messages` table
   (migration 0041; one row per email with the first time each step happened, no recipient
