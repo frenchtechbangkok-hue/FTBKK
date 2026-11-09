@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.05',
+    date: '2026-11-09',
+    title: 'Old Wix links answered by Cloudflare',
+    summary:
+      "Links to the old Wix site (old posts, events and sponsor pages) are still sent to the right new page, and Cloudflare now remembers each of these redirects for a day, so repeat visits and search engines get them straight from Cloudflare's data centres without waking the website.",
+  },
+  {
     version: '26.11.04',
     date: '2026-11-09',
     title: "Faster pages with Cloudflare's edge cache",

@@ -90,7 +90,7 @@ too). Migrations must only add tables and columns. Other branches get a preview 
 settings, Access, Turnstile, email, social media, traffic report, edge cache, backups, domain)
 is in [docs/deploy.md](docs/deploy.md). Public pages are kept 60 seconds at Cloudflare's edge
 (`"cache": { "enabled": true }` in `wrangler.jsonc`); admin, member pages, forms and API answers
-never are (`src/lib/edge-cache.ts`).
+never are (`src/lib/edge-cache.ts`). Old Wix links get a 301 that the edge keeps a day.
 
 ## Contributing
 

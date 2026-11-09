@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EDGE_HEADER, PUBLIC_PAGE, edgeSafe } from '../src/lib/edge-cache';
+import { EDGE_HEADER, PUBLIC_PAGE, edgeSafe, oldLinkRedirect } from '../src/lib/edge-cache';
 
 const HOST = 'french-tech-bangkok.com';
 const req = (url = `https://${HOST}/events`) => new Request(url);
@@ -52,5 +52,27 @@ describe('edgeSafe', () => {
     expect(cc(r)).toBe('private, no-store');
     expect(r.headers.has(EDGE_HEADER)).toBe(false);
     expect(await r.text()).toBe('x');
+  });
+});
+
+describe('oldLinkRedirect', () => {
+  it('lets the edge keep the 301 of an old Wix link on the public address only', () => {
+    const r = oldLinkRedirect('/blog/hello', true);
+    expect(r.status).toBe(301);
+    expect(r.headers.get('Location')).toBe('/blog/hello');
+    expect(edgeSafe(req(`https://${HOST}/post/hello`), r, HOST)).toBe(r);
+    const www = edgeSafe(
+      req(`https://www.${HOST}/post/hello`),
+      oldLinkRedirect('/blog/hello', true),
+      HOST,
+    );
+    expect(cc(www)).toBe('private, no-store');
+    expect(www.headers.has(EDGE_HEADER)).toBe(false);
+  });
+
+  it('never keeps the www redirect or a moved admin screen', () => {
+    const r = oldLinkRedirect(`https://${HOST}/events`, false);
+    expect(cc(edgeSafe(req(), r, HOST))).toBe('private, no-store');
+    expect(r.headers.has(EDGE_HEADER)).toBe(false);
   });
 });
