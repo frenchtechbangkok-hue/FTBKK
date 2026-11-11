@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../../lib/edge-cache';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Section from '../../components/Section.astro';
 import OrgFormFields from '../../components/OrgFormFields.astro';
@@ -81,18 +82,20 @@ if (isPost) {
         to: d.ownerEmail,
         subject: w.subject,
         paragraphs: w.paragraphs,
+        bodyHtml: w.bodyHtml,
         action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/verify?token=${token}`) },
       });
       done = d.ownerEmail;
     }
   }
 }
+// Kept at Cloudflare's edge except in this case (lib/edge-cache.ts).
+if (!!isPost) privatePage(Astro);
 ---
 
 <BaseLayout
   title="Get listed in the ecosystem directory"
   description="Add your startup, company, school or organisation to La French Tech Bangkok's directory."
-  cache={!isPost}
 >
   <Section>
     <div class="max-w-2xl">

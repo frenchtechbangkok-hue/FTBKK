@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../../../lib/edge-cache';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
@@ -87,6 +88,7 @@ if (Astro.request.method === 'POST' && row && org) {
         to: await adminNotifyEmails(),
         subject: w.subject,
         paragraphs: w.paragraphs,
+        bodyHtml: w.bodyHtml,
         details: [
           [
             'Contact',
@@ -154,6 +156,7 @@ if (Astro.request.method === 'POST' && row && org) {
             to: await adminNotifyEmails(),
             subject: w.subject,
             paragraphs: w.paragraphs,
+            bodyHtml: w.bodyHtml,
             action: { label: w.buttonLabel, url: siteUrl('/admin/ecosystem') },
           });
         }
@@ -168,9 +171,11 @@ const ownersList = [
   '',
   '',
 ].slice(0, 3);
+// Personal or one-off page: never kept by browsers or Cloudflare's edge (lib/edge-cache.ts).
+privatePage(Astro);
 ---
 
-<BaseLayout title="Manage your listing" noindex cache={false}>
+<BaseLayout title="Manage your listing" noindex>
   <Section>
     <div class="max-w-2xl">
       <a href="/ecosystem" class="text-sm text-accent">

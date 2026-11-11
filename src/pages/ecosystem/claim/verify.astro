@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../../../lib/edge-cache';
 import { and, eq } from 'drizzle-orm';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import Section from '../../../components/Section.astro';
@@ -40,15 +41,18 @@ if (Astro.request.method === 'POST') {
         to: await adminNotifyEmails(),
         subject: w.subject,
         paragraphs: w.paragraphs,
+        bodyHtml: w.bodyHtml,
         action: { label: w.buttonLabel, url: siteUrl('/admin/ecosystem') },
       });
       state = 'ok';
     }
   }
 }
+// Personal or one-off page: never kept by browsers or Cloudflare's edge (lib/edge-cache.ts).
+privatePage(Astro);
 ---
 
-<BaseLayout title="Confirm your claim" noindex cache={false}>
+<BaseLayout title="Confirm your claim" noindex>
   <Section>
     <div class="max-w-xl">
       <h1 class="text-3xl">Confirm your claim</h1>

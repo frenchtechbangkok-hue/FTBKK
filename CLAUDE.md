@@ -32,9 +32,11 @@ events, registrations and the ecosystem directory. Full plan: `docs/plan.md`. Ev
 - Old Wix URLs keep working through redirects.
 - Every feature PR also updates `docs/features.md` (the detail), `README.md` when the short summary
   changes, and `docs/admin.md` for admin features.
-- Every PR adds its entry at the top of `src/lib/changelog.ts` (Settings > Change history): next
-  version number, merge date, PR number, a short title and one plain-language sentence for the
-  team. If another PR merged first, renumber before merging (`npm test` checks the order).
+- Every change adds its entry at the top of `src/lib/changelog.ts` (Settings > Change history):
+  version YY.MM.XX (year, month, then the release number within that month from 01, e.g.
+  26.11.01; entries before November 2026 keep their old 1.N), release date, PR number when there
+  is one, a short title and one plain-language sentence for the team. If another change landed
+  first, renumber (`npm test` checks the numbering).
 - A new `audit(...)` action also gets its plain sentence in `src/lib/actions-log.ts` (Actions log).
 - Before saying a task is done: `npm run check` and `npm run build` pass. Commit at the end of each
   phase.

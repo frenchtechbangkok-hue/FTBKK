@@ -177,8 +177,10 @@ screen by screen for the team.
 - **Email report** (`/admin/reports/emails`, `src/lib/email-metrics.ts`): the fourth Reports
   tab shows what happened to the emails the site sent, with the same period picker: emails sent,
   delivered, opened and clicked (rates against delivered), bounced and marked as spam, each with
-  the change against the previous period, a chart per week or month, a split per provider while
-  both are used, and a table per subject (one community email, one event's reminders…). Neither
+  the change against the previous period, a chart per week or month, a **By provider** table that
+  always lists Resend and Amazon SES (emails sent, delivered, opened, clicked in the period, the last
+  update each one sent, and whether it is connected), so Resend's figures stay visible after the
+  switch to SES and a webhook that went quiet shows, and a table per subject (one community email, one event's reminders…). Neither
   provider has a statistics API (Resend's email list only gives each email's latest status and
   keeps 30 days), so the figures come from their webhooks into the `email_messages` table
   (migration 0041; one row per email with the first time each step happened, no recipient
@@ -230,7 +232,17 @@ screen by screen for the team.
   sent at `SES_SEND_RATE` per second. Test send through either provider. SES
   bounces and complaints arrive from SNS at `/api/ses-events?key=…` (handled in `src/worker.ts`
   before Astro), fill `email_suppressions` (migration 0040), and every send skips those
-  addresses; the page lists them with a Remove button. Setup: docs/deploy.md, section 6b.
+  addresses; the page lists them with a Remove button. **Setup** on the same page sets every
+  email value from the admin (`src/lib/email-setup.ts`): `EMAIL_FROM`, `RESEND_API_KEY`,
+  `RESEND_WEBHOOK_SECRET`, `EMAIL_DAILY_LIMIT`, `EMAIL_MONTHLY_LIMIT`, `AWS_SES_ACCESS_KEY_ID`,
+  `AWS_SES_SECRET_ACCESS_KEY`, `AWS_REGION`, `SES_SEND_RATE`, `SES_CONFIGURATION_SET`,
+  `SES_EVENTS_KEY` (with a Generate button) and `SES_EVENTS_TOPIC_ARN`, plus the Resend webhook
+  and SNS subscription addresses to copy. Values live in the `email_setup` table (migration
+  0043, kept out of `settings` because public pages read that one) and win over the Worker
+  variable or secret of the same name, read through `emailEnv()`; an empty admin value falls back
+  to the Worker's. Secrets are write-only (masked to their last four characters); the Actions log
+  records the names of the changed settings only. Setup outside the admin: docs/deploy.md,
+  section 6b.
 - **Member page** at `/member?token=…` (a reusable `member` link, 30 days, sent in every member
   email; no passwords): membership dates, the WhatsApp button, their events (coming up and past),
   their profile to edit, and **Leave**, which deletes the member row (event history stays until
@@ -381,8 +393,13 @@ action gets its sentence there (unknown ones still read as words).
 **Automatic emails** (`/admin/emails`) lists the emails the site sends on its own, grouped (Events,
 Ecosystem, Membership, Community, Privacy, Admin notifications), each with who receives it, when it goes out and whether its text is the
 default or edited (when, by whom). Opening one edits its subject, message and button label, with
-placeholders such as `{name}`, `{event}`, `{date}` and `{venue}`, a preview in the real email
-layout with sample values, **Send me a test** and **Back to the default text**. Only the words
+placeholders such as `{name}`, `{event}`, `{date}` and `{venue}`. The message is Markdown
+(**bold**, _italic_, `##` headings, `-` lists, links; a plain-text message looks as it always
+did) and placeholders work inside it, even in bold or as a link target (`[my page]({url})`);
+their values are never read as Markdown, so a name with `*` stays as typed. The HTML version is
+inline-styled like Email the community (`src/lib/email-markdown.ts`), and the plain-text version
+drops the marks and spells links out. There is a live preview in the real email layout with
+sample values (`/api/admin/email-template-preview`), **Send me a test** and **Back to the default text**. Only the words
 are editable: dates, venue, logos, the ticket, links and attachments stay in the code. Edits are
 rows in the `email_templates` table; without a row (or if the table can't be read) the built-in
 default from `src/lib/email-templates.ts` is used. Every automatic email is a template: the

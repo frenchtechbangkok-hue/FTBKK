@@ -3,6 +3,7 @@ import { asc, eq } from 'drizzle-orm';
 import { getDb } from '../../../../db';
 import { events, registrations } from '../../../../db/schema';
 import { toLocalInput } from '../../../../lib/admin';
+import { attendeeNotes } from '../../../../lib/registrations';
 
 // Admin only (guarded in middleware).
 const cell = (v: unknown) => {
@@ -11,18 +12,21 @@ const cell = (v: unknown) => {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
-export const GET: APIRoute = async ({ params }) => {
+export const GET: APIRoute = async ({ params, url }) => {
   const db = getDb();
   const [event] = await db
     .select()
     .from(events)
     .where(eq(events.id, Number(params.id)));
   if (!event) return new Response('Not found', { status: 404 });
-  const rows = await db
+  const all = await db
     .select()
     .from(registrations)
     .where(eq(registrations.eventId, event.id))
     .orderBy(asc(registrations.createdAt), asc(registrations.id));
+  // ?notes=1: "What attendees told us", only the people coming or waiting who left a note.
+  const onlyNotes = url.searchParams.get('notes') === '1';
+  const rows = onlyNotes ? attendeeNotes(all) : all;
   const header = [
     'Name',
     'Email',
@@ -61,7 +65,7 @@ export const GET: APIRoute = async ({ params }) => {
   return new Response(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${event.slug}-registrations.csv"`,
+      'Content-Disposition': `attachment; filename="${event.slug}-${onlyNotes ? 'notes' : 'registrations'}.csv"`,
     },
   });
 };

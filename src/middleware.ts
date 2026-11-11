@@ -3,6 +3,7 @@ import { env } from 'cloudflare:workers';
 import { legacyMatch, resolveLegacy } from './lib/redirects';
 import { checkAdmin } from './lib/auth';
 import { siteOrigin } from './lib/site';
+import { oldLinkRedirect, publicPageHeaders } from './lib/edge-cache';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1']);
 
@@ -20,7 +21,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (legacy || twin) {
     const to = legacy ? await resolveLegacy(legacy, env.DB) : pathname;
     const target = to.includes('#') ? to : `${to}${search}`;
-    return context.redirect(twin ? new URL(target, canonical).href : target, 301);
+    if (twin) return oldLinkRedirect(new URL(target, canonical).href, false);
+    // Old Wix links on the public address: Cloudflare's edge keeps the answer a day.
+    return oldLinkRedirect(target, !pathname.startsWith('/admin'));
   }
 
   // Trailing slash: /events/ -> /events
@@ -56,6 +59,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   const res = await next();
+  try {
+    publicPageHeaders(context.request, res);
+  } catch {
+    // Immutable headers (e.g. Response.redirect): edgeSafe() marks those private anyway.
+  }
   // Only the public address (SITE_URL) should be indexed: preview and version URLs of the Worker,
   // and the workers.dev address once the domain is live, tell search engines to stay away.
   if (context.url.host !== siteOrigin().host && !LOCAL_HOSTS.has(context.url.hostname)) {

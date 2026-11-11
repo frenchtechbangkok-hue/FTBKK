@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../../../lib/edge-cache';
 import { z } from 'zod';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import Section from '../../../components/Section.astro';
@@ -29,9 +30,11 @@ if (Astro.request.method === 'POST') {
     sent = true;
   }
 }
+// Personal or one-off page: never kept by browsers or Cloudflare's edge (lib/edge-cache.ts).
+privatePage(Astro);
 ---
 
-<BaseLayout title="Manage your listing" noindex cache={false}>
+<BaseLayout title="Manage your listing" noindex>
   <Section>
     <div class="max-w-xl">
       <a href="/ecosystem" class="text-sm text-accent">

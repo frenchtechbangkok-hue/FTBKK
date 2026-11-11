@@ -1,4 +1,4 @@
-import { env } from 'cloudflare:workers';
+import { emailEnv } from './email-setup';
 import { readResendEvent, verifyResendSignature } from './email-events';
 import { recordEmailEvent } from './email-metrics';
 import { recordFeedback } from './email-suppressions';
@@ -14,8 +14,8 @@ const text = (status: number, body: string) =>
 
 export async function handleResendEvents(request: Request) {
   if (request.method !== 'POST') return text(405, 'POST only');
-  const secret = env.RESEND_WEBHOOK_SECRET ?? '';
-  if (!secret) return text(503, 'Webhook not set up (RESEND_WEBHOOK_SECRET)');
+  const secret = (await emailEnv()).RESEND_WEBHOOK_SECRET;
+  if (!secret) return text(503, 'Webhook not set up (Admin > Email delivery > Setup)');
   const body = await request.text();
   if (body.length > 500_000) return text(413, 'Too large');
   const ok = await verifyResendSignature(

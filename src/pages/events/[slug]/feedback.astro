@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../../../lib/edge-cache';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import Section from '../../../components/Section.astro';
 import Alert from '../../../components/Alert.astro';
@@ -89,9 +90,11 @@ if (state === 'ok' && reg) {
   }
 }
 const firstName = reg?.name.split(/\s+/)[0] ?? '';
+// Personal or one-off page: never kept by browsers or Cloudflare's edge (lib/edge-cache.ts).
+privatePage(Astro);
 ---
 
-<BaseLayout title="Your feedback" noindex cache={false}>
+<BaseLayout title="Your feedback" noindex>
   <Section>
     <div class="max-w-xl">
       <h1 class="text-3xl">Your feedback</h1>

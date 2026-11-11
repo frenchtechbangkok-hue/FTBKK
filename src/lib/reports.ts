@@ -12,9 +12,10 @@ import {
 } from './event-stats';
 import { memberReports } from './member-reports';
 import { emailProvider } from './email';
+import { emailEnv } from './email-setup';
 import {
   emailRecordSpan,
-  emailsByProvider,
+  providerSources,
   emailsBySubject,
   emailTimeline,
   emailTotals,
@@ -268,11 +269,14 @@ export async function loadCloudflareUsageReport(now = new Date()) {
  * /api/resend-events; Amazon SES: /api/ses-events). Figures count the emails sent in the period.
  */
 export async function loadEmailReport(url: URL, now = new Date()) {
-  const provider = await emailProvider();
+  const e = await emailEnv();
+  const provider = await emailProvider(e);
   const setup = {
     provider,
-    resendWebhook: !!env.RESEND_WEBHOOK_SECRET,
-    sesEvents: !!env.SES_EVENTS_KEY && !!env.SES_CONFIGURATION_SET,
+    resendWebhook: !!e.RESEND_WEBHOOK_SECRET,
+    /** SES bounces and complaints arrive (SNS subscription), even without a configuration set. */
+    sesFeedback: !!e.SES_EVENTS_KEY,
+    sesEvents: !!e.SES_EVENTS_KEY && !!e.SES_CONFIGURATION_SET,
   };
   let span: { first: Date | null; last: Date | null } = { first: null, last: null };
   try {
@@ -289,12 +293,12 @@ export async function loadEmailReport(url: URL, now = new Date()) {
   }
   const period = parsePeriod(url.searchParams, now, span.first ?? now);
   const { unit, buckets } = periodBuckets(period);
-  const [totals, previous, timeline, subjects, providers, usage] = await Promise.all([
+  const [totals, previous, timeline, subjects, sources, usage] = await Promise.all([
     emailTotals(period),
     period.previous ? emailTotals(period.previous) : Promise.resolve(null),
     emailTimeline(period),
     emailsBySubject(period),
-    emailsByProvider(period),
+    providerSources(period),
     planUsage(provider, now),
   ]);
   const series = (pick: (t: (typeof timeline)[number]) => boolean) =>
@@ -316,7 +320,7 @@ export async function loadEmailReport(url: URL, now = new Date()) {
       openedSeries: series((t) => t.opened),
       clickedSeries: series((t) => t.clicked),
       subjects,
-      providers,
+      sources,
       usage,
     },
   };

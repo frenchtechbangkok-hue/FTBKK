@@ -170,7 +170,12 @@ describe('sesSendMany', () => {
     expect(res.ok).toBe(false);
     expect(res.sent).toBe(2);
     expect(res.error).toContain('not verified');
-    const first = calls[0]!;
+    // The emails of one second go out in parallel, so the calls can arrive in any order.
+    const toOf = async (r: Request) =>
+      ((await r.clone().json()) as { Destination: { ToAddresses: string[] } }).Destination
+        .ToAddresses[0];
+    const tos = await Promise.all(calls.map(toOf));
+    const first = calls[tos.indexOf('a@example.com')]!;
     expect(first.url).toBe('https://email.ap-southeast-1.amazonaws.com/v2/email/outbound-emails');
     expect(first.headers.get('authorization')).toMatch(
       /^AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE\/\d{8}\/ap-southeast-1\/ses\/aws4_request/,
@@ -221,7 +226,7 @@ describe('sendEmailBatch through SES', () => {
       m('b@example.com'),
     ]);
     expect(ok).toEqual({ ok: true, sent: 3, suppressed: 1 });
-    expect(sentTo).toEqual(['a@example.com', 'b@example.com']);
+    expect(sentTo.sort()).toEqual(['a@example.com', 'b@example.com']); // sent in parallel
 
     const failed = await sendEmailBatch([
       m('dead@example.com'),

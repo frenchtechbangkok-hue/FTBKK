@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../lib/edge-cache';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { guideMode, linkOnline } from '../lib/guides';
 import { getSettings } from '../lib/settings';
@@ -75,12 +76,13 @@ const mode = await guideMode(Astro, settings, '/expand-to-thailand');
 if (mode === 'hidden') return Astro.rewrite('/404');
 const preview = mode === 'preview';
 const showOther = linkOnline(settings, '/founders-guide');
+// Kept at Cloudflare's edge except in this case (lib/edge-cache.ts).
+if (!!preview) privatePage(Astro);
 ---
 
 <BaseLayout
   title="Expanding to Thailand"
   noindex={preview}
-  cache={!preview}
   description="La French Tech Bangkok's guide for established tech companies opening an office or a business in Thailand: entry models, BOI, Foreign Business License, visas for your team, selling, taxes and a launch checklist."
 >
   <GuideHero

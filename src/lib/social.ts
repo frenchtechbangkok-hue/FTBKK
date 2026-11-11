@@ -292,6 +292,7 @@ async function sendPostByHandEmail(
     to: row.createdBy,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     details: [
       ['Link', t.url],
       ...(t.imageUrl ? ([['Image', t.imageUrl]] as [string, string][]) : []),

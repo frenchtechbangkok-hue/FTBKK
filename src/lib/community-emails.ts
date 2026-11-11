@@ -444,7 +444,7 @@ export async function cardChoices(now = new Date()): Promise<CardChoice[]> {
  * page already sent today (UTC day, as Resend counts). 0 = no cap known.
  */
 export async function dailyAllowance(now = new Date()) {
-  const limit = providerLimits(await emailProvider()).daily;
+  const limit = (await providerLimits(await emailProvider())).daily;
   if (!limit) return { limit: 0, sentToday: 0 };
   const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const rows = await getDb()

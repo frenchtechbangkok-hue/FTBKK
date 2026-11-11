@@ -27,6 +27,7 @@ export async function sendNewsletterConfirmation(data: z.infer<typeof Newsletter
     to: data.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: {
       label: w.buttonLabel,
       url: siteUrl(newsletterConfirmPath(token, data.name)),

@@ -752,8 +752,12 @@ and when:
 
 A **Default** badge means the text the site came with; **Edited** shows when and by whom.
 
-Open an email to change its **subject**, **message** (plain text, an empty line between
-paragraphs) and **button label**. Placeholders in braces are replaced in each email: `{name}`
+Open an email to change its **subject**, **message** and **button label**. The message is
+written in Markdown: `**bold**`, `*italic*`, `## Heading`, a line starting with `- ` for a
+list, `[link text](https://…)` (or **Insert link**), and an empty line between paragraphs. A
+message without any of these looks exactly as before, so plain text still works. Placeholders
+can go anywhere, even in bold (`**{name}**`) or as a link (`[your page]({url})`). The preview on
+the right follows your typing. Placeholders in braces are replaced in each email: `{name}`
 (the person's name), `{event}` (the event title), `{date}` (day and time), `{venue}` (venue and
 address), `{org}` (the organisation), `{reason}` (what the moderator typed when declining), and
 others per email. The list under the form shows which ones that email knows; click one to insert
@@ -766,7 +770,8 @@ no WhatsApp link) and `{next-events}` is "Coming up next:" with the next three e
 none is planned); when one is empty, its paragraph is simply left out. Put a list on a line of its own to get one paragraph per
 item. After Preview or a test, the page says "Not saved yet" and warns you before you leave.
 
-- **Preview** shows the email in its real layout with sample values, without saving.
+- **Preview** shows the email in its real layout with sample values, without saving (the preview
+  also updates by itself as you type).
 - **Send me a test** emails that preview to you, subject starting with "[Test]".
 - **Save** applies it to every email sent from then on.
 - **Back to the default text** drops your changes (it asks first).
@@ -778,7 +783,7 @@ event's page) is written each time, so it is only listed. Every save and reset i
 ## Email delivery
 
 **Settings > Email delivery** shows which service sends the site's emails (Resend
-or Amazon SES) and whether each one has its key.
+or Amazon SES) and whether each one has its key, and is where both are set up.
 
 - **Sending service**: pick Resend or Amazon SES and press **Use this service**. It applies at
   once to every email (registrations, reminders, Email the community) and can be switched back
@@ -794,8 +799,22 @@ or Amazon SES) and whether each one has its key.
   whose owner marked an email as spam. Every email the site sends skips them, including Email the
   community and Email registrants, which then say how many people were skipped. **Remove** one
   only when you know the address works again.
-- **Address for SES notifications** is the URL to paste in the SNS subscription
-  (docs/deploy.md, section 6b).
+- **Setup** has one fold per part, each with its own **Save** button:
+  - **Sender**: the name and address every email comes from (`EMAIL_FROM`).
+  - **Resend**: the webhook address to paste in Resend > Webhooks (with a Copy button), the API
+    key, the webhook signing secret (`whsec_…`; a wrong one makes Resend show "401 Bad
+    signature" and Reports > Emails stays empty), and the plan's daily and monthly caps.
+  - **Amazon SES**: the SNS subscription address (Copy button) and **Generate a notifications
+    key** to make or replace the key in it, the access key ID and secret access key, the region
+    (ap-southeast-2), emails per second, the configuration set that feeds Reports > Emails, and
+    optionally the SNS topic ARN.
+
+  A value saved here wins over the one in Cloudflare (Worker variables and secrets); each box
+  says where the value in use comes from. Secrets are never shown again, only their last four
+  characters: type a new one to replace it, or tick **Remove the value saved here** to go back
+  to Cloudflare's. Each save is in the Actions log (which settings changed, never their
+  values). Generating a new notifications key changes the SNS address: add the new subscription
+  in AWS and delete the old one.
 
 ## For developers
 

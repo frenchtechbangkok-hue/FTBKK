@@ -1,4 +1,4 @@
-import { env } from 'cloudflare:workers';
+import { emailEnv } from './email-setup';
 import { z } from 'zod';
 import { readSesEvent } from './email-events';
 import { recordEmailEvent } from './email-metrics';
@@ -33,7 +33,8 @@ function sameKey(a: string, b: string) {
 
 export async function handleSesEvents(request: Request) {
   if (request.method !== 'POST') return text(405, 'POST only');
-  const key = env.SES_EVENTS_KEY ?? '';
+  const setup = await emailEnv();
+  const key = setup.SES_EVENTS_KEY;
   const given = new URL(request.url).searchParams.get('key') ?? '';
   if (!key || !sameKey(given, key)) return text(403, 'Forbidden');
 
@@ -46,7 +47,7 @@ export async function handleSesEvents(request: Request) {
   const parsed = SnsEnvelope.safeParse(raw);
   if (!parsed.success) return text(400, 'Not an SNS message');
   const msg = parsed.data;
-  if (env.SES_EVENTS_TOPIC_ARN && msg.TopicArn !== env.SES_EVENTS_TOPIC_ARN) {
+  if (setup.SES_EVENTS_TOPIC_ARN && msg.TopicArn !== setup.SES_EVENTS_TOPIC_ARN) {
     return text(403, 'Unknown topic');
   }
 

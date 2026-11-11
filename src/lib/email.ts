@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { suppressedAmong, suppressedEmails } from './email-suppressions';
 import { sesSend, sesSendMany, type MimeMessage, type SesConfig } from './ses';
+import { emailEnv, type EmailEnv } from './email-setup';
 
 export interface EmailAttachment {
   filename: string;
@@ -157,7 +158,7 @@ export const defaultEmailProvider = (): EmailProvider =>
  * The provider every email goes through: the one chosen in Admin > Email delivery (settings key
  * `emailProvider`), else EMAIL_PROVIDER. A chosen service whose key was removed falls back too.
  */
-export async function emailProvider(): Promise<EmailProvider> {
+export async function emailProvider(e?: EmailEnv): Promise<EmailProvider> {
   let chosen: unknown = null;
   try {
     const row = await env.DB.prepare(
@@ -169,7 +170,7 @@ export async function emailProvider(): Promise<EmailProvider> {
   } catch {
     // No database (tests) or table not migrated yet.
   }
-  if ((chosen === 'resend' || chosen === 'ses') && providerReady(chosen)) return chosen;
+  if ((chosen === 'resend' || chosen === 'ses') && (await providerReady(chosen, e))) return chosen;
   return defaultEmailProvider();
 }
 
@@ -177,47 +178,57 @@ export async function emailProvider(): Promise<EmailProvider> {
  * The plan's caps: EMAIL_DAILY_LIMIT and EMAIL_MONTHLY_LIMIT are Resend's free plan (100 a day,
  * 3,000 a month), so they only count while Resend sends. 0 = no cap.
  */
-export const providerLimits = (p: EmailProvider) =>
-  p === 'resend'
-    ? {
-        daily: Number(env.EMAIL_DAILY_LIMIT ?? 0) || 0,
-        monthly: Number(env.EMAIL_MONTHLY_LIMIT ?? 0) || 0,
-      }
-    : { daily: 0, monthly: 0 };
+export const providerLimits = async (p: EmailProvider, e?: EmailEnv) => {
+  if (p !== 'resend') return { daily: 0, monthly: 0 };
+  const v = e ?? (await emailEnv());
+  return {
+    daily: Number(v.EMAIL_DAILY_LIMIT || 0) || 0,
+    monthly: Number(v.EMAIL_MONTHLY_LIMIT || 0) || 0,
+  };
+};
 
-const sesConfig = (): SesConfig | null =>
-  env.AWS_SES_ACCESS_KEY_ID && env.AWS_SES_SECRET_ACCESS_KEY
+const sesConfig = (e: EmailEnv): SesConfig | null =>
+  e.AWS_SES_ACCESS_KEY_ID && e.AWS_SES_SECRET_ACCESS_KEY
     ? {
-        accessKeyId: env.AWS_SES_ACCESS_KEY_ID,
-        secretAccessKey: env.AWS_SES_SECRET_ACCESS_KEY,
-        region: env.AWS_REGION || 'ap-southeast-2',
-        configurationSet: env.SES_CONFIGURATION_SET || undefined,
+        accessKeyId: e.AWS_SES_ACCESS_KEY_ID,
+        secretAccessKey: e.AWS_SES_SECRET_ACCESS_KEY,
+        region: e.AWS_REGION || 'ap-southeast-2',
+        configurationSet: e.SES_CONFIGURATION_SET || undefined,
       }
     : null;
 
-/** Whether a provider has its key(s), so an admin can send a test through it. */
-export const providerReady = (p: EmailProvider) =>
-  p === 'ses' ? !!sesConfig() : !!env.RESEND_API_KEY;
+/**
+ * Whether a provider has its key(s), so an admin can send a test through it. The keys come from
+ * Admin > Email delivery > Setup, else the Worker's secrets (src/lib/email-setup.ts).
+ */
+export const providerReady = async (p: EmailProvider, e?: EmailEnv) => {
+  const v = e ?? (await emailEnv());
+  return p === 'ses' ? !!sesConfig(v) : !!v.RESEND_API_KEY;
+};
 
 /** SES's maximum send rate (emails per second) for bulk sends; SES_SEND_RATE, default 10. */
-const sesRate = () => Number(env.SES_SEND_RATE) || 10;
+const sesRate = (e: EmailEnv) => Number(e.SES_SEND_RATE) || 10;
 
 /**
  * True while the sender is Resend's test address (onboarding@resend.dev): Resend then only
  * delivers to the Resend account's own email, so members and attendees get nothing until the
  * domain is verified in Resend and EMAIL_FROM uses it.
  */
-export const usingTestSender = async () =>
-  (await emailProvider()) === 'resend' &&
-  !!env.RESEND_API_KEY &&
-  /@resend\.dev>?\s*$/i.test(env.EMAIL_FROM ?? '');
+export const usingTestSender = async () => {
+  const e = await emailEnv();
+  return (
+    (await emailProvider(e)) === 'resend' &&
+    !!e.RESEND_API_KEY &&
+    /@resend\.dev>?\s*$/i.test(e.EMAIL_FROM ?? '')
+  );
+};
 
 const recipients = (m: EmailMessage) => (Array.isArray(m.to) ? m.to : [m.to]).filter(Boolean);
 
-function toMime(m: EmailMessage, to: string[]): MimeMessage {
+function toMime(e: EmailEnv, m: EmailMessage, to: string[]): MimeMessage {
   const { html, text } = renderEmail(m);
   return {
-    from: env.EMAIL_FROM,
+    from: e.EMAIL_FROM,
     to,
     replyTo: m.replyTo,
     subject: m.subject,
@@ -232,13 +243,13 @@ function logOnly(m: EmailMessage, to: string[]) {
   console.log(`[email:dev] to=${to.join(',')} subject="${m.subject}"\n${renderEmail(m).text}`);
 }
 
-async function resendSend(m: EmailMessage, to: string[]) {
+async function resendSend(e: EmailEnv, m: EmailMessage, to: string[]) {
   const { html, text } = renderEmail(m);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${e.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: env.EMAIL_FROM,
+      from: e.EMAIL_FROM,
       to,
       subject: m.subject,
       html,
@@ -269,7 +280,8 @@ export async function sendEmail(
   m: EmailMessage,
   opts: { provider?: EmailProvider } = {},
 ): Promise<{ ok: boolean; error?: string; suppressed?: string[] }> {
-  const provider = opts.provider ?? (await emailProvider());
+  const e = await emailEnv();
+  const provider = opts.provider ?? (await emailProvider(e));
   const all = recipients(m);
   if (!all.length) return { ok: true };
   const blocked = await suppressedAmong(all);
@@ -277,19 +289,19 @@ export async function sendEmail(
   const suppressed = all.filter((e) => blocked.has(e.trim().toLowerCase()));
   if (!to.length) return { ok: true, suppressed };
   if (provider === 'ses') {
-    const cfg = sesConfig();
+    const cfg = sesConfig(e);
     if (!cfg) {
-      return { ok: false, error: 'Amazon SES has no access key (AWS_SES_ACCESS_KEY_ID).' };
+      return { ok: false, error: 'Amazon SES has no access key (Admin > Email delivery > Setup).' };
     }
-    const res = await sesSend(cfg, toMime(m, to));
+    const res = await sesSend(cfg, toMime(e, m, to));
     if (!res.ok) console.error('[email] SES error', res.error);
     return { ok: res.ok, error: res.error, suppressed };
   }
-  if (!env.RESEND_API_KEY) {
+  if (!e.RESEND_API_KEY) {
     logOnly(m, to);
     return { ok: true, suppressed };
   }
-  return { ...(await resendSend(m, to)), suppressed };
+  return { ...(await resendSend(e, m, to)), suppressed };
 }
 
 /**
@@ -322,19 +334,21 @@ export async function sendEmailBatch(
   };
   if (!outgoing.length) return { ok: true, sent: messages.length, suppressed: skipped };
 
-  if ((await emailProvider()) === 'ses') {
-    const cfg = sesConfig();
-    if (!cfg) return done(false, 0, 'Amazon SES has no access key (AWS_SES_ACCESS_KEY_ID).');
+  const e = await emailEnv();
+  if ((await emailProvider(e)) === 'ses') {
+    const cfg = sesConfig(e);
+    if (!cfg)
+      return done(false, 0, 'Amazon SES has no access key (Admin > Email delivery > Setup).');
     const res = await sesSendMany(
       cfg,
-      outgoing.map((m) => toMime(m, recipients(m))),
-      sesRate(),
+      outgoing.map((m) => toMime(e, m, recipients(m))),
+      sesRate(e),
     );
     if (!res.ok) console.error('[email] SES batch error', res.error);
     return done(res.ok, res.sent, res.error);
   }
 
-  if (!env.RESEND_API_KEY) {
+  if (!e.RESEND_API_KEY) {
     for (const m of outgoing) logOnly({ ...m, attachments: undefined }, recipients(m));
     return done(true, outgoing.length);
   }
@@ -343,7 +357,7 @@ export async function sendEmailBatch(
     const chunk = outgoing.slice(i, i + 100).map((m) => {
       const { html, text } = renderEmail(m);
       return {
-        from: env.EMAIL_FROM,
+        from: e.EMAIL_FROM,
         to: recipients(m),
         subject: m.subject,
         html,
@@ -354,7 +368,7 @@ export async function sendEmailBatch(
     const res = await fetch('https://api.resend.com/emails/batch', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        Authorization: `Bearer ${e.RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(chunk),

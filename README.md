@@ -30,20 +30,20 @@ https://ft-bkk-site.frenchtechbangkok.workers.dev until the domain moves over.
 **Admin** at `/admin`, behind Cloudflare Access. Anyone who can sign in can do everything; there
 are no roles. The menu:
 
-| Group                       | What is in it                                                                                                   |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Dashboard**               | What is waiting for the team, the last 7 days, upcoming events, latest activity                                 |
-| **Events**                  | Events, registrations, check-in at the door from a phone                                                        |
-| **Community**               | Members, contacts (tags, groups, merge duplicates), messages                                                    |
-| **Ecosystem**               | Listings to review, all listings, partners, renewals                                                            |
-| **Website**                 | Blog posts, files, page texts, board and speakers, guide pages                                                  |
-| **Emails and social media** | Email the community, scheduled social media posts (with how to connect LinkedIn and Facebook), automatic emails |
-| **Reports**                 | Events and attendance, membership, website traffic (Cloudflare), emails sent, Cloudflare usage vs plan          |
-| **Settings**                | General, membership switches, event covers, social links, email delivery                                        |
-| **History**                 | Actions log (who did what in the admin), Change history (each version of the site)                              |
+| Group                       | What is in it                                                                                                              |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**               | What is waiting for the team, the last 7 days, upcoming events, latest activity                                            |
+| **Events**                  | Events, registrations, check-in at the door from a phone                                                                   |
+| **Community**               | Members, contacts (tags, groups, merge duplicates), messages                                                               |
+| **Ecosystem**               | Listings to review, all listings, partners, renewals                                                                       |
+| **Website**                 | Blog posts, files, page texts, board and speakers, guide pages                                                             |
+| **Emails and social media** | Email the community, scheduled social media posts (with how to connect LinkedIn and Facebook), automatic emails (Markdown) |
+| **Reports**                 | Events and attendance, membership, website traffic (Cloudflare), emails sent (Resend and SES), Cloudflare usage vs plan    |
+| **Settings**                | General, membership switches, event covers, social links, email delivery                                                   |
+| **History**                 | Actions log (who did what in the admin), Change history (each version of the site)                                         |
 
-Emails go through Resend or Amazon SES, chosen in Settings > Email delivery, with a do-not-email list for
-bounces and spam complaints.
+Emails go through Resend or Amazon SES, chosen in Settings > Email delivery, where both services' keys,
+secrets and webhook addresses are also set up, with a do-not-email list for bounces and spam complaints.
 
 Full detail: [docs/features.md](docs/features.md) (every feature, with the files behind it) and
 [docs/admin.md](docs/admin.md) (how to use the admin).
@@ -87,8 +87,10 @@ The repo is connected to Cloudflare Workers Builds: every merge to `main` applie
 and uploads a new Worker version, testable at `https://dev-ft-bkk-site.frenchtechbangkok.workers.dev`. It
 goes live only when it is promoted in Cloudflare > ft-bkk-site > Deployments (rollback is there
 too). Migrations must only add tables and columns. Other branches get a preview URL. Cloudflare setup (R2, build
-settings, Access, Turnstile, email, social media, traffic report, backups, domain) is in
-[docs/deploy.md](docs/deploy.md).
+settings, Access, Turnstile, email, social media, traffic report, edge cache, backups, domain)
+is in [docs/deploy.md](docs/deploy.md). Public pages are kept 60 seconds at Cloudflare's edge
+(`"cache": { "enabled": true }` in `wrangler.jsonc`); admin, member pages, forms and API answers
+never are (`src/lib/edge-cache.ts`). Old Wix links get a 301 that the edge keeps a day.
 
 ## Contributing
 

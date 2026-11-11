@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../lib/edge-cache';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Alert from '../components/Alert.astro';
 import Button from '../components/Button.astro';
@@ -132,12 +133,13 @@ const involved = [
     text: 'Share what you know: a talk, a panel, a founder story.',
   },
 ];
+// Kept at Cloudflare's edge except in this case (lib/edge-cache.ts).
+if (!!isPost) privatePage(Astro);
 ---
 
 <BaseLayout
   title="Join the community"
   description="Join La French Tech Bangkok: free membership, the WhatsApp community, the ecosystem directory, volunteering, partnerships and the newsletter."
-  cache={!isPost}
 >
   <section class="relative isolate overflow-hidden bg-navy text-paper">
     <div

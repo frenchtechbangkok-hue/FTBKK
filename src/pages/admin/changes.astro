@@ -4,7 +4,7 @@ import { RELEASES, REPO_URL } from '../../lib/changelog';
 import { formatDate } from '../../lib/format';
 
 // History > Change history: every version of the site, newest first, from src/lib/changelog.ts.
-// Each merged pull request is one version. The admin edits made by people are in Actions log.
+// Each released change is one version (YY.MM.XX since November 2026, 1.N before). The admin edits made by people are in Actions log.
 const current = RELEASES[0]!;
 // Group by month so the long list stays easy to scan.
 const months: { label: string; releases: typeof RELEASES }[] = [];
@@ -36,14 +36,16 @@ for (const r of RELEASES) {
             <div class="min-w-0">
               <h3 class="font-semibold text-ink">{r.title}</h3>
               <p class="mt-1 text-sm text-ink">{r.summary}</p>
-              <a
-                class="mt-1 inline-block text-xs text-muted"
-                href={`${REPO_URL}/pull/${r.pr}`}
-                target="_blank"
-                rel="noopener"
-              >
-                Details on GitHub (#{r.pr}) ↗
-              </a>
+              {r.pr && (
+                <a
+                  class="mt-1 inline-block text-xs text-muted"
+                  href={`${REPO_URL}/pull/${r.pr}`}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Details on GitHub (#{r.pr}) ↗
+                </a>
+              )}
             </div>
           </li>
         ))}

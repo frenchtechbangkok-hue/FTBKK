@@ -13,6 +13,8 @@
     "binding": "ASSETS",
   },
   "observability": { "enabled": true },
+  // Cloudflare's cache in front of the Worker (needs Wrangler 4.69+). What may be stored: src/lib/edge-cache.ts.
+  "cache": { "enabled": true },
   // The live site is on workers.dev until the domain moves. Preview URLs give each uploaded version
   // its own address; production builds upload versions that are promoted by hand in Cloudflare
   // (docs/deploy.md, "Validate, then promote").
@@ -44,10 +46,10 @@
     "TURNSTILE_SITE_KEY": "0x4AAAAAAF3DXozO_czZrbCo",
     // Base of the links in emails. The workers.dev address until the domain moves here (phase 10),
     // since www.french-tech-bangkok.com still serves the Wix site.
-    "SITE_URL": "https://ft-bkk-site.frenchtechbangkok.workers.dev",
+    "SITE_URL": "https://french-tech-bangkok.com",
     // Sender, on mail.delattre.me (verified in Resend) until french-tech-bangkok.com's DNS moves to
     // us. Then switch to "La French Tech Bangkok <hello@french-tech-bangkok.com>".
-    "EMAIL_FROM": "La French Tech Bangkok <noreply@mail.delattre.me>",
+    "EMAIL_FROM": "La French Tech Bangkok <noreply@mail.french-tech-bangkok.com>",
     // Emails Resend sends per day (its free plan: 100). Email the community warns when an audience
     // is bigger than what is left today. Ignored while Amazon SES sends (no daily cap).
     "EMAIL_DAILY_LIMIT": "100",
@@ -62,7 +64,7 @@
     // rate per second for bulk sends: 1 while the account is in the SES sandbox, 14 once
     // production access is granted (SES > Account dashboard > Sending limits).
     "AWS_REGION": "ap-southeast-2",
-    "SES_SEND_RATE": "10",
+    "SES_SEND_RATE": "12",
     // SNS topic that brings SES bounces and complaints to /api/ses-events (empty = any topic, the
     // secret SES_EVENTS_KEY in the subscription URL still has to match).
     "SES_EVENTS_TOPIC_ARN": "",
@@ -78,7 +80,7 @@
     // Reports > Website traffic reads Cloudflare's Analytics API with the secret CF_ANALYTICS_TOKEN
     // (docs/deploy.md, "Website traffic report"). Both can stay empty: the account is the only one
     // the token reads, the site is the Web Analytics site whose token is in Settings.
-    "CF_ACCOUNT_ID": "",
+    "CF_ACCOUNT_ID": "e7a57ef939b5164fe76c7f5fc8da9d07",
     "CF_WEB_ANALYTICS_SITE_TAG": "",
   },
   "triggers": {

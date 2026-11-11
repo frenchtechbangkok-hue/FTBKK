@@ -271,6 +271,7 @@ export async function approveListing(org: Organisation, actor: string, now = new
       to: owner,
       subject: w.subject,
       paragraphs: w.paragraphs,
+      bodyHtml: w.bodyHtml,
       action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/${org.slug}`) },
       links: [
         { label: 'Update your listing', url: siteUrl('/ecosystem/manage') },
@@ -299,6 +300,7 @@ export async function rejectListing(org: Organisation, reason: string, actor: st
       to: org.ownerEmails,
       subject: w.subject,
       paragraphs: w.paragraphs,
+      bodyHtml: w.bodyHtml,
       action: { label: w.buttonLabel, url: siteUrl('/ecosystem/submit') },
     });
   }
@@ -336,6 +338,7 @@ export async function sendManageLinks(addr: string) {
     to: addr,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/manage/${token}`) },
   });
 }
@@ -352,6 +355,7 @@ export async function sendRenewalReminder(org: Organisation, offset: number) {
       to: owner,
       subject: w.subject,
       paragraphs: w.paragraphs,
+      bodyHtml: w.bodyHtml,
       action: {
         label: w.buttonLabel,
         url: siteUrl(`/ecosystem/confirm?token=${token}`),
@@ -372,6 +376,7 @@ export async function sendExpiredNotice(org: Organisation) {
       to: owner,
       subject: w.subject,
       paragraphs: w.paragraphs,
+      bodyHtml: w.bodyHtml,
       action: {
         label: w.buttonLabel,
         url: siteUrl(`/ecosystem/confirm?token=${token}`),

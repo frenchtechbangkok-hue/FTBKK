@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../../../lib/edge-cache';
 import { z } from 'zod';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import Section from '../../../components/Section.astro';
@@ -60,14 +61,17 @@ if (Astro.request.method === 'POST' && !claimed) {
       to: parsed.data.email,
       subject: w.subject,
       paragraphs: w.paragraphs,
+      bodyHtml: w.bodyHtml,
       action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/claim/verify?token=${token}`) },
     });
     sent = true;
   }
 }
+// Personal or one-off page: never kept by browsers or Cloudflare's edge (lib/edge-cache.ts).
+privatePage(Astro);
 ---
 
-<BaseLayout title={`Claim ${org.name}`} noindex cache={false}>
+<BaseLayout title={`Claim ${org.name}`} noindex>
   <Section>
     <div class="max-w-xl">
       <a href={`/ecosystem/${org.slug}`} class="text-sm text-accent">

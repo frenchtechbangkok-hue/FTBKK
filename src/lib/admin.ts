@@ -196,6 +196,7 @@ async function sendOwnerWelcome(org: Organisation, to: string) {
     to,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl('/ecosystem/manage') },
     links: [
       { label: 'Confirm it is accurate', url: siteUrl(`/ecosystem/confirm?token=${confirm}`) },
@@ -243,6 +244,7 @@ export async function decideChange(id: number, approve: boolean, reason: string,
     to: change.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: {
       label: w.buttonLabel,
       url: approve ? siteUrl(`/ecosystem/${org.slug}`) : siteUrl('/ecosystem/manage'),
@@ -292,7 +294,12 @@ export async function decideClaim(id: number, approve: boolean, reason: string, 
       org: org.name,
       reason: reason || NO_REASON,
     });
-    await sendEmail({ to: claim.email, subject: w.subject, paragraphs: w.paragraphs });
+    await sendEmail({
+      to: claim.email,
+      subject: w.subject,
+      paragraphs: w.paragraphs,
+      bodyHtml: w.bodyHtml,
+    });
   }
 }
 
@@ -338,6 +345,7 @@ export async function decideMembership(
     to: app.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/${org.slug}`) },
   });
 }
@@ -349,6 +357,7 @@ export async function inviteToClaim(org: Organisation, to: string, actor: string
     to,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/${org.slug}/claim`) },
     links: [{ label: 'See the listing', url: siteUrl(`/ecosystem/${org.slug}`) }],
   });

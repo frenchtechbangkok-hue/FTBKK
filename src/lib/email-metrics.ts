@@ -129,17 +129,6 @@ export async function emailsBySubject(range: { from: Date; to: Date }, limit = 2
   }));
 }
 
-/** Emails per provider in the range (both show while switching from Resend to SES). */
-export async function emailsByProvider(range: { from: Date; to: Date }) {
-  const { results } = await env.DB.prepare(
-    `SELECT provider, COUNT(*) - COUNT(failed_at) AS sent FROM email_messages
-     WHERE sent_at >= ?1 AND sent_at < ?2 GROUP BY provider ORDER BY sent DESC`,
-  )
-    .bind(secs(range.from), secs(range.to))
-    .all<{ provider: 'resend' | 'ses'; sent: number }>();
-  return results;
-}
-
 /** The first email recorded (where All time starts) and the last event received, or null. */
 export async function emailRecordSpan() {
   const row = await env.DB.prepare(
@@ -175,11 +164,12 @@ export async function planUsage(provider: 'resend' | 'ses', now = new Date()) {
     .bind(provider)
     .first<{ first: number | null }>();
   const first = span?.first ? new Date(span.first * 1000) : null;
+  const limits = await providerLimits(provider);
   return {
     today: Number(row?.today ?? 0),
     month: Number(row?.month ?? 0),
-    dailyLimit: providerLimits(provider).daily,
-    monthlyLimit: providerLimits(provider).monthly,
+    dailyLimit: limits.daily,
+    monthlyLimit: limits.monthly,
     /** Counting started after the start of this month: the month figure is too low. */
     since: first && first > month ? first : null,
     /** When today's and this month's counts start again. */
@@ -211,4 +201,45 @@ export async function sendFigures(sends: { subject: string; at: Date }[]) {
     // Before migration 0041 (a preview sharing the production database): no figures.
     return sends.map(() => null);
   }
+}
+
+export interface ProviderSource {
+  provider: 'resend' | 'ses';
+  /** Emails this provider reported in the period, and how many were delivered, opened, clicked. */
+  sent: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+  /** The last event this provider sent the site, any period: shows a webhook that went quiet. */
+  lastEvent: Date | null;
+}
+
+/**
+ * Reports > Emails, "Where the figures come from": both providers, always (Resend's figures
+ * stay after the switch to SES), with what each reported in the period and when it last did.
+ */
+export async function providerSources(range: { from: Date; to: Date }): Promise<ProviderSource[]> {
+  const { results } = await env.DB.prepare(
+    `SELECT provider,
+       SUM(CASE WHEN sent_at >= ?1 AND sent_at < ?2 AND failed_at IS NULL THEN 1 ELSE 0 END) AS sent,
+       SUM(CASE WHEN sent_at >= ?1 AND sent_at < ?2 AND delivered_at IS NOT NULL THEN 1 ELSE 0 END) AS delivered,
+       SUM(CASE WHEN sent_at >= ?1 AND sent_at < ?2 AND opened_at IS NOT NULL THEN 1 ELSE 0 END) AS opened,
+       SUM(CASE WHEN sent_at >= ?1 AND sent_at < ?2 AND clicked_at IS NOT NULL THEN 1 ELSE 0 END) AS clicked,
+       MAX(updated_at) AS lastEvent
+     FROM email_messages GROUP BY provider`,
+  )
+    .bind(secs(range.from), secs(range.to))
+    .all<Record<string, unknown>>();
+  return (['resend', 'ses'] as const).map((provider) => {
+    const r = results.find((x) => x.provider === provider);
+    const n = (k: string) => Number(r?.[k] ?? 0) || 0;
+    return {
+      provider,
+      sent: n('sent'),
+      delivered: n('delivered'),
+      opened: n('opened'),
+      clicked: n('clicked'),
+      lastEvent: r?.lastEvent ? new Date(Number(r.lastEvent) * 1000) : null,
+    };
+  });
 }

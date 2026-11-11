@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../lib/edge-cache';
 import { env } from 'cloudflare:workers';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Section from '../components/Section.astro';
@@ -62,6 +63,7 @@ if (Astro.request.method === 'POST') {
           to: email,
           subject: w.subject,
           paragraphs: w.paragraphs,
+          bodyHtml: w.bodyHtml,
           action: { label: w.buttonLabel, url: link },
         });
       }
@@ -149,9 +151,11 @@ const STATUS = {
   attended: 'Came',
   cancelled: 'Cancelled',
 } as const;
+// Personal or one-off page: never kept by browsers or Cloudflare's edge (lib/edge-cache.ts).
+privatePage(Astro);
 ---
 
-<BaseLayout title="Your data" noindex cache={false}>
+<BaseLayout title="Your data" noindex>
   <Section>
     <div class="max-w-2xl">
       <h1 class="text-3xl">Your data</h1>

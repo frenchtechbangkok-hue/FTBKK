@@ -49,6 +49,25 @@ export function cleanNote(raw: string) {
     .trim();
 }
 
+/**
+ * "What attendees told us": the registrations of one event that left a note, people coming
+ * first (registered or checked in), then the waitlist, each group in registration order.
+ * Cancelled registrations are left out: they aren't coming.
+ */
+export function attendeeNotes<
+  T extends { status: string; note: string | null; createdAt: Date | null; id: number },
+>(rows: T[]): T[] {
+  const rank = (s: string) => (s === 'registered' || s === 'attended' ? 0 : 1);
+  return rows
+    .filter((r) => r.status !== 'cancelled' && (r.note ?? '').trim() !== '')
+    .sort(
+      (a, b) =>
+        rank(a.status) - rank(b.status) ||
+        (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0) ||
+        a.id - b.id,
+    );
+}
+
 export const RegisterSchema = z.object({
   name: z.string().min(2, 'Enter your name.').max(120),
   email,
@@ -430,6 +449,7 @@ export async function sendConfirmation(
     to: r.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     details: [...eventDetails(e, r.guests), ...sp.details],
     logos: sp.logos,
     action: map && !waitlist && w.buttonLabel ? { label: w.buttonLabel, url: map } : undefined,
@@ -451,6 +471,7 @@ export async function sendPromotion(e: Event, r: RegistrationRow) {
     to: r.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     details: [...eventDetails(e, r.guests), ...sp.details],
     logos: sp.logos,
     links: [
@@ -476,6 +497,7 @@ export function reminderEmail(
     to: r.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     details: [...eventDetails(e, r.guests), ...sp.details],
     logos: sp.logos,
     action: map && w.buttonLabel ? { label: w.buttonLabel, url: map } : undefined,
@@ -519,6 +541,7 @@ export function eventCancelledEmail(
     to: r.email,
     subject: w.subject,
     paragraphs: w.paragraphs,
+    bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl('/events') },
     dataUrl: r.token ? myDataUrl(r.token) : undefined,
   };

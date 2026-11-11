@@ -1,4 +1,5 @@
 ---
+import { privatePage } from '../../../lib/edge-cache';
 import { siteUrl } from '../../../lib/site';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import Badge from '../../../components/Badge.astro';
@@ -226,10 +227,11 @@ const jsonLd = {
     ? speakers.map((p) => ({ '@type': 'Person', name: p.name, sameAs: p.linkedin ?? undefined }))
     : undefined,
 };
+// Kept at Cloudflare's edge except in this case (lib/edge-cache.ts).
+if (!(!isPost && !invite)) privatePage(Astro);
 ---
 
 <BaseLayout
-  cache={!isPost && !invite}
   noindex={!event.listed}
   title={event.title}
   description={description}
