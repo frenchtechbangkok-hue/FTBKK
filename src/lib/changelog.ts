@@ -22,6 +22,7 @@ export const RELEASES: Release[] = [
   {
     version: '26.11.08',
     date: '2026-11-13',
+    pr: 129,
     title: "Visits from the site's emails in the traffic report; help when emails show no opens",
     summary:
       'Links to the website in the site\'s emails now carry a small tag, so Reports > Website traffic shows how many visits came from emails (and from which email and to which page), next to Google, LinkedIn and the others in "Where visitors come from". Reports > Emails now warns when a provider reports deliveries but no opens and says which Resend or Amazon SES setting to turn on.',
