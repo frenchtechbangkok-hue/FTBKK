@@ -203,12 +203,13 @@ describe('eventRows with guests', () => {
 describe('report period', () => {
   const at = new Date('2026-10-10T09:00:00Z');
   const p = (q: string) => parsePeriod(new URLSearchParams(q), at, d('2023-05-01T00:00:00Z'));
-  it('defaults to the last 12 months, in Bangkok days', () => {
+  it('defaults to the last 30 days, in Bangkok days', () => {
     const x = p('');
-    expect(x.key).toBe('12m');
-    expect(x.fromInput).toBe('2025-10-11');
+    expect(x.key).toBe('30d');
+    expect(x.fromInput).toBe('2026-09-11');
     expect(x.toInput).toBe('2026-10-10');
     expect(x.previous?.to).toEqual(x.from);
+    expect(p('period=12m')).toMatchObject({ fromInput: '2025-10-11', toInput: '2026-10-10' });
   });
   it('reads presets and custom dates', () => {
     expect(p('period=last-year')).toMatchObject({ fromInput: '2025-01-01', toInput: '2025-12-31' });
@@ -221,11 +222,17 @@ describe('report period', () => {
     });
     // Swapped dates are put back in order; junk falls back to the default.
     expect(p('period=custom&from=2026-03-31&to=2026-03-01').fromInput).toBe('2026-03-01');
-    expect(p('period=nope').key).toBe('12m');
+    expect(p('period=nope').key).toBe('30d');
   });
   it('picks weeks, months or years for charts', () => {
-    expect(periodBuckets(p('period=30d')).unit).toBe('week');
-    expect(periodBuckets(p('')).buckets).toHaveLength(13);
+    // Last 30 days (the default) by day, other periods by week, month or year.
+    const days = periodBuckets(p(''));
+    expect(days.unit).toBe('day');
+    expect(days.buckets).toHaveLength(30);
+    expect(days.buckets[0]!.key).toBe(p('').fromInput);
+    expect(days.buckets.at(-1)!.key).toBe('2026-10-10');
+    expect(periodBuckets(p('period=90d')).unit).toBe('week');
+    expect(periodBuckets(p('period=12m')).buckets).toHaveLength(13);
     expect(periodBuckets(p('period=custom&from=2019-01-01')).unit).toBe('year');
   });
   it('describes changes', () => {

@@ -127,7 +127,8 @@ screen by screen for the team.
   (registrations, new members, submitted listings, messages); and the latest Change history entry.
 - **Reports** (`/admin/reports/events`, `/admin/reports/members`, loaded by `src/lib/reports.ts`):
   a period picker (last 30/90 days, 12 months, this or last year, all time, custom dates;
-  `src/lib/report-period.ts`) with changes against the previous period, an event type filter, a
+  `src/lib/report-period.ts`; last 30 days by default, charted and exported per day, up to
+  four months per week, then per month or year) with changes against the previous period, an event type filter, a
   one-event view (`?event=`, compared with the usual for its type, registration pace, arrivals at
   the door, companies, feedback and comments), first-timers vs returning, member share, feedback
   ratings and comments, and CSV exports of what is shown (`/admin/reports/*.csv`). Figures are
@@ -141,14 +142,14 @@ screen by screen for the team.
   before), **When people register** (days before the event, and the median), the most regular
   attendees and the companies that come most. Membership adds the net change (joined minus lapsed
   members who stayed out), the renewal rate (from the `member_lapsed` and `member_renew` entries
-  of the actions log), joined and lapsed per week or month, the path from attendee to member and
+  of the actions log), joined and lapsed per day, week or month, the path from attendee to member and
   **Regulars who aren't members yet**. A member's joining date is `member_since` (renewing resets
   `confirmed_at`, which no longer counts as a new member).
 - **Website traffic report** (`/admin/reports/traffic`, `src/lib/traffic.ts`): the third Reports
   tab reads Cloudflare's GraphQL Analytics API from the server (Cloudflare dashboards can't be
   embedded) with the Worker secret `CF_ANALYTICS_TOKEN` (Account Analytics: Read). Same period
   picker: visits, page views and pages per visit with changes against the previous period, a
-  chart per week or month, most viewed pages, referrers, countries, devices and browsers (Web
+  chart per day, week or month, most viewed pages, referrers, countries, devices and browsers (Web
   Analytics beacon, on while Settings has its token), Core Web Vitals for real visitors (LCP, INP,
   CLS at the 75th percentile with the share of good page views, as in Observatory), and the
   requests and errors the Worker served. The account is found from the token
@@ -177,7 +178,7 @@ screen by screen for the team.
 - **Email report** (`/admin/reports/emails`, `src/lib/email-metrics.ts`): the fourth Reports
   tab shows what happened to the emails the site sent, with the same period picker: emails sent,
   delivered, opened and clicked (rates against delivered), bounced and marked as spam, each with
-  the change against the previous period, a chart per week or month, a **By provider** table that
+  the change against the previous period, a chart per day, week or month, a **By provider** table that
   always lists Resend and Amazon SES (emails sent, delivered, opened, clicked in the period, the last
   update each one sent, and whether it is connected), so Resend's figures stay visible after the
   switch to SES and a webhook that went quiet shows, and a table per subject (one community email, one event's reminders…). Neither
@@ -185,8 +186,8 @@ screen by screen for the team.
   keeps 30 days), so the figures come from their webhooks into the `email_messages` table
   (migration 0041; one row per email with the first time each step happened, no recipient
   address): Resend's webhook posts to `/api/resend-events`, checked against the Svix signature
-  with the Worker secret `RESEND_WEBHOOK_SECRET`; Amazon SES events (with a configuration set,
-  `SES_CONFIGURATION_SET`) arrive through the same SNS topic as its bounces, at `/api/ses-events`.
+  with the Worker secret `RESEND_WEBHOOK_SECRET`; Amazon SES events (through its configuration set
+  `ft-bkk-site`, `SES_CONFIGURATION_SET` in `wrangler.jsonc`) arrive through the same SNS topic as its bounces, at `/api/ses-events`.
   Resend permanent bounces and spam complaints also go on the do-not-email list. A **plan usage** box
   compares the emails sent today and this month (UTC, recipients counted) with `EMAIL_DAILY_LIMIT`
   and `EMAIL_MONTHLY_LIMIT` (Resend Free: 100 and 3,000; empty with SES hides it). Figures start the

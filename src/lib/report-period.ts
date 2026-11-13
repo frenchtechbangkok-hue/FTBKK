@@ -14,7 +14,7 @@ export const PERIODS = {
   custom: 'Custom dates',
 } as const;
 export type PeriodKey = keyof typeof PERIODS;
-export const DEFAULT_PERIOD: PeriodKey = '12m';
+export const DEFAULT_PERIOD: PeriodKey = '30d';
 
 export interface Period {
   key: PeriodKey;
@@ -144,6 +144,7 @@ export interface Bucket {
   to: Date;
 }
 
+/** "3 Nov": days and weeks (by their Monday). */
 const weekLabel = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'short',
@@ -156,12 +157,21 @@ const monthLabel = new Intl.DateTimeFormat('en-GB', {
 });
 
 /**
- * Chart buckets covering the period: weeks up to 4 months, months up to 4 years, then years. The
- * first and last bucket can stick out of the period; counts still only use the period's dates.
+ * Chart buckets covering the period: days up to 31 days (Last 30 days), weeks up to 4 months,
+ * months up to 4 years, then years. The first and last bucket can stick out of the period; counts
+ * still only use the period's dates.
  */
 export function periodBuckets(p: { from: Date; to: Date }): { unit: string; buckets: Bucket[] } {
   const days = (p.to.getTime() - p.from.getTime()) / DAY_MS;
   const buckets: Bucket[] = [];
+  if (days <= 31) {
+    for (let start = startOfDay(p.from); start < p.to;) {
+      const end = new Date(start.getTime() + DAY_MS);
+      buckets.push({ key: dayInput(start), label: weekLabel.format(start), from: start, to: end });
+      start = end;
+    }
+    return { unit: 'day', buckets };
+  }
   if (days <= 124) {
     // Weeks starting on Monday.
     const f = bkk(p.from);

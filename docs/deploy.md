@@ -248,6 +248,7 @@ suppression list, SNS topic) is per region, so all of it lives in Sydney.
    Clicks add tracking to the emails), destination **Amazon SNS**, the topic of step 5. Put
    `"SES_CONFIGURATION_SET": "ft-bkk-site"` in `wrangler.jsonc` and deploy: every email is then sent
    with that set and reported. Bounces and complaints keep feeding the blocked list as before.
+   Done on 13 Nov 2026: the set `ft-bkk-site` exists in Sydney and `wrangler.jsonc` names it.
 
 Moving to the French Tech domain later: verify the new domain in SES (step 1), then change
 `EMAIL_FROM`. Production access, keys and the SNS topic stay; add the new identity to the feedback

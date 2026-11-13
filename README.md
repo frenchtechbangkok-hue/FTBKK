@@ -44,6 +44,7 @@ are no roles. The menu:
 
 Emails go through Resend or Amazon SES, chosen in Settings > Email delivery, where both services' keys,
 secrets and webhook addresses are also set up, with a do-not-email list for bounces and spam complaints.
+Reports open on the last 30 days, charted day by day (longer periods by week, month or year).
 
 Full detail: [docs/features.md](docs/features.md) (every feature, with the files behind it) and
 [docs/admin.md](docs/admin.md) (how to use the admin).

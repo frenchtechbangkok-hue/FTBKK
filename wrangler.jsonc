@@ -61,8 +61,8 @@
     // AWS_SES_SECRET_ACCESS_KEY, docs/deploy.md "Amazon SES").
     "EMAIL_PROVIDER": "resend",
     // Amazon SES region (Sydney: the AWS account only allows its home region) and its maximum send
-    // rate per second for bulk sends: 1 while the account is in the SES sandbox, 14 once
-    // production access is granted (SES > Account dashboard > Sending limits).
+    // rate per second for bulk sends: a little under SES > Account dashboard > Sending limits (14 a
+    // second, 50,000 a day since production access on 9 Nov 2026).
     "AWS_REGION": "ap-southeast-2",
     "SES_SEND_RATE": "12",
     // SNS topic that brings SES bounces and complaints to /api/ses-events (empty = any topic, the
@@ -70,8 +70,8 @@
     "SES_EVENTS_TOPIC_ARN": "",
     // SES configuration set whose event publishing sends every send, delivery, open and click to
     // that SNS topic too, for Reports > Emails (docs/deploy.md 6b, step 8). Empty = only bounces
-    // and complaints come back.
-    "SES_CONFIGURATION_SET": "",
+    // and complaints come back. Created in SES Sydney on 13 Nov 2026.
+    "SES_CONFIGURATION_SET": "ft-bkk-site",
     // Social media (Admin > Social media). Empty = not connected: scheduled posts arrive by email
     // to post by hand. The page tokens are the secrets LINKEDIN_ACCESS_TOKEN and
     // FACEBOOK_PAGE_TOKEN (docs/deploy.md, "Connect LinkedIn and Facebook").

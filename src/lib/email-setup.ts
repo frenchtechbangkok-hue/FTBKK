@@ -109,7 +109,7 @@ export const SETUP_FIELDS: SetupField[] = [
     label: 'Emails per second',
     number: true,
     placeholder: '12',
-    hint: 'A little under "Maximum send rate" in SES > Account dashboard (1 in the sandbox).',
+    hint: 'A little under "Maximum send rate" in SES > Account dashboard.',
   },
   {
     key: 'SES_CONFIGURATION_SET',
