@@ -22,6 +22,7 @@ export const RELEASES: Release[] = [
   {
     version: '26.11.09',
     date: '2026-11-13',
+    pr: 130,
     title: 'Wix migration tools removed; clearer member counts',
     summary:
       'The move from Wix is complete, so the scripts that copied the Wix site and imported its guest lists are gone; old Wix links still redirect to their new pages and everything imported stays. Under the Members title, the count now shows how many active members are still to review (the same number as the To review tab) and calls the people who have not clicked their email link yet sign-ups waiting for confirmation.',
