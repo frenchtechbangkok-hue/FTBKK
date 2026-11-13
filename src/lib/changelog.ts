@@ -22,6 +22,7 @@ export const RELEASES: Release[] = [
   {
     version: '26.11.07',
     date: '2026-11-13',
+    pr: 128,
     title: 'Amazon SES counted in Reports > Emails; reports open on 30 days, by day',
     summary:
       "Emails sent through Amazon SES now go through the ft-bkk-site configuration set, so Reports > Emails counts their sends, deliveries, opens and clicks next to Resend's. Reports open on the last 30 days and show that period day by day (longer periods stay by week or month), and Settings > Email delivery describes Amazon SES by its cost instead of the old sandbox limits.",
