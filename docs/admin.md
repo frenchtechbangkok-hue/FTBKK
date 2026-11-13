@@ -526,11 +526,12 @@ same way: the four main figures on top (with the change against the period befor
 better, and a small trend line), the other figures in a **More figures** panel, then charts and
 tables.
 
-- **Pick a period** at the top: last 30 or 90 days, last 12 months (the default), this year, last
+- **Pick a period** at the top: last 30 days (the default), last 90 days, last 12 months, this year, last
   year, all time, or **Custom dates**. Every figure and chart follows it, and the key numbers say
   how they changed against the period just before (this year and last year compare with the same
   weeks a year earlier). Green is better, red is worse. The address of the page keeps the
-  filters, so you can bookmark or send it.
+  filters, so you can bookmark or send it. Over the last 30 days (or custom dates of a month or
+  less) the charts and CSV exports go day by day; longer periods go by week, then by month or year.
 - **Events and attendance**: pick an **Event type** (Connect, Talk, Select, Other) to see only
   those. Key numbers: events held, registrations, check-ins (with walk-ins and guests), show-up
   rate and no-shows, average per event, seats filled, first-timers (people at their first event of
@@ -553,7 +554,7 @@ tables.
   (no names). Buttons lead to the event, its registrations and its feedback with names.
 - **Membership**: the **net change** (new members minus members who lapsed and did not come
   back) and the **renewal rate** (of the members whose year ended in the period, how many
-  renewed); a chart of members who joined and lapsed per week or month; **From attendee to
+  renewed); a chart of members who joined and lapsed per day, week or month; **From attendee to
   member** (people who came, came twice or more, are members today) and **Regulars who aren't
   members yet**: people who came to two events or more without being members, good people to
   invite to join (click a name to open the contact). Also: active members, new members in the period, sign-ups that never confirmed,
@@ -596,8 +597,8 @@ tables.
   connection as Website traffic.
 - **Export CSV** downloads what is shown: on Events, one line per event (or, with one event
   picked, its figures and comments); on Membership, the growth table (joined, lapsed, total) or
-  the members at each event; on Website traffic, visits per week or month or the most viewed
-  pages; on Emails, the emails per week or month or the table per email.
+  the members at each event; on Website traffic, visits per day, week or month or the most viewed
+  pages; on Emails, the emails per day, week or month or the table per email.
 
 ## Board and speakers, Messages, Website, Settings
 
@@ -788,13 +789,12 @@ or Amazon SES) and whether each one has its key, and is where both are set up.
 - **Sending service**: pick Resend or Amazon SES and press **Use this service**. It applies at
   once to every email (registrations, reminders, Email the community) and can be switched back
   the same way; the switch is in the Actions log. Only a service whose key is set is offered.
-  Switch to Amazon SES only once AWS has granted production access: in its sandbox it only
-  delivers to addresses verified in SES, so members would get nothing. Resend's daily cap (100)
-  stops counting while SES sends.
+  Amazon SES sends the site's emails since 9 November 2026 (production access in Sydney: no
+  practical cap). It costs about US$0.10 per 1,000 emails, billed each month by AWS. Resend's
+  daily cap (100) stops counting while SES sends.
 
-- **Send a test** emails any address through the service you pick, so Amazon SES can be tried
-  before the switch while Resend keeps sending everything else. While SES is in its sandbox, it
-  only delivers to addresses verified in SES.
+- **Send a test** emails any address through the service you pick, so either one can be checked,
+  even the one not in use.
 - **Addresses no longer emailed**: addresses Amazon SES reported as non-existent (bounced) or
   whose owner marked an email as spam. Every email the site sends skips them, including Email the
   community and Email registrants, which then say how many people were skipped. **Remove** one

@@ -37,7 +37,7 @@ const actor = Astro.locals.adminEmail ?? 'admin';
 const PROVIDERS = Object.keys(PROVIDER_NAMES) as EmailProvider[];
 const PROVIDER_NOTES: Record<EmailProvider, string> = {
   resend: 'Free plan: 100 emails a day, 3,000 a month. A community email stops at the daily cap.',
-  ses: 'No daily cap once AWS grants production access. Until then (sandbox) it only delivers to addresses verified in SES, 200 a day: switch only after AWS approves.',
+  ses: 'Pay as you go: about US$0.10 per 1,000 emails, billed each month by AWS.',
 };
 
 const GROUP_NAMES: Record<SetupGroup, string> = {
@@ -258,7 +258,7 @@ const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
             value: p,
             label: `${PROVIDER_NAMES[p]}${p === current ? ' (in use)' : ''}`,
           }))}
-          hint="Try Amazon SES here before switching. While SES is in its sandbox, it only delivers to addresses verified in SES."
+          hint="Either service can be tried, even the one not in use."
         />
         <div>
           <Button type="submit" variant="secondary" size="sm">
