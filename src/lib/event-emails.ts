@@ -123,5 +123,6 @@ export function eventBroadcast(
     footer: `You get this email because you registered for ${e.title} on french-tech-bangkok.com.`,
     replyTo: opts.replyTo,
     dataUrl: to.token ? myDataUrl(to.token) : undefined,
+    campaign: `event-${e.slug}`,
   };
 }

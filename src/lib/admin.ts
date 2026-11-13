@@ -195,6 +195,7 @@ async function sendOwnerWelcome(org: Organisation, to: string) {
   await sendEmail({
     to,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl('/ecosystem/manage') },
@@ -243,6 +244,7 @@ export async function decideChange(id: number, approve: boolean, reason: string,
   await sendEmail({
     to: change.email,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: {
@@ -297,6 +299,7 @@ export async function decideClaim(id: number, approve: boolean, reason: string, 
     await sendEmail({
       to: claim.email,
       subject: w.subject,
+      campaign: w.campaign,
       paragraphs: w.paragraphs,
       bodyHtml: w.bodyHtml,
     });
@@ -344,6 +347,7 @@ export async function decideMembership(
   await sendEmail({
     to: app.email,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/${org.slug}`) },
@@ -356,6 +360,7 @@ export async function inviteToClaim(org: Organisation, to: string, actor: string
   await sendEmail({
     to,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/${org.slug}/claim`) },

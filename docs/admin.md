@@ -566,7 +566,12 @@ tables.
   of us, the most regular members and a table of members at each event.
 - **Website traffic**: visits, page views and pages per visit (with the change against the
   period before), a chart of visits and page views, the most viewed pages, where visitors come
-  from (Google, LinkedIn, direct…), countries, devices and browsers. **Speed for real visitors**
+  from (Google, LinkedIn, direct…, and **Emails from this site**), countries, devices and
+  browsers. **From the site's emails** counts the visits that came through a link in one of the
+  site's emails (community emails, event emails, confirmations, reminders…): how many, per day,
+  which emails and which pages. Mail apps don't say where a visit comes from, so the site tags its
+  own links and counts them itself (since 13 November 2026); scans by mail security filters are
+  left out as far as possible. **Speed for real visitors**
   shows Google's Core Web Vitals as measured in visitors' browsers: loading (LCP), responsiveness
   (INP) and visual stability (CLS), each with Good, Needs improvement or Poor. **Server** shows
   every request the website answered (bots and the admin included) and the errors. The figures

@@ -169,6 +169,7 @@ export async function sendModeratorDigest(now: Date) {
   await sendEmail({
     to: await adminNotifyEmails(),
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     details: [

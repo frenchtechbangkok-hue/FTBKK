@@ -88,6 +88,26 @@ export function bucketDaily(days: Map<string, number>, buckets: Bucket[]): numbe
   });
 }
 
+/** Label of the visits Cloudflare can't place (no referrer). */
+export const DIRECT = 'Direct or unknown';
+/** Label of the visits from the site's own emails in "Where visitors come from". */
+export const FROM_EMAILS = 'Emails from this site';
+
+/**
+ * "Where visitors come from" with the visits from the site's emails (counted by the Worker) as
+ * their own line. Mail apps send no referrer, so Cloudflare counted them as direct: they are taken
+ * out of that line (never below zero, as the two counts are measured differently).
+ */
+export function withEmailVisits(referrers: [string, number][], fromEmails: number, limit = 10) {
+  if (!fromEmails) return referrers;
+  const rows = referrers.map(([k, n]): [string, number] =>
+    k === DIRECT ? [k, Math.max(0, n - fromEmails)] : [k, n],
+  );
+  return [...rows.filter(([, n]) => n > 0), [FROM_EMAILS, fromEmails] as [string, number]]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit);
+}
+
 export type VitalName = 'lcp' | 'inp' | 'cls';
 // Google's thresholds for "good" and "poor" (LCP and INP in ms).
 export const VITAL_THRESHOLDS: Record<VitalName, [number, number]> = {
@@ -417,7 +437,7 @@ export async function loadTraffic(
       viewsSeries: bucketDaily(viewsByDay, buckets),
       tops: {
         pages: top('pages', (k) => k || '/'),
-        referrers: top('referrers', (k) => k.replace(/^www\./, '') || 'Direct or unknown'),
+        referrers: top('referrers', (k) => k.replace(/^www\./, '') || DIRECT),
         countries: top('countries', (k) => k || 'Unknown'),
         devices: top('devices', (k) => (k ? k[0]!.toUpperCase() + k.slice(1) : 'Unknown')),
         browsers: top('browsers', (k) => k || 'Unknown'),

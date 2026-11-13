@@ -270,6 +270,7 @@ export async function approveListing(org: Organisation, actor: string, now = new
     await sendEmail({
       to: owner,
       subject: w.subject,
+      campaign: w.campaign,
       paragraphs: w.paragraphs,
       bodyHtml: w.bodyHtml,
       action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/${org.slug}`) },
@@ -299,6 +300,7 @@ export async function rejectListing(org: Organisation, reason: string, actor: st
     await sendEmail({
       to: org.ownerEmails,
       subject: w.subject,
+      campaign: w.campaign,
       paragraphs: w.paragraphs,
       bodyHtml: w.bodyHtml,
       action: { label: w.buttonLabel, url: siteUrl('/ecosystem/submit') },
@@ -337,6 +339,7 @@ export async function sendManageLinks(addr: string) {
   await sendEmail({
     to: addr,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/manage/${token}`) },
@@ -354,6 +357,7 @@ export async function sendRenewalReminder(org: Organisation, offset: number) {
     await sendEmail({
       to: owner,
       subject: w.subject,
+      campaign: w.campaign,
       paragraphs: w.paragraphs,
       bodyHtml: w.bodyHtml,
       action: {
@@ -375,6 +379,7 @@ export async function sendExpiredNotice(org: Organisation) {
     await sendEmail({
       to: owner,
       subject: w.subject,
+      campaign: w.campaign,
       paragraphs: w.paragraphs,
       bodyHtml: w.bodyHtml,
       action: {

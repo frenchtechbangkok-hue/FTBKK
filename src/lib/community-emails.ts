@@ -2,6 +2,7 @@
 // time in Markdown, to the active members, the newsletter subscribers, every contact, the people
 // in some groups or with some tags, a list imported from a CSV file or a selection of contacts. Lines such as {{event: slug}} become cards.
 import { z } from 'zod';
+import { campaignSlug } from './email-links';
 import { and, desc, eq, gte, inArray, isNotNull } from 'drizzle-orm';
 import { getDb } from '../db';
 import { communityEmails, events, members, posts } from '../db/schema';
@@ -316,6 +317,7 @@ export function communityMessage(
         footer: FOOTERS[audience],
         replyTo: opts.replyTo,
         dataUrl: siteUrl('/my-data'),
+        campaign: `community-${campaignSlug(m.subject, 50)}`,
       };
     },
   };

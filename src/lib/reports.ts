@@ -24,7 +24,10 @@ import {
 import { parsePeriod, periodBuckets } from './report-period';
 import { getSettings } from './settings';
 import { siteOrigin } from './site';
-import { loadTraffic, oldestTraffic, type TrafficReport } from './traffic';
+import { bucketDaily, loadTraffic, oldestTraffic, type TrafficReport } from './traffic';
+import { emailVisitStats } from './email-visits';
+import { campaignLabel } from './email-links';
+import { EMAIL_TEMPLATES } from './email-templates';
 import { loadCloudflareUsage, type CloudflareUsage } from './cloudflare-usage';
 
 // Loads what the Reports tabs (and their CSV exports) need, with the filters in the URL.
@@ -242,7 +245,42 @@ export async function loadTrafficReport(url: URL, now = new Date()) {
       error = (e as Error).message;
     }
   }
-  return { period, beacon, connected: !!token, report, error };
+  const fromEmails = await loadEmailVisits(period).catch((e: unknown) => {
+    console.error('[reports] email visits', e);
+    return null;
+  });
+  return { period, beacon, connected: !!token, report, error, fromEmails };
+}
+
+/**
+ * Visits that came through links in the site's own emails, counted by the Worker (Cloudflare Web
+ * Analytics sees them as "Direct or unknown"): total, per chart bucket, per email and per page.
+ */
+async function loadEmailVisits(period: { from: Date; to: Date }) {
+  const stats = await emailVisitStats(period);
+  const { buckets } = periodBuckets(period);
+  // Event emails show the event's title.
+  const slugs = stats.campaigns
+    .map(([c]) => c)
+    .filter((c) => c.startsWith('event-'))
+    .map((c) => c.slice(6));
+  const titles = new Map<string, string>();
+  if (slugs.length) {
+    const rows = await getDb()
+      .select({ slug: events.slug, title: events.title })
+      .from(events)
+      .where(inArray(events.slug, slugs));
+    for (const r of rows) titles.set(`event-${r.slug}`, `Event email: ${r.title}`);
+  }
+  return {
+    total: stats.total,
+    series: bucketDaily(stats.byDay, buckets),
+    campaigns: stats.campaigns.map(([c, n]): [string, number] => [
+      titles.get(c) ?? campaignLabel(c, EMAIL_TEMPLATES),
+      n,
+    ]),
+    pages: stats.pages,
+  };
 }
 
 /**

@@ -642,6 +642,23 @@ export const emailMessages = sqliteTable(
 );
 
 /**
+ * Reports > Website traffic, "From the site's emails": visits that arrived through a link in one
+ * of the site's emails (tagged utm_source=ftbkk, utm_medium=email; src/lib/email-links.ts),
+ * counted by the Worker per UTC day, email (utm_campaign) and page. No visitor data is kept.
+ */
+export const emailVisits = sqliteTable(
+  'email_visits',
+  {
+    /** UTC date, "2026-11-13". */
+    day: text('day').notNull(),
+    campaign: text('campaign').notNull(),
+    path: text('path').notNull(),
+    visits: integer('visits').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.campaign, t.path] })],
+);
+
+/**
  * Wording of the site's emails, edited in /admin/emails. One row per edited email, keyed by its id
  * in lib/email-templates.ts; no row = the built-in default text.
  */

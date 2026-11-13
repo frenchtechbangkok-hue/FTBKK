@@ -62,6 +62,7 @@ if (Astro.request.method === 'POST') {
         await sendEmail({
           to: email,
           subject: w.subject,
+          campaign: w.campaign,
           paragraphs: w.paragraphs,
           bodyHtml: w.bodyHtml,
           action: { label: w.buttonLabel, url: link },

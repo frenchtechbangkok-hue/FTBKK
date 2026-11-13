@@ -157,6 +157,22 @@ screen by screen for the team.
   site `CF_WEB_ANALYTICS_SITE_TAG`, or the one whose beacon token is in Settings when the token may
   list sites); long periods are split into the spans Cloudflare allows and clamped to what it keeps (about six
   months of visits, three of Worker requests). Each part loads on its own and shows its error.
+- **Visits from the site's emails** (`src/lib/email-links.ts`, `src/lib/email-visits.ts`, table
+  `email_visits`, migration 0044): mail apps send no referrer and Web Analytics drops query
+  strings, so Cloudflare files a click in an email under "Direct or unknown". `renderEmail` adds
+  `utm_source=ftbkk&utm_medium=email&utm_campaign=<email>` to every link to the public site in the
+  HTML and text versions (not `/admin`, `/api`, `/media`, other sites, or links already carrying
+  `utm_` tags). The campaign is the template key (`member.welcome`, set by `applyTemplate` and
+  passed as `EmailMessage.campaign`), `event-<slug>` for Event > Email attendees,
+  `community-<subject>` for Email the community, `test` for test emails, else `other`. The Worker
+  (`src/worker.ts`, before Astro) counts a GET with those tags per UTC day, campaign and page
+  (user agents that look like mail scanners or bots are not counted) and answers a 302 to the same
+  address without the `utm_` tags, never cached, so every click reaches the Worker and the edge
+  cache keeps one copy per page. Website traffic shows them in "Where visitors come from" as
+  "Emails from this site" (taken out of "Direct or unknown", never below zero) and in a **From the
+  site's emails** section: total, chart, which emails (event emails by their title) and which
+  pages. It reads D1 only, so it shows even without the Cloudflare connection. Counted from
+  26.11.08 on.
 - **Cloudflare usage** (`/admin/reports/cloudflare`, `src/lib/cloudflare-usage.ts`): the fifth
   Reports tab compares what the Cloudflare account uses with its plan's limits, with the same token
   as the traffic report (no extra permission). The plan (Workers Free or Workers Paid) is picked on
