@@ -448,6 +448,7 @@ export async function sendConfirmation(
   await sendEmail({
     to: r.email,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     details: [...eventDetails(e, r.guests), ...sp.details],
@@ -470,6 +471,7 @@ export async function sendPromotion(e: Event, r: RegistrationRow) {
   await sendEmail({
     to: r.email,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     details: [...eventDetails(e, r.guests), ...sp.details],
@@ -496,6 +498,7 @@ export function reminderEmail(
   return {
     to: r.email,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     details: [...eventDetails(e, r.guests), ...sp.details],
@@ -540,6 +543,7 @@ export function eventCancelledEmail(
   return {
     to: r.email,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl('/events') },

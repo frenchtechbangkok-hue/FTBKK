@@ -1,0 +1,69 @@
+---
+// Reports > Website traffic, "From the site's emails": visits through links in the site's own
+// emails, counted by the Worker (src/lib/email-visits.ts), since Cloudflare can't place them.
+import Alert from '../Alert.astro';
+import BarList from './BarList.astro';
+import Kpi from './Kpi.astro';
+import LineChart from './LineChart.astro';
+import { num } from '../../lib/report-period';
+
+interface Props {
+  data: {
+    total: number;
+    series: number[];
+    campaigns: [string, number][];
+    pages: [string, number][];
+  } | null;
+  unit: string;
+  labels: string[];
+}
+const { data, unit, labels } = Astro.props;
+---
+
+<section class="mb-6" aria-labelledby="emails-title">
+  <h2 id="emails-title" class="mb-1 text-lg">
+    From the site's emails
+  </h2>
+  <p class="mb-3 max-w-3xl text-sm text-muted">
+    Visits that came through a link in an email the site sent (community emails, event emails,
+    confirmations, reminders…). Mail apps don't say where a visit comes from, so Cloudflare counts
+    these as “Direct or unknown”: the website counts them itself from the tags added to its links.
+    Scans by mail security filters are left out as far as possible. Counted since 13 November 2026.
+  </p>
+  {data === null ? (
+    <Alert tone="danger">Visits from emails could not be loaded.</Alert>
+  ) : (
+    <>
+      <div class="mb-6 grid items-start gap-6 lg:grid-cols-[1fr_2fr]">
+        <Kpi
+          label="Visits from emails"
+          value={num(data.total)}
+          hint="Clicks on a link to the site in one of its emails"
+        />
+        <LineChart
+          title={`Visits from emails, per ${unit}`}
+          labels={labels}
+          series={[{ name: 'Visits from emails', values: data.series, tone: 'brand' }]}
+          empty="No visits from emails in this period."
+        />
+      </div>
+      <div class="grid gap-6 lg:grid-cols-2">
+        <BarList
+          title="Which emails"
+          hint="Visits, by the email the link was in"
+          rows={data.campaigns}
+          shares
+          tone="brand"
+          empty="No visits from emails in this period."
+        />
+        <BarList
+          title="Pages opened from emails"
+          hint="Visits"
+          rows={data.pages}
+          tone="navy"
+          empty="No visits from emails in this period."
+        />
+      </div>
+    </>
+  )}
+</section>

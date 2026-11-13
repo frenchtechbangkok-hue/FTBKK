@@ -96,6 +96,7 @@ export async function handleContactForm(
       to: await adminNotifyEmails(settings),
       replyTo: data.email,
       subject: w.subject,
+      campaign: w.campaign,
       paragraphs: w.paragraphs,
       bodyHtml: w.bodyHtml,
       details: [

@@ -6,6 +6,7 @@ import ReportFilters from '../../../components/admin/ReportFilters.astro';
 import Kpi from '../../../components/admin/Kpi.astro';
 import BarList from '../../../components/admin/BarList.astro';
 import Alert from '../../../components/Alert.astro';
+import EmailVisits from '../../../components/admin/EmailVisits.astro';
 import { delta, num, periodQuery } from '../../../lib/report-period';
 import { loadTrafficReport } from '../../../lib/reports';
 import {
@@ -14,11 +15,22 @@ import {
   VITAL_THRESHOLDS,
   vitalRating,
   type VitalName,
+  withEmailVisits,
 } from '../../../lib/traffic';
+import { periodBuckets } from '../../../lib/report-period';
 
 // Reports > Website traffic: visits, pages, sources and speed from Cloudflare Web Analytics, and
 // the requests this Worker served. Read from Cloudflare's API at each visit (src/lib/traffic.ts).
-const { period, beacon, connected, report: r, error } = await loadTrafficReport(Astro.url);
+const {
+  period,
+  beacon,
+  connected,
+  report: r,
+  error,
+  fromEmails,
+} = await loadTrafficReport(Astro.url);
+const emailUnit = r?.unit ?? periodBuckets(period).unit;
+const emailLabels = (r?.buckets ?? periodBuckets(period).buckets).map((b) => b.label);
 const n = num;
 const day = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
@@ -193,8 +205,12 @@ const startsLater = r ? sliced(r.pageloads.range) : null;
             />
             <BarList
               title="Where visitors come from"
-              hint="Visits, by the site that sent them"
-              rows={p!.tops.referrers}
+              hint={
+                fromEmails?.total
+                  ? 'Visits, by the site that sent them. Emails from this site: clicks counted by the website (below)'
+                  : 'Visits, by the site that sent them'
+              }
+              rows={withEmailVisits(p!.tops.referrers, fromEmails?.total ?? 0)}
               shares
               empty="No visits in this period."
             />
@@ -226,6 +242,8 @@ const startsLater = r ? sliced(r.pageloads.range) : null;
           </div>
         </>
       )}
+
+      <EmailVisits data={fromEmails} unit={emailUnit} labels={emailLabels} />
 
       <section class="mb-6" aria-labelledby="speed-title">
         <h2 id="speed-title" class="mb-1 text-lg">
@@ -303,4 +321,6 @@ const startsLater = r ? sliced(r.pageloads.range) : null;
       </section>
     </>
   )}
+
+  {!r && <EmailVisits data={fromEmails} unit={emailUnit} labels={emailLabels} />}
 </AdminLayout>

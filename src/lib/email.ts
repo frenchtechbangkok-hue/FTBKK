@@ -2,6 +2,8 @@ import { env } from 'cloudflare:workers';
 import { suppressedAmong, suppressedEmails } from './email-suppressions';
 import { sesSend, sesSendMany, type MimeMessage, type SesConfig } from './ses';
 import { emailEnv, type EmailEnv } from './email-setup';
+import { OTHER_CAMPAIGN, siteHosts, tagHtmlLinks, tagTextLinks } from './email-links';
+import { siteOrigin } from './site';
 
 export interface EmailAttachment {
   filename: string;
@@ -43,6 +45,12 @@ export interface EmailMessage {
   ticket?: { code: string; qrCid: string; url: string };
   replyTo?: string;
   attachments?: EmailAttachment[];
+  /**
+   * Which email this is, for Reports > Website traffic: the template key ("member.welcome"),
+   * "event-<slug>" or "community-<subject>". Links to the site get it as utm_campaign
+   * (src/lib/email-links.ts). Empty = "other".
+   */
+  campaign?: string;
 }
 
 const esc = (s: string) =>
@@ -54,8 +62,18 @@ const esc = (s: string) =>
 /** Label of the footer link to the person's /my-data page. */
 export const DATA_LINK_LABEL = 'Manage or delete my data';
 
-/** One branded template for every email on the site (HTML + plain text). */
+/**
+ * One branded template for every email on the site (HTML + plain text). Links to the public site
+ * get the email's tags so its visits show in Reports > Website traffic (src/lib/email-links.ts).
+ */
 export function renderEmail(m: EmailMessage) {
+  const { html, text } = renderUntagged(m);
+  const hosts = siteHosts(siteOrigin().host);
+  const campaign = m.campaign || OTHER_CAMPAIGN;
+  return { html: tagHtmlLinks(html, campaign, hosts), text: tagTextLinks(text, campaign, hosts) };
+}
+
+function renderUntagged(m: EmailMessage) {
   // Inline copies of the theme tokens (src/styles/global.css): email clients ignore stylesheets.
   const navy = '#160b47';
   const brand = '#d6223d';

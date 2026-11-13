@@ -291,6 +291,7 @@ async function sendPostByHandEmail(
   return sendEmail({
     to: row.createdBy,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     details: [

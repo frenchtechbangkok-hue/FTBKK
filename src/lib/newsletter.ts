@@ -26,6 +26,7 @@ export async function sendNewsletterConfirmation(data: z.infer<typeof Newsletter
   await sendEmail({
     to: data.email,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: {

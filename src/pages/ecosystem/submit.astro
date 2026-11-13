@@ -81,6 +81,7 @@ if (isPost) {
       await sendEmail({
         to: d.ownerEmail,
         subject: w.subject,
+        campaign: w.campaign,
         paragraphs: w.paragraphs,
         bodyHtml: w.bodyHtml,
         action: { label: w.buttonLabel, url: siteUrl(`/ecosystem/verify?token=${token}`) },

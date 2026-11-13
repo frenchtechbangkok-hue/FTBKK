@@ -34,8 +34,15 @@ const event = {
 } as unknown as Event;
 const r = { name: 'Ann', email: 'ann@x.com', token: 'tok' };
 const vars = eventVars(event, r.name);
-/** The words of a rendered email without its HTML version (checked in "Markdown messages"). */
-const words = ({ bodyHtml: _html, ...rest }: ReturnType<typeof applyTemplate>) => rest;
+/**
+ * The words of a rendered email without its HTML version (checked in "Markdown messages") and its
+ * campaign (checked in email-links.test.ts).
+ */
+const words = ({
+  bodyHtml: _html,
+  campaign: _campaign,
+  ...rest
+}: ReturnType<typeof applyTemplate>) => rest;
 const t = (key: keyof typeof EMAIL_TEMPLATES, v: Record<string, string> = vars) =>
   words(applyTemplate(EMAIL_TEMPLATES[key], null, v));
 

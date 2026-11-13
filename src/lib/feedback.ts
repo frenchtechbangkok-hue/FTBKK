@@ -53,6 +53,7 @@ export function feedbackEmail(
   return {
     to: r.email,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     choices: {

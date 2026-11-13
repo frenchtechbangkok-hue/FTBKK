@@ -87,6 +87,7 @@ if (Astro.request.method === 'POST' && row && org) {
       await sendEmail({
         to: await adminNotifyEmails(),
         subject: w.subject,
+        campaign: w.campaign,
         paragraphs: w.paragraphs,
         bodyHtml: w.bodyHtml,
         details: [
@@ -155,6 +156,7 @@ if (Astro.request.method === 'POST' && row && org) {
           await sendEmail({
             to: await adminNotifyEmails(),
             subject: w.subject,
+            campaign: w.campaign,
             paragraphs: w.paragraphs,
             bodyHtml: w.bodyHtml,
             action: { label: w.buttonLabel, url: siteUrl('/admin/ecosystem') },

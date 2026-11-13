@@ -178,6 +178,7 @@ export async function requestMembership(
   await sendEmail({
     to: sendTo,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: {
@@ -274,6 +275,7 @@ export async function notifyNewMember(m: Member, event: string | null) {
     to: await adminNotifyEmails(),
     replyTo: m.email,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     details,
@@ -302,6 +304,7 @@ async function sendWelcome(m: Member, link: string) {
   await sendEmail({
     to: m.email,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl(memberPagePath(link)) },
@@ -429,6 +432,7 @@ export async function sendMemberLink(m: Member, repeat = false) {
   await sendEmail({
     to: m.email,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl(memberPagePath(token)) },
@@ -648,6 +652,7 @@ export async function inviteToJoin(
     messages.push({
       to: c.email!,
       subject: w.subject,
+      campaign: w.campaign,
       paragraphs: w.paragraphs,
       bodyHtml: w.bodyHtml,
       action: {
@@ -724,6 +729,7 @@ export async function inviteForEvent(
   await sendEmail({
     to: sendTo,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: {
@@ -812,6 +818,7 @@ async function sendRenewalEmail(m: Member, key: 'member.renewal' | 'member.lapse
   await sendEmail({
     to: m.email,
     subject: w.subject,
+    campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: {

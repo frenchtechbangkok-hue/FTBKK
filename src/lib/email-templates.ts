@@ -72,6 +72,8 @@ export interface RenderedTemplate {
   paragraphs: string[];
   /** The HTML version of the message (Markdown, inline-styled), for EmailMessage.bodyHtml. */
   bodyHtml: string;
+  /** The template key, for the links' utm_campaign (EmailMessage.campaign). */
+  campaign: string;
   /** '' when the email has no button. */
   buttonLabel: string;
 }
@@ -1080,11 +1082,18 @@ export function applyTemplate(
       oneLine(fillPlaceholders(def.subject, inSubject)),
     paragraphs,
     bodyHtml: messageHtml(md.join('\n\n'), values, origin),
+    campaign: templateKeyOf(def),
     buttonLabel:
       def.buttonLabel === undefined
         ? ''
         : fillPlaceholders(t.buttonLabel?.trim() || def.buttonLabel, inSubject),
   };
+}
+
+/** The key of a template definition ('' for one that isn't in EMAIL_TEMPLATES). */
+function templateKeyOf(def: EmailTemplateDef) {
+  for (const [k, d] of Object.entries(EMAIL_TEMPLATES)) if (d === def) return k;
+  return '';
 }
 
 /** The sample values of an email's placeholders, for the preview and the test email. */
@@ -1122,6 +1131,7 @@ export function sampleEmail(def: EmailTemplateDef, t: EmailText, to = ''): Email
     paragraphs: r.paragraphs,
     bodyHtml: r.bodyHtml,
     ...rest,
+    campaign: 'test',
     action: r.buttonLabel ? { label: r.buttonLabel, url: buttonUrl ?? SITE } : undefined,
   };
 }

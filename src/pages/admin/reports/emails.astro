@@ -316,6 +316,13 @@ const connected = setup.provider === 'ses' ? setup.sesEvents : setup.resendWebho
                           : 'Not connected'}
                     </span>
                   )}
+                  {x.connected && x.delivered >= 20 && !x.opened && (
+                    <span class="block text-xs text-warning">
+                      {x.provider === 'resend'
+                        ? 'No opens: turn on Open and Click tracking in Resend (see below)'
+                        : 'No opens: add Opens and Clicks to the configuration set (see below)'}
+                    </span>
+                  )}
                 </td>
                 <td>{n(x.sent)}</td>
                 <td>{pct(rate(x.delivered, x.sent))}</td>
@@ -328,6 +335,25 @@ const connected = setup.provider === 'ses' ? setup.sesEvents : setup.resendWebho
             ))}
           </tbody>
         </table>
+        {sources.some((x) => x.connected && x.delivered >= 20 && !x.opened) && (
+          <div class="mt-3 max-w-3xl text-sm">
+            <p class="font-semibold text-navy">When a provider shows no opens</p>
+            <ul class="mt-1 list-disc space-y-1 pl-5">
+              <li>
+                <strong>Resend</strong> adds no tracking unless the sending domain asks for it: in
+                Resend, Domains &gt; <code>mail.french-tech-bangkok.com</code> &gt; Configuration,
+                turn on <strong>Open tracking</strong> and <strong>Click tracking</strong>. Then in
+                Webhooks, open the site's webhook and check that <code>email.opened</code> and{' '}
+                <code>email.clicked</code> are ticked. Only emails sent after that are counted.
+              </li>
+              <li>
+                <strong>Amazon SES</strong> (region Sydney): Configuration sets &gt;{' '}
+                <code>ft-bkk-site</code> &gt; Event destinations &gt; the SNS destination &gt; Edit,
+                tick <strong>Opens</strong> and <strong>Clicks</strong>.
+              </li>
+            </ul>
+          </div>
+        )}
         {setup.resendWebhook && (
           <p class="mt-3 text-xs text-muted">
             Resend reports to <code class="break-all">{webhookUrl}</code>. If its last update stops

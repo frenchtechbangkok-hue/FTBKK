@@ -192,7 +192,11 @@ over the Worker's; the steps below still work for a site set up from the termina
    `RESEND_WEBHOOK_SECRET`. For opens and clicks, Resend > Domains > the sending domain > turn on
    **Open tracking** and **Click tracking** (Resend then rewrites links and adds a tiny image).
    Figures start from that day. When the domain moves, edit the webhook's URL (Resend allows one
-   webhook on the free plan).
+   webhook on the free plan). Tracking is set per domain: a domain added again (as
+   `mail.french-tech-bangkok.com` was on 9 Nov 2026) starts with both off, and Reports > Emails
+   then shows no opens for Resend (the By provider table says so once 20 emails are delivered).
+   Resend > Domains > `mail.french-tech-bangkok.com` > Configuration: Open tracking and Click
+   tracking on; Webhooks > the site's webhook: `email.opened` and `email.clicked` ticked.
 
 ## 6b. Email with Amazon SES (replaces Resend)
 
@@ -249,6 +253,8 @@ suppression list, SNS topic) is per region, so all of it lives in Sydney.
    `"SES_CONFIGURATION_SET": "ft-bkk-site"` in `wrangler.jsonc` and deploy: every email is then sent
    with that set and reported. Bounces and complaints keep feeding the blocked list as before.
    Done on 13 Nov 2026: the set `ft-bkk-site` exists in Sydney and `wrangler.jsonc` names it.
+   If Reports > Emails shows sends but no opens for SES, edit the set's SNS destination and check
+   that **Opens** and **Clicks** are ticked.
 
 Moving to the French Tech domain later: verify the new domain in SES (step 1), then change
 `EMAIL_FROM`. Production access, keys and the SNS topic stay; add the new identity to the feedback
