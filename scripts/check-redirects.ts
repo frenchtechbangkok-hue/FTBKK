@@ -3,34 +3,20 @@
  *
  *   npm run check:redirects -- https://ft-bkk-site.<account>.workers.dev
  *
- * Reads migration/data/wix-sitemap-urls.txt (every URL of the Wix sitemap, Nov 2026) and
- * migration/data/urls.json (written by `npm run capture`), plus a few known legacy paths, follows
- * redirects on the given base URL and lists every URL that doesn't end on a 200. VERBOSE=1 also
- * prints where each working URL lands.
+ * Reads scripts/data/wix-sitemap-urls.txt (every URL of the Wix sitemap, Nov 2026), plus a few
+ * known legacy paths, follows redirects on the given base URL and lists every URL that doesn't end
+ * on a 200. VERBOSE=1 also prints where each working URL lands.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const base = (process.argv[2] ?? 'http://localhost:4321').replace(/\/$/, '');
-const file = path.join(import.meta.dirname, '..', 'migration', 'data', 'urls.json');
-
 const KNOWN = ['/', '/blog', '/sponsors', '/services-9', '/team', '/members', '/fund', '/contact'];
 
 let paths = [...KNOWN];
-if (existsSync(file)) {
-  const raw = JSON.parse(readFileSync(file, 'utf8'));
-  const urls: string[] = Object.values((raw.data ?? raw) as Record<string, string[]>).flat();
-  paths.push(...urls.map((u) => new URL(u).pathname));
-} else {
-  console.warn(
-    `No ${path.relative(process.cwd(), file)} yet: run "npm run capture" first. Checking known paths only.`,
-  );
-}
-const sitemap = path.join(import.meta.dirname, '..', 'migration', 'data', 'wix-sitemap-urls.txt');
-if (existsSync(sitemap)) {
-  for (const line of readFileSync(sitemap, 'utf8').split('\n')) {
-    if (line.startsWith('http')) paths.push(new URL(line).pathname);
-  }
+const sitemap = path.join(import.meta.dirname, 'data', 'wix-sitemap-urls.txt');
+for (const line of readFileSync(sitemap, 'utf8').split('\n')) {
+  if (line.startsWith('http')) paths.push(new URL(line).pathname);
 }
 paths = [...new Set(paths)];
 

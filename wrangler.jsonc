@@ -44,8 +44,7 @@
     // Public Turnstile site key (widget "FT Bangkok site" in the French Tech account); its secret is the
     // Worker secret TURNSTILE_SECRET.
     "TURNSTILE_SITE_KEY": "0x4AAAAAAF3DXozO_czZrbCo",
-    // Base of the links in emails. The workers.dev address until the domain moves here (phase 10),
-    // since www.french-tech-bangkok.com still serves the Wix site.
+    // Base of the links in emails, canonical URLs and the sitemap (www redirects here).
     "SITE_URL": "https://french-tech-bangkok.com",
     // Sender, on mail.delattre.me (verified in Resend) until french-tech-bangkok.com's DNS moves to
     // us. Then switch to "La French Tech Bangkok <hello@french-tech-bangkok.com>".

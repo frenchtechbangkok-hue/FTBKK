@@ -3,6 +3,6 @@ dist
 .wrangler
 node_modules
 migrations/meta
-migration/data
+migration
 worker-configuration.d.ts
 package-lock.json

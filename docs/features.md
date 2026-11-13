@@ -110,7 +110,9 @@ screen by screen for the team.
   the member is **active** at once, then gets a welcome email with the WhatsApp invitation, the
   next three events and a button to their member page. Signing up again with a member's address
   just emails their page link, and the page says the same thing either way. The team sees new members
-  in Members > To review (it never blocks them), can add notes and can suspend a member. Membership runs a year
+  in Members > To review (it never blocks them; the line under the Members title gives the same
+  count next to the active members and the sign-ups still waiting for email confirmation), can add
+  notes and can suspend a member. Membership runs a year
   (`renewal_due_at`): a daily cron job emails a one-click reminder 30 and 7 days before
   (`member_renew` link, `/member/renew`), then marks the member **lapsed** with a last email;
   a lapsed member renews in one click from that email or their member page.
@@ -361,7 +363,7 @@ screen by screen for the team.
   link that works for 24 hours (`/my-data?code=…`, a single-use `data` code in `magic_tokens`). The
   page always answers the same way, so it doesn't reveal whether an address is known.
 - Every URL of the old Wix sitemap (101 pages, events, posts, categories, sponsors, team and
-  member profiles, listed in `migration/data/wix-sitemap-urls.txt`) answers with a permanent 301
+  member profiles, listed in `scripts/data/wix-sitemap-urls.txt`) answers with a permanent 301
   to the same content on the new site (`src/lib/redirects.ts`). Event, post, ecosystem and
   category URLs are checked against the slugs in D1: a slug that changed on import
   (`safecomms` -> `safecoms`, `wyzauto-` -> `wyzauto`, `french-tech-connect-54-1` ->

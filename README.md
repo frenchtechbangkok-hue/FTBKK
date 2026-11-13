@@ -1,8 +1,7 @@
 # La French Tech Bangkok website
 
-The new website of La French Tech Bangkok, replacing the Wix site at
-https://www.french-tech-bangkok.com/. It runs as one Cloudflare Worker and is live at
-https://ft-bkk-site.frenchtechbangkok.workers.dev until the domain moves over.
+The website of La French Tech Bangkok, live at https://french-tech-bangkok.com since November 2026
+(it replaced the old Wix site; the move is complete). It runs as one Cloudflare Worker.
 
 ## What the site does
 
@@ -70,8 +69,7 @@ npm run dev                      # http://localhost:4321
 ```
 
 Locally the admin needs no login (it uses `DEV_ADMIN_EMAIL` from `.dev.vars`) and emails are
-printed to the console. To fill the local database with the content captured from Wix, run
-`npm run import`; to import Wix guest lists, see [migration/README.md](migration/README.md).
+printed to the console. The local database starts empty: add content in the admin.
 
 ```sh
 npm run check                     # astro check + eslint + prettier
@@ -112,8 +110,7 @@ src/components/   Astro components (admin/ for the admin UI)
 src/lib/          server logic: auth, registrations, directory, email, reports, cron jobs
 src/db/           Drizzle schema and client
 migrations/       D1 migrations
-migration/        Wix capture script and captured data
-scripts/          content import, guest import and redirect checker
+scripts/          deploy helper (upload:ci) and the old Wix links checker, with the Wix sitemap
 docs/             features, admin guide, deploy guide, plan, design tokens
 test/             unit tests
 ```

@@ -369,11 +369,9 @@ uses any more.
   emails a link valid for 24 hours that opens the same page; otherwise nothing is sent. The page
   gives the same answer either way, so nobody can find out who is in the list. Nothing is deleted
   until the person confirms on the page.
-- **Guests registered on Wix** are imported from the Wix guest list export with
-  `npm run import:guests -- <Guest_list_….csv> --remote` (see the README). The event must already
-  exist on the new site with the same slug as in the file name, or pass `--event <slug>`. Guests
-  get no email; they show up in Registrations and Contacts like everyone else, with the date they
-  registered on Wix.
+- **Guests registered on Wix** before the move were imported once (October and November 2026): they
+  show up in Registrations and Contacts like everyone else, with the date they registered on Wix.
+  New guest lists come in through **Import a CSV file** in Registrations.
 - Cancelling an event emails everyone registered or on the waitlist.
 - **Email registrants** (on an event's page, or the button in Registrations) sends your own
   message to the people of one event: a venue change, the slides after the talk, a last-minute
@@ -452,6 +450,10 @@ enrolment at check-in.
 - People sign up on `/join`, click the link in the confirmation email and are **active** at once:
   they get a welcome email with the WhatsApp invitation (the link from Settings > Social links)
   and a link to their member page, where they edit their profile, see their events and can leave.
+- The line under the Members title counts the active members and, of those, how many are still to
+  review (the same number as the **To review** tab), then the sign-ups waiting for email
+  confirmation (they have not clicked their link yet, so they are not members), the suspended
+  members and, when there are some, the lapsed ones.
   The team gets a "New member" email at the Admin notifications addresses (Settings).
 - **Members > To review**: active members nobody has looked at yet, newest first. It never
   blocks anyone (they are members already); it just helps the board keep track of who joined.
