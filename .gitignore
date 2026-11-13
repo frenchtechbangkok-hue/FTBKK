@@ -7,8 +7,5 @@ dist/
 *.log
 .DS_Store
 
-# Phase 1 capture: only the extracted data and README are committed.
-migration/*
-!migration/data/
-!migration/README.md
-!migration/capture.ts
+# Local Wix migration backups (guest lists, raw captures) kept on the team's machines, never committed.
+migration/

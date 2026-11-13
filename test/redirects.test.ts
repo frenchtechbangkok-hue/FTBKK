@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { legacyMatch, legacyTarget, pickSlug, redirectFor } from '../src/lib/redirects';
-import { slugify } from '../src/lib/format';
 
 describe('Wix redirects', () => {
   it.each([
@@ -85,30 +84,19 @@ describe('pickSlug', () => {
 });
 
 /**
- * Every URL in the Wix sitemap (migration/data/wix-sitemap-urls.txt, Nov 2026) must land on its
- * own page, given the slugs the import (scripts/import.ts and the one-off imports) wrote to D1.
+ * Every URL in the Wix sitemap (scripts/data/wix-sitemap-urls.txt, Nov 2026) must land on its own
+ * page, given the slugs the Wix import wrote to D1 (test/fixtures/wix-imported-slugs.json).
  */
 describe('Wix sitemap URLs', () => {
-  const data = path.join(import.meta.dirname, '..', 'migration', 'data');
-  const read = (f: string) => JSON.parse(readFileSync(path.join(data, f), 'utf8'));
-  const LEGAL_SUFFIX =
-    /[\s,]+(?:co\.?,?\s*ltd\.?|company limited|ltd\.?|limited|inc\.?|pte\.?\s*ltd\.?)\s*$/i;
-  const imported = {
-    event: [
-      ...(read('events.json') as { slug: string }[]).map((e) => e.slug),
-      'game-over-for-the-old-way-how-ai-reshapes-development', // scripts/one-off/2026-10-27-game-over
-    ],
-    post: (read('posts.json') as { slug: string }[]).map((p) => p.slug),
-    organisation: (read('organisations.json') as { name: string; slug: string }[]).map((o) =>
-      slugify((o.name || o.slug).replace(LEGAL_SUFFIX, '')),
-    ),
-    category: (read('urls.json') as { categories: string[] }).categories
-      .map((u) => u.split('/blog/categories/')[1])
-      .filter(Boolean),
-  };
+  const imported = JSON.parse(
+    readFileSync(path.join(import.meta.dirname, 'fixtures', 'wix-imported-slugs.json'), 'utf8'),
+  ) as Record<'event' | 'post' | 'organisation' | 'category', string[]>;
   const LIST = { event: '/events', post: '/blog', organisation: '/ecosystem', category: '/blog' };
 
-  const paths = readFileSync(path.join(data, 'wix-sitemap-urls.txt'), 'utf8')
+  const paths = readFileSync(
+    path.join(import.meta.dirname, '..', 'scripts', 'data', 'wix-sitemap-urls.txt'),
+    'utf8',
+  )
     .split('\n')
     .filter((l) => l.startsWith('http'))
     .map((u) => new URL(u).pathname);

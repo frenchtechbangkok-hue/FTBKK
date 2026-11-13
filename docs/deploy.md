@@ -104,17 +104,13 @@ that carries it.
 **Cron schedule.** The hourly trigger belongs to the Worker, not to a version: a change to
 `triggers.crons` in `wrangler.jsonc` needs `npx wrangler triggers deploy` once, after promoting.
 
-## 3. Load the content
+## 3. The content
 
-On your computer, once: `npx wrangler login`. Then:
-
-```sh
-npm run capture                # optional: crawl the Wix site into migration/data
-npm run import -- --remote     # events, posts, organisations, people, settings and images
-```
-
-The import can be run again safely (it updates rows by slug and never overwrites settings
-edited in the admin unless you pass `--force-settings`).
+All content (events, posts, organisations, people, settings, registrations) lives in the D1
+database `ftbkk` and the images in the R2 bucket `ftbkk-media`. The Wix content and guest lists
+were imported in October and November 2026; the import scripts were removed once the migration was
+complete (they are in the git history before version 26.11.09 if ever needed). A new, empty
+database is filled from a backup (see "Backups and restore" below), not from Wix.
 
 ## 4. Admin login (Cloudflare Access)
 
@@ -378,14 +374,14 @@ Cloudflare data centre without running the Worker or reading the database.
 - Every Sunday the cron also writes a JSON export of all tables to R2 under `backups/` (12 weeks
   kept, never served publicly).
 
-## Later: the domain
+## The domain
 
-When the site is ready to replace Wix: move `french-tech-bangkok.com` DNS to Cloudflare (or add a
-CNAME), add both `www.french-tech-bangkok.com` and `french-tech-bangkok.com` as Custom Domains on
-the Worker (the bare one redirects to `www`, and old Wix URLs redirect to their new pages on both),
-add the hostname to
-the Access application and the Turnstile widget, set `SITE_URL` in `wrangler.jsonc` back to
-`https://www.french-tech-bangkok.com` (links in emails, canonical URLs, the sitemap and social
-images use it; the workers.dev address then answers with `noindex`), then run
-`npm run check:redirects -- https://www.french-tech-bangkok.com`. Finally add the domain in Google
-Search Console and submit `https://www.french-tech-bangkok.com/sitemap.xml`.
+`french-tech-bangkok.com` has served this Worker since November 2026 (DNS on Cloudflare; the
+domain stays registered at Wix with the Google Workspace mailboxes). Both
+`french-tech-bangkok.com` and `www.french-tech-bangkok.com` are Custom Domains on the Worker:
+`SITE_URL` in `wrangler.jsonc` is the bare one (links in emails, canonical URLs, the sitemap and
+social images use it), `www` answers with a 301 to it, and the workers.dev address answers with
+`noindex`. Old Wix URLs redirect to their new pages on both hosts; after a change to
+`src/lib/redirects.ts`, run `npm run check:redirects -- https://french-tech-bangkok.com` (it
+checks every URL of the old Wix sitemap, kept in `scripts/data/wix-sitemap-urls.txt`). The domain
+is in Google Search Console with `https://french-tech-bangkok.com/sitemap.xml` submitted.

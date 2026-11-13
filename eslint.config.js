@@ -13,9 +13,4 @@ export default [
       ],
     },
   },
-  {
-    // Migration scripts munge loosely shaped JSON from the Wix capture.
-    files: ['scripts/**'],
-    rules: { '@typescript-eslint/no-explicit-any': 'off' },
-  },
 ];

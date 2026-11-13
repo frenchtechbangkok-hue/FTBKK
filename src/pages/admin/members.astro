@@ -103,6 +103,15 @@ const csvHref = `/admin/members.csv?${new URLSearchParams(
 const pct = (v: number | null) => (v === null ? '–' : `${Math.round(v * 100)}%`);
 const total = (s: MemberStatus) => counts.filter((c) => c.status === s).length;
 const toReview = counts.filter((c) => c.status === 'active' && !c.reviewedAt).length;
+// The line under the title: the same "to review" count as the tab below, and the sign-ups still
+// waiting for their email confirmation named as such (they are not members yet).
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const membersIntro = [
+  `${plural(total('active'), 'active member', 'active members')}, ${toReview} to review`,
+  `${plural(total('pending'), 'sign-up', 'sign-ups')} waiting for email confirmation`,
+  `${total('suspended')} suspended`,
+  ...(total('lapsed') ? [`${total('lapsed')} lapsed`] : []),
+].join(' · ');
 const tone = {
   pending: 'neutral',
   active: 'success',
@@ -155,10 +164,7 @@ const selects: {
 ];
 ---
 
-<AdminLayout
-  title="Members"
-  intro={`${total('active')} active, ${total('pending')} not confirmed yet, ${total('suspended')} suspended.`}
->
+<AdminLayout title="Members" intro={membersIntro}>
   <Fragment slot="help">
     <p>
       Free individual membership from the Join page. People are members as soon as they confirm

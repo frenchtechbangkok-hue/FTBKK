@@ -2,6 +2,10 @@
 
 2026-10-02 · @Eric Delattre
 
+> Historical record. The rebuild is done and the site has been live on french-tech-bangkok.com
+> since November 2026. The Wix capture and import scripts this plan describes (phases 1 and 3) were
+> removed once the migration was complete (version 26.11.09); only the old Wix URL redirects remain.
+
 ## Summary and decisions
 
 The new site has 5 public sections (Home, Ecosystem, Events, Blog, About) and one private admin area where the team manages blog posts, events, registrations and the ecosystem directory. Everything runs on one Cloudflare Worker, with content in a Cloudflare D1 database and images in R2, so publishing is instant and needs no code or rebuild.
