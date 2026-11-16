@@ -284,6 +284,8 @@ screen by screen for the team.
   membership: Settings > "Accept company membership applications").
   The team can keep a private note on each listing (Ecosystem > All listings or the listing's
   page; `organisations.admin_notes`, never shown on the site), also shown in the review queue.
+  "Founded (year)" is optional and accepts 1800 up to the current year, checked when the form is
+  sent (not when the Worker starts, when its clock still reads 1970).
 - **Partners**: any listing can be a partner of La French Tech Bangkok, in a partner group
   (institutional, corporate, investors and VCs, coworkings and venues, hospitality, experts, schools
   and universities, community and media by default; the admin can add, rename, reorder and remove

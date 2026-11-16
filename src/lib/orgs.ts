@@ -26,7 +26,16 @@ export const OrgFields = z.object({
   website: optionalUrl(),
   linkedin: optionalUrl(),
   foundedYear: z
-    .union([z.literal(''), z.coerce.number().int().min(1800).max(new Date().getFullYear())])
+    .union([
+      z.literal(''),
+      z.coerce
+        .number({ error: 'Enter a year, like 2019.' })
+        .int('Enter a year, like 2019.')
+        .min(1800, 'Enter a year from 1800 on.')
+        // Checked per request: in Workers the clock reads 1970 while modules load, so a
+        // `.max(new Date().getFullYear())` here would freeze the limit at 1970.
+        .refine((y) => y <= new Date().getFullYear(), 'The founding year cannot be in the future.'),
+    ])
     .optional()
     .transform((v) => (v === '' || v === undefined ? null : v)),
   sectors: z.array(z.enum(SECTORS)).max(3, 'Pick up to 3 sectors.').default([]),
