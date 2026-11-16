@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.10',
+    date: '2026-11-16',
+    title: 'Founded year accepts recent years',
+    summary:
+      'The "Founded (year)" field on ecosystem listings (admin, submit and manage forms) accepts any year from 1800 up to this year again, instead of refusing everything after 1970.',
+  },
+  {
     version: '26.11.09',
     date: '2026-11-13',
     pr: 130,
