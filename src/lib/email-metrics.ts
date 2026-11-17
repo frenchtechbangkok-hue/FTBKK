@@ -24,10 +24,11 @@ export async function recordEmailEvent(e: EmailEvent) {
   // A permanent bounce wins over an earlier temporary one for the same email.
   const bounce = e.bounceType ?? null;
   await env.DB.prepare(
-    `INSERT INTO email_messages (provider, message_id, subject, recipients, sent_at, bounce_type${col ? `, ${col}` : ''})
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6${col ? ', ?7' : ''})
+    `INSERT INTO email_messages (provider, message_id, subject, recipients, sent_at, bounce_type, campaign${col ? `, ${col}` : ''})
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7${col ? ', ?8' : ''})
      ON CONFLICT (provider, message_id) DO UPDATE SET
        subject = COALESCE(email_messages.subject, excluded.subject),
+       campaign = COALESCE(email_messages.campaign, excluded.campaign),
        recipients = MAX(email_messages.recipients, excluded.recipients),
        sent_at = MIN(email_messages.sent_at, excluded.sent_at),
        bounce_type = CASE WHEN excluded.bounce_type = 'permanent' THEN 'permanent'
@@ -42,6 +43,7 @@ export async function recordEmailEvent(e: EmailEvent) {
       e.recipients,
       secs(e.sentAt),
       bounce,
+      e.campaign ?? null,
       ...(col ? [secs(e.at)] : []),
     )
     .run();
@@ -242,4 +244,35 @@ export async function providerSources(range: { from: Date; to: Date }): Promise<
       lastEvent: r?.lastEvent ? new Date(Number(r.lastEvent) * 1000) : null,
     };
   });
+}
+
+/** One email's figures by its campaign tag (a newsletter: "newsletter-<id>"). */
+export async function campaignFigures(campaign: string): Promise<EmailTotals | null> {
+  try {
+    const row = await env.DB.prepare(`SELECT ${TOTALS} FROM email_messages WHERE campaign = ?1`)
+      .bind(campaign)
+      .first();
+    const t = asTotals(row);
+    return t.sent || t.failed ? t : null;
+  } catch {
+    // Before migration 0045 (a preview sharing the production database): no figures.
+    return null;
+  }
+}
+
+/** Figures of several campaigns at once, by campaign. */
+export async function campaignsFigures(campaigns: string[]) {
+  const out = new Map<string, EmailTotals>();
+  if (!campaigns.length) return out;
+  try {
+    const { results } = await env.DB.prepare(
+      `SELECT campaign, ${TOTALS} FROM email_messages WHERE campaign IN (${campaigns.map((_, i) => `?${i + 1}`).join(',')}) GROUP BY campaign`,
+    )
+      .bind(...campaigns)
+      .all<Record<string, unknown>>();
+    for (const r of results) out.set(String(r.campaign), asTotals(r));
+  } catch {
+    // Before migration 0045: no figures.
+  }
+  return out;
 }

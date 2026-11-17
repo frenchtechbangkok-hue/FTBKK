@@ -7,6 +7,7 @@ import {
   eventFeedback,
   events,
   members,
+  newsletterSends,
   organisations,
   registrations,
 } from '../db/schema';
@@ -825,11 +826,14 @@ export async function tagContacts(
  */
 export async function deleteContact(key: string) {
   const db = getDb();
+  const named = !key.startsWith('name:') && !key.startsWith('id:');
+  // Read before the card goes: its other addresses are on it.
+  const emails = named ? await emailsOf(key) : [];
   const where = key.startsWith('name:')
     ? inArray(registrations.id, await walkInIds(key))
     : key.startsWith('id:')
       ? undefined
-      : inArray(registrations.email, await emailsOf(key));
+      : inArray(registrations.email, emails);
   const removed = where
     ? await db
         .delete(registrations)
@@ -839,8 +843,11 @@ export async function deleteContact(key: string) {
   const card = await cardFor(key);
   if (card) await db.delete(contacts).where(eq(contacts.id, card.id));
   // Their membership goes too: deleting someone's data deletes all of it.
-  if (!key.startsWith('name:') && !key.startsWith('id:'))
+  if (named) {
     await db.delete(members).where(eq(members.email, key));
+    // And the record of which newsletters went to them.
+    await db.delete(newsletterSends).where(inArray(newsletterSends.email, emails));
+  }
   return {
     registrations: removed.length,
     freedEvents: [

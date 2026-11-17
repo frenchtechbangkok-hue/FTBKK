@@ -1,0 +1,68 @@
+---
+import { and, eq } from 'drizzle-orm';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Section from '../../components/Section.astro';
+import Button from '../../components/Button.astro';
+import { getDb } from '../../db';
+import { newsletters } from '../../db/schema';
+import { formatDate } from '../../lib/format';
+import { isImageUrl, parseBlocks } from '../../lib/newsletter-blocks';
+import { loadBlockData, webBody } from '../../lib/newsletters';
+
+// The web version of a sent newsletter ("View in your browser" in the email), when the team
+// ticked "Publish it on the website". The same blocks as the email, without the personal links.
+const slug = (Astro.params.slug ?? '').slice(0, 120);
+const [n] = await getDb()
+  .select()
+  .from(newsletters)
+  .where(
+    and(eq(newsletters.slug, slug), eq(newsletters.status, 'sent'), eq(newsletters.webPage, true)),
+  );
+if (!n) return Astro.rewrite('/404');
+const blocks = parseBlocks(n.blocks);
+// The page's own h1 is the subject: headings inside the newsletter move down one level.
+const html = webBody(blocks, await loadBlockData(blocks))
+  .replace(/<h1(\s|>)/g, '<h2$1')
+  .replace(/<\/h1>/g, '</h2>');
+const subject = n.subject.replace(/\{name\}/gi, 'there');
+const header = blocks.find((b) => b.type === 'header');
+const image = header && header.image && isImageUrl(header.image) ? header.image : null;
+---
+
+<BaseLayout
+  title={subject}
+  description={
+    n.preheader?.replace(/\{name\}/gi, 'there') ?? `Newsletter of La French Tech Bangkok`
+  }
+  image={image}
+  ogType="article"
+>
+  <Section>
+    <div class="mx-auto max-w-[37rem]">
+      <p class="text-sm text-muted">
+        <a href="/newsletters">Newsletters</a> · {n.sentAt ? formatDate(n.sentAt) : ''}
+      </p>
+      <h1 class="mt-2 text-2xl md:text-3xl">{subject}</h1>
+      <div
+        class="newsletter-body mt-6 overflow-hidden rounded-card border border-line bg-paper p-5 md:p-7"
+        set:html={html}
+      />
+      <div class="mt-8 flex flex-wrap gap-3">
+        <Button href="/join#newsletter">Get the next one by email</Button>
+        <Button href="/newsletters" variant="secondary">
+          All newsletters
+        </Button>
+      </div>
+    </div>
+  </Section>
+</BaseLayout>
+
+<style>
+  .newsletter-body :global(img) {
+    max-width: 100%;
+    height: auto;
+  }
+  .newsletter-body :global(table) {
+    max-width: 100%;
+  }
+</style>

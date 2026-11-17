@@ -22,6 +22,27 @@ export interface EmailEvent {
   recipients: number;
   /** For bounces. */
   bounceType?: 'permanent' | 'temporary';
+  /** The email's "campaign" tag (email.ts campaignTag): which email it was, e.g. newsletter-3. */
+  campaign?: string | null;
+}
+
+/** A tag value as the site sets it: letters, digits, _ and -, or null. */
+const tagValue = (v: unknown) => {
+  const s = Array.isArray(v) ? v[0] : v;
+  return typeof s === 'string' && /^[A-Za-z0-9_-]{1,200}$/.test(s) ? s : null;
+};
+
+/** The campaign tag from Resend's tags: { name: value } or [{ name, value }]. */
+function resendCampaign(tags: unknown) {
+  if (Array.isArray(tags)) {
+    const t = tags.find(
+      (x): x is { name: string; value: unknown } =>
+        !!x && typeof x === 'object' && (x as { name?: unknown }).name === 'campaign',
+    );
+    return t ? tagValue(t.value) : null;
+  }
+  if (tags && typeof tags === 'object') return tagValue((tags as Record<string, unknown>).campaign);
+  return null;
 }
 
 const date = (v: unknown, fallback: Date) => {
@@ -99,6 +120,7 @@ export function readResendEvent(
     subject: cleanSubject(d.subject),
     recipients: Math.max(1, to.length),
     ...(bounceType ? { bounceType } : {}),
+    campaign: resendCampaign((d as Record<string, unknown>).tags),
   };
   const feedback: SesFeedback | null =
     (bounceType === 'permanent' || kind === 'complained') && to.length
@@ -211,6 +233,7 @@ export function readSesEvent(message: unknown, now = new Date()): EmailEvent | n
     at: date(detail.timestamp, sentAt),
     subject: cleanSubject(headers.subject),
     recipients: Math.max(1, destination.length),
+    campaign: tagValue(((mail.tags ?? {}) as Record<string, unknown>).campaign),
     ...(spec.kind === 'bounced'
       ? { bounceType: detail.bounceType === 'Permanent' ? 'permanent' : 'temporary' }
       : {}),

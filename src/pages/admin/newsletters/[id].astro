@@ -1,0 +1,694 @@
+---
+import { eq } from 'drizzle-orm';
+import { z } from 'zod';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import Alert from '../../../components/Alert.astro';
+import Badge from '../../../components/Badge.astro';
+import Button from '../../../components/Button.astro';
+import FormField from '../../../components/FormField.astro';
+import Kpi from '../../../components/admin/Kpi.astro';
+import BarList from '../../../components/admin/BarList.astro';
+import { getDb } from '../../../db';
+import { newsletters } from '../../../db/schema';
+import { fromLocalInput, toLocalInput } from '../../../lib/admin';
+import { loadLabels } from '../../../lib/contact-labels';
+import { renderEmail, sendEmail } from '../../../lib/email';
+import { fieldErrors, formToObject } from '../../../lib/forms';
+import { formatDate, formatTime } from '../../../lib/format';
+import { blockProblems, parseBlocks } from '../../../lib/newsletter-blocks';
+import {
+  MAX_FAILURES,
+  NEWSLETTER_ARRAYS,
+  NEWSLETTER_AUDIENCES,
+  NEWSLETTER_AUDIENCE_KEYS,
+  NewsletterFormSchema,
+  STATUS_LABELS,
+  audienceCounts,
+  builderChoices,
+  campaignOf,
+  loadBlockData,
+  newsletterKpis,
+  newsletterMessage,
+  newsletterRecipients,
+} from '../../../lib/newsletters';
+import { audit } from '../../../lib/orgs';
+import { getSettings } from '../../../lib/settings';
+import { siteUrl } from '../../../lib/site';
+
+// One newsletter: the block builder with a live preview while it is a draft or scheduled, then
+// its figures once sending started. Sending is done by the cron (lib/newsletters.ts), which runs
+// every 5 minutes: "Send now" means within 5 minutes.
+const db = getDb();
+const actor = Astro.locals.adminEmail ?? 'admin';
+const id = z.coerce.number().int().positive().safeParse(Astro.params.id);
+if (!id.success) return new Response('Not found', { status: 404 });
+const load = async () =>
+  (await db.select().from(newsletters).where(eq(newsletters.id, id.data)))[0];
+let n = await load();
+if (!n) return new Response('Not found', { status: 404 });
+
+const editable = (x: typeof n) =>
+  x.status === 'draft' || x.status === 'scheduled' || (x.status === 'failed' && !x.startedAt);
+let error = '';
+let notice = '';
+let problems: string[] = [];
+let errors: Record<string, string> = {};
+let scheduleValue = n.scheduledAt ? toLocalInput(n.scheduledAt) : '';
+const now = new Date();
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('action') ?? '');
+  if (action === 'duplicate') {
+    const [row] = await db
+      .insert(newsletters)
+      .values({
+        subject: `Copy of ${n.subject}`.slice(0, 150),
+        preheader: n.preheader,
+        blocks: n.blocks,
+        audience: n.audience,
+        segment: n.segment,
+        webPage: n.webPage,
+        createdBy: actor,
+        updatedBy: actor,
+      })
+      .returning({ id: newsletters.id });
+    await audit(actor, 'duplicate', 'newsletter', row!.id, null, {
+      subject: n.subject,
+      from: n.id,
+    });
+    return Astro.redirect(`/admin/newsletters/${row!.id}`, 303);
+  }
+  if (action === 'delete' && !n.startedAt) {
+    await db.delete(newsletters).where(eq(newsletters.id, n.id));
+    await audit(actor, 'delete', 'newsletter', n.id, { subject: n.subject }, null);
+    return Astro.redirect('/admin/newsletters?saved=deleted', 303);
+  }
+  if (action === 'retry' && n.status === 'failed' && n.startedAt) {
+    await db
+      .update(newsletters)
+      .set({ status: 'sending', failures: 0, lockedUntil: null, error: null, updatedBy: actor })
+      .where(eq(newsletters.id, n.id));
+    await audit(actor, 'retry', 'newsletter', n.id, null, { subject: n.subject });
+    return Astro.redirect(`/admin/newsletters/${n.id}?saved=done`, 303);
+  }
+  if (action === 'unschedule' && n.status === 'scheduled') {
+    await db
+      .update(newsletters)
+      .set({ status: 'draft', scheduledAt: null, updatedBy: actor })
+      .where(eq(newsletters.id, n.id));
+    await audit(actor, 'unschedule', 'newsletter', n.id, null, { subject: n.subject });
+    return Astro.redirect(`/admin/newsletters/${n.id}?saved=done`, 303);
+  }
+  if (['save', 'test', 'schedule', 'send-now'].includes(action)) {
+    if (!editable(n)) error = 'Sending has started: this newsletter can no longer be changed.';
+    else {
+      const parsed = NewsletterFormSchema.safeParse(formToObject(form, NEWSLETTER_ARRAYS));
+      scheduleValue = String(form.get('scheduledAt') ?? '');
+      if (!parsed.success) errors = fieldErrors(parsed.error);
+      else {
+        const d = parsed.data;
+        const segment = { groups: d.segGroups, tags: d.segTags };
+        await db
+          .update(newsletters)
+          .set({
+            subject: d.subject,
+            preheader: d.preheader,
+            blocks: d.blocks,
+            audience: d.audience,
+            segment: d.audience === 'segment' ? segment : null,
+            webPage: d.webPage,
+            // A newsletter that stopped before sending anyone goes back to being a draft.
+            ...(n.status === 'failed' ? { status: 'draft' as const, error: null } : {}),
+            updatedBy: actor,
+            updatedAt: new Date(),
+          })
+          .where(eq(newsletters.id, n.id));
+        n = (await load())!;
+        const blocks = parseBlocks(n.blocks);
+        const data = await loadBlockData(blocks);
+        if (action === 'save') {
+          await audit(actor, 'update', 'newsletter', n.id, null, { subject: n.subject });
+          return Astro.redirect(`/admin/newsletters/${n.id}?saved=1`, 303);
+        }
+        if (action === 'test') {
+          const settings = await getSettings();
+          const email = newsletterMessage(
+            { ...n, slug: n.slug ?? (n.webPage ? 'preview' : null) },
+            blocks,
+            data,
+            { replyTo: settings.contactEmail, test: true },
+          ).to({ name: 'there', email: actor });
+          const sent = Astro.locals.adminEmail
+            ? await sendEmail({ ...email, subject: `[Test] ${email.subject}` })
+            : { ok: false, error: 'No admin email (are you signed in through Cloudflare Access?)' };
+          if (sent.ok)
+            notice = `Saved, and a test went to ${actor}. Its "View in your browser" and "Unsubscribe" links only work in the real newsletter.`;
+          else error = `Saved, but the test could not be sent: ${sent.error ?? 'unknown error'}.`;
+        } else {
+          problems = blockProblems(blocks, data);
+          const when = action === 'send-now' ? now : null;
+          let at: Date | null = when;
+          if (!when) {
+            at = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(scheduleValue)
+              ? fromLocalInput(scheduleValue)
+              : null;
+            if (!at) errors.scheduledAt = 'Choose the date and time it goes out.';
+            else if (at.getTime() < now.getTime() - 60_000)
+              errors.scheduledAt = 'This time has passed: choose a later one, or Send now.';
+          }
+          const people = problems.length
+            ? []
+            : await newsletterRecipients(n.audience, n.segment ?? null);
+          if (problems.length) error = 'Saved, but fix these first:';
+          else if (Object.keys(errors).length) error = 'Saved, but choose when it goes out.';
+          else if (!people.length)
+            error = 'Saved, but nobody in this audience accepts emails: choose another audience.';
+          else {
+            await db
+              .update(newsletters)
+              .set({ status: 'scheduled', scheduledAt: at, failures: 0, error: null })
+              .where(eq(newsletters.id, n.id));
+            await audit(
+              actor,
+              action === 'send-now' ? 'send-now' : 'schedule',
+              'newsletter',
+              n.id,
+              null,
+              {
+                subject: n.subject,
+                at: at!.toISOString(),
+                recipients: people.length,
+              },
+            );
+            return Astro.redirect(
+              `/admin/newsletters/${n.id}?queued=${action === 'send-now' ? 'now' : 'later'}`,
+              303,
+            );
+          }
+        }
+      }
+    }
+  }
+}
+
+// ---------- what the page shows ----------
+
+const blocks = parseBlocks(n.blocks);
+const canEdit = editable(n);
+const labels = await loadLabels();
+const segment = n.segment ?? { groups: [], tags: [] };
+const [audience, choices, kpis] = await Promise.all([
+  canEdit ? audienceCounts(segment) : null,
+  canEdit ? builderChoices(now) : null,
+  canEdit ? null : newsletterKpis(n.id),
+]);
+// Read-only: the email as it went out (for Camille), rendered here.
+let sentHtml = '';
+if (!canEdit) {
+  const data = await loadBlockData(blocks);
+  sentHtml = renderEmail(
+    newsletterMessage(n, blocks, data, { test: true }).to({
+      name: 'Camille Martin',
+      email: 'camille@example.com',
+    }),
+  ).html;
+}
+const tagCounts = new Map<string, number>();
+const groupCounts = new Map<number, number>();
+for (const p of audience?.segmentable ?? []) {
+  for (const t of p.tags) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+  for (const g of p.groups) groupCounts.set(g, (groupCounts.get(g) ?? 0) + 1);
+}
+const segmentData = JSON.stringify(
+  (audience?.segmentable ?? []).map((p) => [
+    ...p.tags.map((t) => `t:${t}`),
+    ...p.groups.map((g) => `g:${g}`),
+  ]),
+);
+const plural = (k: number) => `${k} ${k === 1 ? 'person' : 'people'}`;
+const pct = (k: number, of: number) => (of ? `${Math.round((k / of) * 100)}%` : '–');
+const when = (d: Date | null) => (d ? `${formatDate(d)} at ${formatTime(d)}` : '');
+const queued = Astro.url.searchParams.get('queued');
+const tone = {
+  draft: 'neutral',
+  scheduled: 'accent',
+  sending: 'warning',
+  sent: 'success',
+  failed: 'danger',
+} as const;
+const webUrl =
+  n.slug && n.webPage && n.status === 'sent' ? siteUrl(`/newsletters/${n.slug}`) : null;
+const e = kpis?.email ?? null;
+const delivered = n.sentCount - n.suppressed;
+---
+
+<AdminLayout
+  title={n.subject}
+  heading={n.subject}
+  trail={[{ href: '/admin/newsletters', label: 'Newsletters' }]}
+>
+  <Fragment slot="actions">
+    <form method="post" class="flex flex-wrap gap-2">
+      <Button type="submit" name="action" value="duplicate" variant="secondary" size="sm">
+        Duplicate
+      </Button>
+      {!n.startedAt && (
+        <Button
+          type="submit"
+          name="action"
+          value="delete"
+          variant="danger"
+          size="sm"
+          data-confirm="Delete this newsletter?"
+        >
+          Delete
+        </Button>
+      )}
+    </form>
+  </Fragment>
+
+  <p class="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted">
+    <Badge tone={tone[n.status]}>{STATUS_LABELS[n.status]}</Badge>
+    {n.status === 'scheduled' && <span>Goes out {when(n.scheduledAt)} (Bangkok time).</span>}
+    {n.status === 'sending' && (
+      <span>
+        {n.sentCount} of {n.recipients} emails sent so far. The rest follow every 5 minutes.
+      </span>
+    )}
+    {n.status === 'sent' && (
+      <span>
+        Sent {when(n.sentAt)} to {plural(delivered)}.
+      </span>
+    )}
+  </p>
+
+  {queued === 'now' && n.status === 'scheduled' && (
+    <Alert tone="success" class="mb-6">
+      It goes out within 5 minutes. This page shows the progress and, once sent, the figures.
+    </Alert>
+  )}
+  {queued === 'later' && n.status === 'scheduled' && (
+    <Alert tone="success" class="mb-6">
+      Scheduled for {when(n.scheduledAt)}. You can still change it until then: click Save after your
+      changes, or Cancel the schedule.
+    </Alert>
+  )}
+  {notice && (
+    <Alert tone="success" class="mb-6">
+      {notice}
+    </Alert>
+  )}
+  {(error || n.error) && (
+    <Alert tone="danger" class="mb-6">
+      {error || n.error}
+      {problems.length > 0 && (
+        <ul class="mt-2 list-disc pl-5">
+          {problems.map((p) => (
+            <li>{p}</li>
+          ))}
+        </ul>
+      )}
+      {!error && n.status === 'sending' && n.failures > 0 && (
+        <p class="mt-2">
+          It tries again automatically ({n.failures} of {MAX_FAILURES} tries so far).
+        </p>
+      )}
+    </Alert>
+  )}
+  {Object.keys(errors).length > 0 && !error && (
+    <Alert tone="danger" class="mb-6">
+      Please fix the highlighted fields.
+    </Alert>
+  )}
+
+  {canEdit && audience && choices ? (
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,38rem)]">
+      <form
+        method="post"
+        class="grid min-w-0 content-start gap-6 self-start"
+        data-newsletter-form
+        data-warn-unsaved
+      >
+        <section class="admin-panel grid gap-4" aria-labelledby="basics-title">
+          <h2 id="basics-title" class="text-lg">
+            Subject and audience
+          </h2>
+          <FormField
+            name="subject"
+            label="Subject"
+            required
+            maxlength={150}
+            value={n.subject}
+            error={errors.subject}
+            hint="{name} becomes the person's first name."
+          />
+          <FormField
+            name="preheader"
+            label="Preview line (optional)"
+            maxlength={200}
+            value={n.preheader ?? ''}
+            hint="Shown after the subject in most inboxes."
+          />
+          <fieldset>
+            <legend class="text-sm font-semibold text-ink">Send to</legend>
+            <div class="mt-2 grid gap-2 sm:grid-cols-2">
+              {NEWSLETTER_AUDIENCE_KEYS.map((a) => (
+                <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-line p-3 has-checked:border-accent has-checked:bg-accent/5">
+                  <input
+                    type="radio"
+                    name="audience"
+                    value={a}
+                    checked={a === n!.audience}
+                    data-count={audience.counts[a]}
+                    class="mt-1 size-4 accent-brand"
+                  />
+                  <span class="text-sm">
+                    <span class="font-semibold">{NEWSLETTER_AUDIENCES[a].label}</span>
+                    <span class="ml-1 text-muted" data-count-text>
+                      ({audience.counts[a]})
+                    </span>
+                    <span class="block text-muted">{NEWSLETTER_AUDIENCES[a].hint}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p class="mt-2 text-sm text-muted">
+              People who said no to emails are always left out. Counts are for today: the list is
+              read again when sending starts.
+            </p>
+          </fieldset>
+          <div
+            data-for="segment"
+            hidden={n.audience !== 'segment'}
+            class="grid gap-3 rounded-lg bg-surface p-4 text-sm"
+            data-segment={segmentData}
+          >
+            {labels.groups.length + labels.tags.length === 0 ? (
+              <p class="text-muted">
+                No groups or tags yet: create them in{' '}
+                <a href="/admin/contacts/labels">Contacts &gt; Tags and groups</a>.
+              </p>
+            ) : (
+              <>
+                {labels.groups.length > 0 && (
+                  <fieldset>
+                    <legend class="font-semibold text-ink">Groups</legend>
+                    <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                      {labels.groups.map((g) => (
+                        <label class="flex cursor-pointer items-center gap-2">
+                          <input
+                            type="checkbox"
+                            name="segGroups"
+                            value={g.id}
+                            checked={segment.groups.includes(g.id)}
+                            data-label={`g:${g.id}`}
+                            class="size-4 accent-brand"
+                          />
+                          {g.name} <span class="text-muted">({groupCounts.get(g.id) ?? 0})</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                )}
+                {labels.tags.length > 0 && (
+                  <fieldset>
+                    <legend class="font-semibold text-ink">Tags</legend>
+                    <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                      {labels.tags.map((t) => (
+                        <label class="flex cursor-pointer items-center gap-2">
+                          <input
+                            type="checkbox"
+                            name="segTags"
+                            value={t.key}
+                            checked={segment.tags.includes(t.key)}
+                            data-label={`t:${t.key}`}
+                            class="size-4 accent-brand"
+                          />
+                          {t.name} <span class="text-muted">({tagCounts.get(t.key) ?? 0})</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                )}
+              </>
+            )}
+          </div>
+          <FormField
+            name="webPage"
+            type="checkbox"
+            label="Publish it on the website once sent (/newsletters), with a “View in your browser” link in the email"
+            checked={n.webPage}
+          />
+        </section>
+
+        <section class="grid gap-3" aria-labelledby="blocks-title">
+          <h2 id="blocks-title" class="text-lg">
+            Content
+          </h2>
+          <input type="hidden" name="blocks" value={JSON.stringify(blocks)} data-blocks-input />
+          <div
+            data-builder
+            data-choices={JSON.stringify(choices)}
+            class="grid gap-3"
+            aria-live="polite"
+          ></div>
+          <noscript>
+            <Alert tone="warning">The block builder needs JavaScript.</Alert>
+          </noscript>
+        </section>
+
+        <section class="admin-panel grid gap-4" aria-labelledby="send-title">
+          <h2 id="send-title" class="text-lg">
+            Send
+          </h2>
+          <div class="flex flex-wrap gap-3">
+            <Button type="submit" name="action" value="save" variant="secondary">
+              Save
+            </Button>
+            <Button type="submit" name="action" value="test" variant="secondary">
+              Save and send me a test
+            </Button>
+          </div>
+          <div class="grid gap-3 rounded-lg bg-surface p-4">
+            <FormField
+              name="scheduledAt"
+              type="datetime-local"
+              label="Send on (Bangkok time)"
+              value={scheduleValue}
+              error={errors.scheduledAt}
+              hint="It goes out within 5 minutes after this time."
+            />
+            <div class="flex flex-wrap gap-3">
+              <Button
+                type="submit"
+                name="action"
+                value="schedule"
+                data-send
+                data-confirm-template="Schedule this newsletter for {n}?"
+              >
+                {n.status === 'scheduled' ? 'Save and keep scheduled' : 'Schedule'}
+              </Button>
+              <Button
+                type="submit"
+                name="action"
+                value="send-now"
+                variant="secondary"
+                data-send
+                data-confirm-template="Send this newsletter to {n} now?"
+              >
+                Send now
+              </Button>
+            </div>
+          </div>
+          <p class="text-sm text-muted">
+            The test goes only to {Astro.locals.adminEmail ?? 'you'}. Replies go to the contact
+            address in Settings. Every email ends with an Unsubscribe link and a “Manage or delete
+            my data” link.
+          </p>
+        </section>
+      </form>
+      {n.status === 'scheduled' && (
+        <form method="post" class="xl:col-start-1">
+          <Button
+            type="submit"
+            name="action"
+            value="unschedule"
+            variant="danger"
+            size="sm"
+            data-confirm="Cancel the schedule? It goes back to being a draft."
+          >
+            Cancel the schedule
+          </Button>
+        </form>
+      )}
+
+      <section
+        class="admin-panel grid min-w-0 content-start gap-3 xl:sticky xl:top-4 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:max-h-[calc(100vh-2rem)] xl:self-start xl:overflow-auto"
+        aria-labelledby="preview-title"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="preview-title" class="text-lg">
+            Preview
+          </h2>
+          <div class="flex gap-1 text-sm" role="group" aria-label="Preview width">
+            <button
+              type="button"
+              class="rounded-button border border-navy px-3 py-1 aria-pressed:bg-navy aria-pressed:text-paper"
+              aria-pressed="true"
+              data-width="100%"
+            >
+              Computer
+            </button>
+            <button
+              type="button"
+              class="rounded-button border border-navy px-3 py-1 aria-pressed:bg-navy aria-pressed:text-paper"
+              aria-pressed="false"
+              data-width="375px"
+            >
+              Phone
+            </button>
+          </div>
+        </div>
+        <p class="text-sm text-muted" data-preview-status aria-live="polite">
+          Updates as you edit, for a subscriber called Camille.
+        </p>
+        <ul
+          class="hidden list-disc rounded-lg bg-warning/10 py-2 pr-3 pl-7 text-sm"
+          data-problems
+        ></ul>
+        <p class="text-sm">
+          <span class="text-muted">Subject:</span> <strong data-preview-subject>{n.subject}</strong>
+        </p>
+        <iframe
+          title="Newsletter preview"
+          data-preview
+          sandbox="allow-same-origin allow-popups"
+          class="mx-auto h-[40rem] w-full rounded-lg border border-line bg-surface transition-[width]"
+        ></iframe>
+      </section>
+    </div>
+  ) : (
+    <div class="grid gap-6">
+      {kpis && (
+        <>
+          <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <Kpi
+              label="Sent"
+              value={String(delivered)}
+              hint={n.suppressed ? `${n.suppressed} skipped (blocked addresses)` : undefined}
+            />
+            <Kpi
+              label="Opened"
+              value={e ? pct(e.opened, e.delivered) : '–'}
+              hint={e ? `${e.opened} of ${e.delivered} delivered` : 'Waiting for the email service'}
+            />
+            <Kpi
+              label="Clicked"
+              value={e ? pct(e.clicked, e.delivered) : '–'}
+              hint={e ? `${e.clicked} people clicked a link` : undefined}
+            />
+            <Kpi
+              label="Website visits"
+              value={String(kpis.visits)}
+              hint="Clicks that reached the site"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <Kpi
+              label="Delivered"
+              value={e ? pct(e.delivered, e.sent) : '–'}
+              hint={e ? `${e.delivered} of ${e.sent}` : undefined}
+            />
+            <Kpi label="Bounced" value={e ? String(e.bounced) : '–'} />
+            <Kpi label="Marked as spam" value={e ? String(e.complained) : '–'} />
+            <Kpi label="Unsubscribed" value={String(kpis.unsubscribed)} hint="With its link" />
+          </div>
+          {e && e.delivered >= 20 && e.opened === 0 && (
+            <Alert tone="warning">
+              No opens recorded: open and click tracking may be off with the email service. See
+              Reports &gt; Emails for how to turn it on.
+            </Alert>
+          )}
+          <BarList
+            title="Pages visited from this newsletter"
+            rows={kpis.pages.map((p) => [p.path, p.visits])}
+            empty="No visits yet."
+            hint={`Counted by the site (tag ${campaignOf(n.id)}).`}
+          />
+        </>
+      )}
+      <section class="admin-panel grid gap-3" aria-labelledby="sent-title">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="sent-title" class="text-lg">
+            The newsletter
+          </h2>
+          <div class="flex flex-wrap gap-3 text-sm">
+            {webUrl && (
+              <a href={webUrl} target="_blank" rel="noopener">
+                Web version
+              </a>
+            )}
+            {n.status === 'failed' && n.startedAt && (
+              <form method="post">
+                <Button type="submit" name="action" value="retry" size="sm">
+                  Try again
+                </Button>
+              </form>
+            )}
+          </div>
+        </div>
+        <p class="text-sm text-muted">
+          Subject: <strong class="text-ink">{n.subject}</strong> · To{' '}
+          {NEWSLETTER_AUDIENCES[n.audience].label.toLowerCase()}
+        </p>
+        <iframe
+          title="Newsletter as sent"
+          srcdoc={sentHtml}
+          sandbox="allow-same-origin allow-popups"
+          class="h-[48rem] w-full rounded-lg border border-line bg-surface"
+          data-autosize
+        ></iframe>
+      </section>
+    </div>
+  )}
+
+  <dialog
+    data-block-menu
+    aria-labelledby="block-menu-title"
+    class="m-auto w-[min(44rem,calc(100vw-2rem))] rounded-xl p-0"
+  >
+    <div class="grid max-h-[85vh] grid-rows-[auto_1fr_auto] gap-3 p-5">
+      <h2 id="block-menu-title" class="text-lg">
+        Add a block
+      </h2>
+      <div class="grid min-h-0 gap-2 overflow-auto sm:grid-cols-2" data-block-menu-items></div>
+      <div>
+        <Button type="button" variant="secondary" data-block-menu-cancel>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  </dialog>
+</AdminLayout>
+
+<style>
+  dialog::backdrop {
+    background: rgb(0 0 0 / 0.4);
+  }
+</style>
+
+<script>
+  import { startBuilder } from '../../../scripts/newsletter-builder';
+
+  document.querySelectorAll<HTMLIFrameElement>('iframe[data-autosize]').forEach((f) => {
+    const fit = () => {
+      const doc = f.contentDocument;
+      if (doc?.body) f.style.height = `${Math.max(320, doc.documentElement.scrollHeight + 8)}px`;
+    };
+    f.addEventListener('load', fit);
+    fit();
+  });
+  const form = document.querySelector<HTMLFormElement>('[data-newsletter-form]');
+  if (form) startBuilder(form);
+</script>

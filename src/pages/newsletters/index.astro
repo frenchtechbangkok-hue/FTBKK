@@ -1,0 +1,57 @@
+---
+import { and, desc, eq } from 'drizzle-orm';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Section from '../../components/Section.astro';
+import Button from '../../components/Button.astro';
+import { getDb } from '../../db';
+import { newsletters } from '../../db/schema';
+import { formatDate } from '../../lib/format';
+
+// The newsletters sent from the admin with "Publish it on the website" ticked, newest first.
+const rows = await getDb()
+  .select({
+    slug: newsletters.slug,
+    subject: newsletters.subject,
+    preheader: newsletters.preheader,
+    sentAt: newsletters.sentAt,
+  })
+  .from(newsletters)
+  .where(and(eq(newsletters.status, 'sent'), eq(newsletters.webPage, true)))
+  .orderBy(desc(newsletters.sentAt))
+  .limit(200);
+const clean = (s: string) => s.replace(/\{name\}/gi, 'there');
+---
+
+<BaseLayout
+  title="Newsletters"
+  description="Past newsletters of La French Tech Bangkok: event recaps, community news and what's coming up."
+>
+  <Section>
+    <div class="max-w-3xl">
+      <h1 class="text-3xl md:text-4xl">Newsletters</h1>
+      <p class="mt-3 text-lg text-muted">
+        Event recaps, community news and what's coming up, as sent to our subscribers.
+      </p>
+      <div class="mt-5">
+        <Button href="/join#newsletter">Get the next one by email</Button>
+      </div>
+      {rows.length ? (
+        <ul class="mt-10 grid gap-4">
+          {rows.map((r) => (
+            <li class="rounded-card border border-line bg-paper p-5">
+              <p class="text-sm text-muted">{r.sentAt ? formatDate(r.sentAt) : ''}</p>
+              <h2 class="mt-1 text-xl">
+                <a href={`/newsletters/${r.slug}`} class="text-navy">
+                  {clean(r.subject)}
+                </a>
+              </h2>
+              {r.preheader && <p class="mt-1 text-muted">{clean(r.preheader)}</p>}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="mt-10 text-muted">The first newsletter is on its way.</p>
+      )}
+    </div>
+  </Section>
+</BaseLayout>

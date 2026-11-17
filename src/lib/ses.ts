@@ -24,6 +24,10 @@ export interface MimeMessage {
   html: string;
   text: string;
   attachments?: MimeAttachment[];
+  /** Extra headers (List-Unsubscribe…). */
+  headers?: Record<string, string>;
+  /** SES message tags, given back in its events (letters, digits, _ and - only). */
+  tags?: Record<string, string>;
 }
 
 const CRLF = '\r\n';
@@ -120,6 +124,9 @@ export function buildMime(m: MimeMessage) {
     `To: ${m.to.map(encodeAddress).join(', ')}`,
     ...(m.replyTo ? [`Reply-To: ${encodeAddress(m.replyTo)}`] : []),
     `Subject: ${encodeWord(m.subject)}`,
+    ...Object.entries(m.headers ?? {})
+      .filter(([k]) => /^[A-Za-z][A-Za-z0-9-]{0,60}$/.test(k))
+      .map(([k, v]) => `${k}: ${oneLine(v)}`),
     'MIME-Version: 1.0',
     top.header,
   ];
@@ -158,6 +165,9 @@ export async function sesSend(
     Destination: { ToAddresses: m.to },
     Content: { Raw: { Data: base64Utf8(buildMime(m)) } },
     ...(cfg.configurationSet ? { ConfigurationSetName: cfg.configurationSet } : {}),
+    ...(m.tags && Object.keys(m.tags).length
+      ? { EmailTags: Object.entries(m.tags).map(([Name, Value]) => ({ Name, Value })) }
+      : {}),
   });
   const url = `https://email.${cfg.region}.amazonaws.com/v2/email/outbound-emails`;
   let last = '';

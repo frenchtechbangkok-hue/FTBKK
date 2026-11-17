@@ -66,6 +66,7 @@ export const MENU: NavGroup[] = [
   {
     label: 'Emails and social media',
     links: [
+      { href: '/admin/newsletters', label: 'Newsletters' },
       { href: '/admin/community-email', label: 'Email the community' },
       { href: '/admin/social', label: 'Social media posts', count: 'social' },
       { href: '/admin/emails', label: 'Automatic emails' },

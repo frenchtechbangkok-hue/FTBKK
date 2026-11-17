@@ -1,0 +1,51 @@
+---
+import { privatePage } from '../../lib/edge-cache';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Section from '../../components/Section.astro';
+import Alert from '../../components/Alert.astro';
+import Button from '../../components/Button.astro';
+import { unsubscribeByToken } from '../../lib/newsletters';
+
+// "Unsubscribe from the newsletter", linked from every newsletter with the person's own token.
+// GET only shows a button, so link scanners can't unsubscribe anyone; the button POSTs.
+const token = (Astro.url.searchParams.get('t') ?? '').slice(0, 100);
+let state: 'ask' | 'done' | 'invalid' = /^[\w-]{10,100}$/.test(token) ? 'ask' : 'invalid';
+if (Astro.request.method === 'POST' && state === 'ask')
+  state = (await unsubscribeByToken(token)) ? 'done' : 'invalid';
+privatePage(Astro);
+---
+
+<BaseLayout title="Unsubscribe" noindex>
+  <Section>
+    <div class="max-w-xl">
+      <h1 class="text-3xl">Unsubscribe</h1>
+      {state === 'ask' && (
+        <form method="post" class="mt-6 grid gap-4">
+          <p>One click and you won't get the La French Tech Bangkok newsletter any more.</p>
+          <div>
+            <Button type="submit">Unsubscribe me</Button>
+          </div>
+        </form>
+      )}
+      {state === 'done' && (
+        <Alert tone="success" class="mt-6">
+          Done: you won't get the newsletter any more. Changed your mind? Sign up again on the{' '}
+          <a href="/join#newsletter">Join page</a>.
+        </Alert>
+      )}
+      {state === 'invalid' && (
+        <div class="mt-6 grid gap-4">
+          <Alert tone="warning">
+            This link doesn't work. Use the Unsubscribe link at the bottom of the newsletter, or
+            manage your data yourself.
+          </Alert>
+          <div>
+            <Button href="/my-data" variant="secondary">
+              Manage or delete my data
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  </Section>
+</BaseLayout>

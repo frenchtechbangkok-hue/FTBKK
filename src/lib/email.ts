@@ -51,7 +51,22 @@ export interface EmailMessage {
    * (src/lib/email-links.ts). Empty = "other".
    */
   campaign?: string;
+  /** The preview line mail apps show after the subject (hidden in the email itself). */
+  preheader?: string;
+  /** A small link above the content, such as "View in your browser". */
+  topLink?: { label: string; url: string };
+  /** Small links in the footer, such as "Unsubscribe". */
+  footerLinks?: { label: string; url: string }[];
+  /** Extra email headers (List-Unsubscribe). */
+  headers?: Record<string, string>;
 }
+
+/**
+ * The campaign as a provider tag (SES and Resend allow letters, digits, _ and -): sent with every
+ * email so the provider's events say which email they are about (email_messages.campaign).
+ */
+export const campaignTag = (c: string | undefined) =>
+  (c || OTHER_CAMPAIGN).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 200);
 
 const esc = (s: string) =>
   s.replace(
@@ -122,8 +137,21 @@ function renderUntagged(m: EmailMessage) {
 <p style="margin:8px 0 0;font-size:13px;color:#5c5a73">Show it at the entrance. <a href="${esc(m.ticket.url)}" style="color:#0062ff">Open it on your phone</a></p>
 </td></tr></table>`
     : '';
+  const preheader = m.preheader
+    ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;color:#f5f5f5">${esc(m.preheader)}${'&#847;&zwnj;&nbsp;'.repeat(40)}</div>`
+    : '';
+  const topLink = m.topLink
+    ? `<tr><td style="padding:0 0 8px;text-align:center;font-size:12px;color:#5c5a73"><a href="${esc(m.topLink.url)}" style="color:#5c5a73;text-decoration:underline">${esc(m.topLink.label)}</a></td></tr>`
+    : '';
+  const footerLinks = (m.footerLinks ?? [])
+    .map(
+      (l) =>
+        `<br><a href="${esc(l.url)}" style="color:#5c5a73;text-decoration:underline">${esc(l.label)}</a>`,
+    )
+    .join('');
   const html = `<!doctype html><html><body style="margin:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif">
-<table role="presentation" width="100%" style="background:#f5f5f5;padding:24px 0"><tr><td align="center">
+${preheader}<table role="presentation" width="100%" style="background:#f5f5f5;padding:24px 0"><tr><td align="center">
+${topLink ? `<table role="presentation" width="560" style="max-width:560px;width:100%">${topLink}</table>` : ''}
 <table role="presentation" width="560" style="max-width:560px;width:100%;background:#fff;border-radius:16px;overflow:hidden">
 <tr><td style="background:${navy};padding:20px 28px;color:#fff;font-weight:700;font-size:18px">La French Tech Bangkok</td></tr>
 <tr><td style="padding:28px;color:#1a1530;font-size:16px;line-height:1.6">
@@ -134,7 +162,7 @@ ${details}${logos}${ticket}${choices}${button}${links}
     m.dataUrl
       ? `<br><a href="${esc(m.dataUrl)}" style="color:#5c5a73;text-decoration:underline">${DATA_LINK_LABEL}</a>`
       : ''
-  }</td></tr>
+  }${footerLinks}</td></tr>
 </table></td></tr></table></body></html>`;
   const text = [
     ...m.paragraphs,
@@ -156,6 +184,7 @@ ${details}${logos}${ticket}${choices}${button}${links}
     '--',
     m.footer ?? 'La French Tech Bangkok',
     ...(m.dataUrl ? [`${DATA_LINK_LABEL}: ${m.dataUrl}`] : []),
+    ...(m.footerLinks ?? []).map((l) => `${l.label}: ${l.url}`),
   ].join('\n\n');
   return { html, text };
 }
@@ -253,6 +282,8 @@ function toMime(e: EmailEnv, m: EmailMessage, to: string[]): MimeMessage {
     html,
     text,
     attachments: m.attachments,
+    headers: m.headers,
+    tags: { campaign: campaignTag(m.campaign) },
   };
 }
 
@@ -273,6 +304,8 @@ async function resendSend(e: EmailEnv, m: EmailMessage, to: string[]) {
       html,
       text,
       reply_to: m.replyTo,
+      headers: m.headers,
+      tags: [{ name: 'campaign', value: campaignTag(m.campaign) }],
       attachments: m.attachments?.map((a) => ({
         filename: a.filename,
         content: a.content,
@@ -381,6 +414,8 @@ export async function sendEmailBatch(
         html,
         text,
         reply_to: m.replyTo,
+        headers: m.headers,
+        tags: [{ name: 'campaign', value: campaignTag(m.campaign) }],
       };
     });
     const res = await fetch('https://api.resend.com/emails/batch', {
