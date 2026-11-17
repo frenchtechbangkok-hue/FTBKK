@@ -12,7 +12,7 @@ The menu has a group per kind of work, then the figures, the switches and the re
 | **Community**               | Members, Contacts, Tags and groups, Messages                                                                                                                                      |
 | **Ecosystem**               | To review, All listings, Partners, Renewals                                                                                                                                       |
 | **Website**                 | Blog posts, PDFs and files, Page texts (Home, About, Join, Tech Pulse, Thai page, code of conduct and privacy as tabs), Board and speakers, Guide pages                           |
-| **Emails and social media** | Email the community, Social media posts (share and schedule events and posts), Automatic emails                                                                                   |
+| **Emails and social media** | Newsletters, Email the community, Social media posts (share and schedule events and posts), Automatic emails                                                                      |
 | **Reports**                 | Events and attendance, Membership, Website traffic, Emails, Cloudflare usage (tabs of the same Reports screen, for the board)                                                     |
 | **Settings**                | General (site name, contact email, admin notifications, analytics), Membership (the sign-up switches), Event covers, Social links (the footer links to our pages), Email delivery |
 | **History**                 | Actions log (who did what in the admin), Change history (what changed in the website, version by version)                                                                         |
@@ -521,6 +521,61 @@ enrolment at check-in.
   by `EMAIL_DAILY_LIMIT`), a warning says so; emails past the limit are refused and listed after
   sending, so send the rest the next day. Sent emails are listed under the form.
 
+## Newsletters
+
+**Emails and social media > Newsletters** builds richer emails than Email the community, from
+blocks, and sends them now or at a set time. Each newsletter gets its own figures.
+
+1. **New newsletter**: pick how to start (News and upcoming events, Event recap, or Blank). It
+   opens as a draft; nothing is sent until you schedule it.
+2. **Subject and audience**: the subject (`{name}` becomes the first name), an optional preview
+   line (shown after the subject in most inboxes), and who gets it: Newsletter subscribers (the
+   usual choice), Members, All contacts (only news they would expect from us, PDPA) or Groups and
+   tags. People who said no to emails are always left out. Leave **Publish it on the website**
+   ticked to give it a web page (listed on `/newsletters`) and a "View in your browser" link.
+3. **Content**: **+ Add a block here** between any two blocks, or at the end. Each block has
+   ↑ ↓ to move it, Duplicate, Remove, and folds when you click its name. The blocks:
+   - **Header**: banner picture, a small line above the title ("Edition 1 · November 2026"),
+     the title and an introduction.
+   - **Text**: Markdown, as in Email the community.
+   - **Picture** (with caption and link), **Picture and text** (side by side), **Photo grid** (2 or
+     3 a row).
+   - **Key figures** (2 to 4 big numbers: "~100 attendees") and **Percentage bars** ("Startups
+     31%").
+   - **People**: photo, name, role, link; two a row.
+   - **Event card** (upcoming or past) and **Blog post card**.
+   - **Event recap**: pick a past event and tick what to show: its figures (attendees, companies,
+     feedback rating, speakers), its first photos (0 to 12), speakers, slides, video and
+     write-up, and the host, sponsors and partners' logos. It links to the full recap.
+   - **Video** (YouTube shows its own picture; add one for other sites), **Button**, **Logos**,
+     **Divider**.
+
+   Pictures: **Upload**, or paste an address (`/media/…` from Files, or `https://…`). In Photo
+   grid, People and Logos, **Or add … from an event** copies an event's recap photos, speakers or
+   partner logos in one go; change or remove any of them after.
+
+4. **Preview** on the right: the real email as Camille would get it, at **Computer** or **Phone**
+   width, with the list of what still stops sending (a block without its picture, an event that
+   was unpublished…). You can save a draft with problems; you can't schedule it.
+5. **Save**, or **Save and send me a test** (to your admin address; its Unsubscribe and web links
+   only work in the real one).
+6. **Schedule**: pick the day and time (Bangkok) and click Schedule, or **Send now**. It goes out
+   within 5 minutes of that time. Until then you can still edit it (Save keeps it scheduled) or
+   **Cancel the schedule**. The list of people is read when sending starts. Big lists go out in
+   batches every 5 minutes; if the email service refuses (a daily limit, an outage), it tries
+   again later by itself and stops after 5 tries, with **Try again** on its page.
+
+Once sent, the page shows: **Sent**, **Opened** and **Clicked** (of delivered), **Website visits**
+(clicks that reached the site), **Delivered**, **Bounced**, **Marked as spam**, **Unsubscribed** (with
+the link in this newsletter), the pages people visited from it, and the newsletter as it went out,
+with a link to its web version. Opens and clicks need open and click tracking on with the email
+service (Reports > Emails). The list of newsletters shows the same figures side by side.
+**Duplicate** starts a new draft from any newsletter, sent or not.
+
+Every newsletter ends with **Unsubscribe from the newsletter** (one click on our page, or the
+Unsubscribe button Gmail and Apple Mail show at the top) and **Manage or delete my data**.
+Unsubscribing records "no" to the newsletter on their contact card.
+
 ## Reports
 
 **Reports** has four tabs, for the team and the board. Figures are live. Every tab is laid out the
@@ -719,7 +774,7 @@ make the missing ones for upcoming events and recent posts at once.
   Facebook (your own profile).
 - **Schedule**: tick LinkedIn, Facebook, WhatsApp, then the announcement (date and time, text) and,
   for an event, the reminder the day before (09:00 by default, text). Times are Bangkok time;
-  posts go out on the hour.
+  posts go out at that time (within 5 minutes).
 
 **Connected pages** (top of Social media posts) shows, for LinkedIn and Facebook, **connected** or
 **not connected** with what is still missing in Cloudflare (the page ID, the token, or both). Under

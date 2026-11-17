@@ -553,6 +553,11 @@ export function startBuilder(form: HTMLFormElement) {
           'Could not reach the server for the preview. Your admin login may have expired: open the admin in a new tab to sign in again, then Save.';
     }
   }
+  // The preview grows with the newsletter (the panel around it scrolls).
+  frame.addEventListener('load', () => {
+    const doc = frame.contentDocument;
+    if (doc?.body) frame.style.height = `${Math.max(320, doc.documentElement.scrollHeight + 8)}px`;
+  });
   function schedulePreview() {
     clearTimeout(timer);
     timer = setTimeout(refresh, 500);

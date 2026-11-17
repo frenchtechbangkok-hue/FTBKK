@@ -84,9 +84,8 @@ export const NewsletterFormSchema = z.object({
   audience: z.enum(NEWSLETTER_AUDIENCE_KEYS).catch('newsletter'),
   segGroups: list(100).transform((a) => a.map(Number).filter((n) => Number.isInteger(n) && n > 0)),
   segTags: list(100).transform((a) => a.filter((t) => /^[\w-]{1,80}$/.test(t))),
-  webPage: z
-    .union([z.literal('on'), z.literal('1'), z.literal('true'), z.literal(''), z.undefined()])
-    .transform((v) => !!v),
+  /** A ticked checkbox: formToObject turns "on" into true. */
+  webPage: z.unknown().transform((v) => v === true || v === 'on' || v === '1' || v === 'true'),
 });
 export type NewsletterForm = z.infer<typeof NewsletterFormSchema>;
 export const NEWSLETTER_ARRAYS = ['segGroups', 'segTags'];

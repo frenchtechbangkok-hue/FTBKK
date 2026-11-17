@@ -20,7 +20,7 @@ export const AREAS: { key: Area; label: string; entities: string[] }[] = [
   {
     key: 'emails',
     label: 'Emails and social media',
-    entities: ['email_template', 'community_email', 'social_post', 'email'],
+    entities: ['email_template', 'community_email', 'newsletter', 'social_post', 'email'],
   },
   { key: 'settings', label: 'Settings', entities: ['settings'] },
 ];
@@ -419,6 +419,47 @@ export function describeAction(row: LogRow, names: LogNames = emptyNames()): Des
           `Emailed the community (${plural(num(a.recipients), 'person', 'people')})`,
           str(a.subject) ? `: ${quoted(str(a.subject))}` : '',
         );
+      case 'newsletter': {
+        const subject = str(a.subject) || str(b.subject);
+        const nl = (): Part =>
+          id != null && action !== 'delete'
+            ? link(subject || `newsletter #${id}`, `/admin/newsletters/${id}`)
+            : quoted(subject) || 'a newsletter';
+        const at = str(a.at) ? new Date(str(a.at)) : null;
+        const atText =
+          at && !Number.isNaN(at.getTime()) ? ` for ${formatDate(at)} ${formatTime(at)}` : '';
+        switch (action) {
+          case 'create':
+            return P('Started a new newsletter');
+          case 'duplicate':
+            return P('Made a copy of the newsletter ', nl());
+          case 'update':
+            return P('Edited the newsletter ', nl());
+          case 'delete':
+            return P('Deleted the newsletter ', nl());
+          case 'schedule':
+            return P('Scheduled the newsletter ', nl(), atText);
+          case 'send-now':
+            return P('Sent the newsletter ', nl(), ' now');
+          case 'unschedule':
+            return P('Cancelled the schedule of the newsletter ', nl());
+          case 'retry':
+            return P('Restarted the sending of the newsletter ', nl());
+          case 'newsletter_sent':
+            return P(
+              'Finished sending the newsletter ',
+              nl(),
+              ` (${plural(num(a.recipients), 'person', 'people')})`,
+            );
+          case 'newsletter_failed':
+            return P(
+              'Stopped the newsletter ',
+              nl(),
+              str(a.error) ? `: ${str(a.error).slice(0, 160)}` : '',
+            );
+        }
+        break;
+      }
       case 'social_post': {
         const target =
           str(a.entity) === 'event'

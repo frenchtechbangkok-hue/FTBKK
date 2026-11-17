@@ -166,7 +166,11 @@ screen by screen for the team.
   HTML and text versions (not `/admin`, `/api`, `/media`, other sites, or links already carrying
   `utm_` tags). The campaign is the template key (`member.welcome`, set by `applyTemplate` and
   passed as `EmailMessage.campaign`), `event-<slug>` for Event > Email attendees,
-  `community-<subject>` for Email the community, `test` for test emails, else `other`. The Worker
+  `community-<subject>` for Email the community, `newsletter-<id>` for a newsletter, `test` for
+  test emails, else `other`. The same campaign also goes with every email as a provider tag
+  (`campaign`: SES `EmailTags`, Resend `tags`; `campaignTag()` in `src/lib/email.ts`), comes back
+  in their events and is kept in `email_messages.campaign` (migration 0045), so one newsletter's
+  opens and clicks are exact. The newsletter's unsubscribe page is never tagged. The Worker
   (`src/worker.ts`, before Astro) counts a GET with those tags per UTC day, campaign and page
   (user agents that look like mail scanners or bots are not counted) and answers a 302 to the same
   address without the `utm_` tags, never cached, so every click reaches the Worker and the edge
@@ -242,6 +246,34 @@ screen by screen for the team.
   `{{post: slug}}`, rendered with tables for email clients by `src/lib/email-markdown.ts`). Test
   send, duplicate guard, a warning when the audience exceeds the provider's daily cap
   (`EMAIL_DAILY_LIMIT`, 100 on Resend Free; ignored while SES sends) and the list of what was sent (`community_emails`).
+- **Newsletters** (`/admin/newsletters`, `src/lib/newsletters.ts`, tables `newsletters` and
+  `newsletter_sends`, migration 0045): richer emails built from **blocks**
+  (`src/lib/newsletter-block-defs.ts` for what each block asks, `src/lib/newsletter-blocks.ts` for
+  the checks and the table-based email HTML, `src/scripts/newsletter-builder.ts` for the builder):
+  header (banner, small line, title, introduction), text (Markdown), picture, photo grid (2 or 3 a
+  row), key figures, percentage bars, people (photo, name, role), event card (upcoming or past),
+  blog post card, **event recap** (a past event's figures, first photos, speakers, slides, video,
+  write-up and partner logos, each part ticked or not), picture and text, video (YouTube picture
+  linked to it), button, logos and divider. Blocks are added anywhere, moved, duplicated, folded
+  and removed; photo grids, people and logos can be filled from an event (its recap photos,
+  speakers or partners, `/api/admin/newsletter-event`); pictures upload to R2 like the blog
+  editor. A live preview (`/api/admin/newsletter-preview`) shows the real email at computer or
+  phone width and lists what still stops sending. New newsletters start from a template (news,
+  event recap, blank). Audience: newsletter subscribers (default), members, all contacts, or
+  groups and tags; people who said no to emails are always left out. **Schedule** (Bangkok time) or
+  **Send now**: the cron (every 5 minutes, `runNewsletters`) freezes the list in
+  `newsletter_sends` when sending starts and sends in batches of 50, about 4 minutes per run, so a
+  big list or an outage resumes where it stopped and nobody gets it twice (a lease on the row keeps
+  two runs apart). A refused batch waits 30 minutes × the failures in a row, and the newsletter
+  stops after 5 (Try again on its page). Each email carries a personal unsubscribe link
+  (`/newsletters/unsubscribe?t=…`, GET shows a button) and one-click `List-Unsubscribe` headers
+  (`/api/newsletter-unsubscribe`, POST, handled in `src/worker.ts` before Astro), which record
+  "no" on the contact card and which newsletter it was. Once sent, the page shows its figures:
+  sent, delivered, opened, clicked, bounced, spam, unsubscribed (tag `newsletter-<id>`) and the
+  website visits from it with the pages visited. With "Publish it on the website" ticked, it gets
+  a web version at `/newsletters/<slug>` ("View in your browser" in the email, `{name}` becomes
+  "there") and is listed at `/newsletters` and in the sitemap. Deleting someone's data deletes
+  their `newsletter_sends` rows.
 - **Email delivery** (`/admin/email-delivery`): emails go through Resend or Amazon SES, picked
   on the page under **Sending service** (settings key `emailProvider`, read by `emailProvider()` in
   `src/lib/email.ts`; only services whose key is set are offered; `EMAIL_PROVIDER` in
@@ -314,8 +346,12 @@ screen by screen for the team.
   named in the confirmation and reminder emails), and a **feedback email** the day after (one-click 1 to 5 rating, then
   an optional comment; results in the admin's Reports). Past events can show a **recap**: a
   photo gallery (with a lightbox), slides to download, the video (YouTube and Vimeo play on the
-  page, cookie-free) and a card linking to the blog write-up. Past events with a recap get a
-  "Recap" badge in the events list.
+  page, cookie-free) and a card linking to the blog write-up. The recap opens with the event's
+  **figures** (`src/lib/recap-stats.ts`): the people who came, guests included (checked in, or
+  registered when check-in wasn't used), the number of companies (distinct company names, "freelance"
+  and the like left out), the average feedback rating once at least 3 people rated it, and the
+  speakers. Counts only, never names; a past event with figures but no photos yet still shows
+  them. Past events with a recap get a "Recap" badge in the events list.
 - **Blog**: posts with categories, authors, images and PDF downloads. RSS at `/rss.xml`. Authors
   are typed by hand or picked from the board (Board and speakers): picking fills the name, French
   Tech role (else job title) and LinkedIn; the post page matches the name to show their photo. Each
@@ -331,8 +367,8 @@ screen by screen for the team.
   venue or photo changed (`lib/share.ts`, `lib/share-image-client.ts`); public pages fall back
   to the cover while it is out of date. Each event or post has a Share page: download the image,
   copy the text, open it in WhatsApp, and schedule the announcement on a chosen date and time plus,
-  for an event, a reminder the day before (09:00 by default). The hourly cron publishes what is
-  due: on the LinkedIn and Facebook pages through their APIs once connected (`docs/deploy.md`),
+  for an event, a reminder the day before (09:00 by default). The cron (every 5 minutes) publishes what
+  is due: on the LinkedIn and Facebook pages through their APIs once connected (`docs/deploy.md`),
   otherwise by an email to the admin who scheduled it with the text and a one-tap WhatsApp
   button. WhatsApp has no API for groups, so WhatsApp posts are always that email. A reminder
   whose event moved to another day, or a post about a cancelled or unpublished event or post, is

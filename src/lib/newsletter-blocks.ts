@@ -427,14 +427,17 @@ function recapHtml(b: z.infer<typeof Recap>, r: RecapContent, data: BlockData) {
   ];
   if (b.stats && r.stats.length) parts.push(statsHtml(r.stats), gap);
   const photos = r.photos.slice(0, b.photos);
-  if (photos.length)
+  if (photos.length) {
+    const cols = photos.length === 1 ? 1 : photos.length % 3 === 0 ? 3 : 2;
+    const w = Math.floor((CONTENT_WIDTH - 8 * (cols - 1)) / cols);
     parts.push(
       grid(
-        photos.map((p) => linked(img(p.src, p.alt, 160), `${r.url}#recap`)),
-        photos.length === 1 ? 1 : photos.length % 2 === 0 && photos.length < 6 ? 2 : 3,
+        photos.map((p) => linked(img(p.src, p.alt, w), `${r.url}#recap`)),
+        cols,
         8,
       ),
     );
+  }
   if (b.speakers && r.speakers.length)
     parts.push(
       `<h3 style="margin:8px 0 10px;font-size:16px;color:${NAVY}">Speakers</h3>`,

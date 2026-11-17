@@ -836,7 +836,7 @@ export interface SocialResult {
 }
 
 /**
- * Social media posts about an event or a blog post, published by the hourly cron
+ * Social media posts about an event or a blog post, published by the cron
  * (lib/social.ts): automatically on LinkedIn and Facebook once connected, otherwise (and always
  * for WhatsApp) by an email to whoever scheduled it with the text ready to paste.
  */

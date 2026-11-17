@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.11',
+    date: '2026-11-17',
+    title: 'Newsletters: build, schedule and measure',
+    summary:
+      'New Emails and social media > Newsletters page: build a newsletter from blocks (header, text, pictures, photo grid, key figures, percentage bars, people, event and blog cards, a whole event recap with its figures, photos, speakers, slides, video and partners, video, button, logos), preview it at computer and phone width, test it, then send it now or schedule it; each one shows its own sends, opens, clicks, website visits and unsubscribes, and can be published at /newsletters. Past event pages now open their recap with the figures: attendees, companies, feedback rating and speakers.',
+  },
+  {
     version: '26.11.10',
     date: '2026-11-16',
     pr: 131,
