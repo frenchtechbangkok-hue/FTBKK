@@ -203,7 +203,9 @@ screen by screen for the team.
   tagged `newsletter-<id>`), website visits (`email_visits`) with the change against the previous
   period; subscribers today (the Newsletters audience count), list joins and leaves from
   `contacts.newsletter_at`, unsubscribes through each newsletter's link; a per-newsletter chart and
-  table, and the pages opened from them.
+  table, and the pages opened from them. `?newsletter=<id>` shows one newsletter
+  (`loadOneNewsletter`): its figures against the 5 sent before it, unsubscribes, bounces, spam,
+  opens and clicks by day after sending (first 14 days) and its pages.
 - **Email report** (`/admin/reports/emails`, `src/lib/email-metrics.ts`): the fourth Reports
   tab shows what happened to the emails the site sent, with the same period picker: emails sent,
   delivered, opened and clicked (rates against delivered), bounced and marked as spam, each with

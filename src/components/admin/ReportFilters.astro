@@ -9,10 +9,22 @@ interface Props {
   kind?: string | null;
   events?: { id: number; label: string }[];
   event?: number | null;
+  /** On Newsletters: one newsletter in detail. */
+  newsletters?: { id: number; label: string }[];
+  newsletter?: number | null;
   /** The CSV export of what is shown. */
   csv?: { href: string; label: string }[];
 }
-const { period, kinds, kind = null, events, event = null, csv = [] } = Astro.props;
+const {
+  period,
+  kinds,
+  kind = null,
+  events,
+  event = null,
+  newsletters,
+  newsletter = null,
+  csv = [],
+} = Astro.props;
 const shown = (d: string) => d.split('-').reverse().join('/');
 const field = 'rounded-lg border border-line bg-paper px-3 py-1.5 text-sm text-ink';
 ---
@@ -60,6 +72,19 @@ const field = 'rounded-lg border border-line bg-paper px-3 py-1.5 text-sm text-i
         {events.map((e) => (
           <option value={e.id} selected={e.id === event}>
             {e.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )}
+  {newsletters && (
+    <label class="grid w-full min-w-0 gap-1 text-xs text-muted sm:w-auto">
+      Newsletter
+      <select name="newsletter" class={`${field} w-full sm:w-auto sm:max-w-80`} data-autosubmit>
+        <option value="">All newsletters of the period</option>
+        {newsletters.map((x) => (
+          <option value={x.id} selected={x.id === newsletter}>
+            {x.label}
           </option>
         ))}
       </select>
