@@ -6,7 +6,10 @@ import Button from '../../components/Button.astro';
 import FormField from '../../components/FormField.astro';
 import {
   defaultEmailProvider,
+  EMAIL_KIND_NAMES,
+  EMAIL_KINDS,
   emailProvider,
+  emailProviders,
   PROVIDER_NAMES,
   providerReady,
   sendEmail,
@@ -15,7 +18,7 @@ import {
 import { listSuppressions, unsuppress } from '../../lib/email-suppressions';
 import { audit, siteUrl } from '../../lib/orgs';
 import { formatDate } from '../../lib/format';
-import { saveSettings } from '../../lib/settings';
+import { getSettings, saveSettings } from '../../lib/settings';
 import {
   cleanSetupValue,
   emailEnv,
@@ -58,7 +61,12 @@ const Action = z.discriminatedUnion('intent', [
     provider: z.enum(['resend', 'ses']),
   }),
   z.object({ intent: z.literal('unsuppress'), email: z.email() }),
-  z.object({ intent: z.literal('provider'), provider: z.enum(['resend', 'ses']) }),
+  z.object({
+    intent: z.literal('provider'),
+    provider: z.enum(['resend', 'ses']),
+    community: z.enum(['', 'resend', 'ses']).default(''),
+    newsletter: z.enum(['', 'resend', 'ses']).default(''),
+  }),
   z.object({ intent: z.literal('setup'), group: z.enum(['general', 'resend', 'ses']) }),
   z.object({ intent: z.literal('events-key') }),
 ]);
@@ -67,6 +75,11 @@ let notice = '';
 let error = '';
 let testTo = actor.includes('@') ? actor : '';
 let current = await emailProvider();
+// Which services have their keys, before any change on this request.
+const ready0 = {
+  resend: await providerReady('resend'),
+  ses: await providerReady('ses'),
+} as Record<EmailProvider, boolean>;
 let testProvider: EmailProvider = current;
 // The Setup fold just saved (kept open), and values that could not be saved, shown back.
 let setupGroup: SetupGroup | null = null;
@@ -99,13 +112,20 @@ if (Astro.request.method === 'POST') {
       notice = `${PROVIDER_NAMES[provider]} accepted the test for ${to}. It should arrive within a minute; if not, look in spam.`;
     } else error = `${PROVIDER_NAMES[provider]} refused the test: ${res.error ?? 'unknown error'}`;
   } else if (parsed.data.intent === 'provider') {
-    const { provider } = parsed.data;
-    if (!(await providerReady(provider))) {
-      error = `${PROVIDER_NAMES[provider]} has no key yet, so it can't send. Add it in Setup below first.`;
-    } else if (provider !== current) {
-      await saveSettings({ emailProvider: provider });
-      await audit(actor, 'email-provider', 'settings', null, { provider: current }, { provider });
-      notice = `Every email now goes through ${PROVIDER_NAMES[provider]}. Send a test below to check.`;
+    const { provider, community, newsletter } = parsed.data;
+    const missing = [provider, community, newsletter].find(
+      (p): p is EmailProvider => !!p && p !== current && !ready0[p],
+    );
+    if (missing) {
+      error = `${PROVIDER_NAMES[missing]} has no key yet, so it can't send. Add it in Setup below first.`;
+    } else {
+      const before = { provider: current, ...(await getSettings()).emailProviders };
+      const after = { provider, community, newsletter };
+      if (JSON.stringify(before) !== JSON.stringify({ ...before, ...after })) {
+        await saveSettings({ emailProvider: provider, emailProviders: { community, newsletter } });
+        await audit(actor, 'email-provider', 'settings', null, before, after);
+        notice = 'Saved: the services below are used from now on. Send a test below to check.';
+      }
       current = provider;
       testProvider = provider;
     }
@@ -167,6 +187,14 @@ const eventsUrl = setup.SES_EVENTS_KEY
   ? siteUrl(`/api/ses-events?key=${encodeURIComponent(setup.SES_EVENTS_KEY)}`)
   : '';
 const resendWebhookUrl = siteUrl('/api/resend-events');
+const inUse = await emailProviders(setup);
+const saved = await getSettings();
+const KIND_HINTS: Record<(typeof EMAIL_KINDS)[number], string> = {
+  transactional:
+    'Registrations, tickets, reminders, confirmations, member emails and notifications to the team.',
+  community: "Email the community and the emails written to an event's attendees.",
+  newsletter: 'Everything sent from Newsletters, tests included.',
+};
 const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
 ---
 
@@ -188,58 +216,50 @@ const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
   <div class="grid max-w-3xl gap-6">
     <section class="admin-panel grid gap-3">
       <h2 class="text-lg">Sending service</h2>
-      <p>
-        Emails go through <strong>{PROVIDER_NAMES[current]}</strong>, from {setup.EMAIL_FROM}.
-      </p>
       <ul class="grid gap-1 text-sm">
-        {PROVIDERS.map((p) => (
+        {EMAIL_KINDS.map((k) => (
           <li>
-            {PROVIDER_NAMES[p]}:{' '}
-            {ready[p] ? (
-              <span class="text-success">key set</span>
-            ) : (
-              <span class="text-muted">no key</span>
-            )}
-            {p === current && ' (in use)'}
+            {EMAIL_KIND_NAMES[k]}: <strong>{PROVIDER_NAMES[inUse[k]]}</strong>
           </li>
         ))}
       </ul>
-      <form method="post" class="grid gap-3">
+      <p class="text-sm text-muted">
+        From {setup.EMAIL_FROM}.{' '}
+        {PROVIDERS.map((p, i) => (
+          <>
+            {i > 0 && ' '}
+            {PROVIDER_NAMES[p]}: {ready[p] ? 'key set.' : 'no key.'}
+          </>
+        ))}
+      </p>
+      <form method="post" class="grid gap-4">
         <input type="hidden" name="intent" value="provider" />
-        <fieldset class="grid gap-2">
-          <legend class="mb-1 text-sm font-semibold">Send every email through</legend>
+        {EMAIL_KINDS.map((k) => (
+          <FormField
+            name={k === 'transactional' ? 'provider' : k}
+            label={`${EMAIL_KIND_NAMES[k]} go through`}
+            hint={KIND_HINTS[k]}
+            value={k === 'transactional' ? current : (saved.emailProviders[k] ?? '')}
+            required={k === 'transactional'}
+            placeholder={k === 'transactional' ? undefined : 'The same service as automatic emails'}
+            options={choosable.map((p) => ({ value: p, label: PROVIDER_NAMES[p] }))}
+          />
+        ))}
+        <ul class="grid gap-1 text-sm text-muted">
           {choosable.map((p) => (
-            <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-line p-3 has-checked:border-accent has-checked:bg-accent/5">
-              <input
-                type="radio"
-                name="provider"
-                value={p}
-                checked={p === current}
-                class="mt-1 size-4 accent-brand"
-              />
-              <span class="grid gap-0.5">
-                <span class="font-semibold">
-                  {PROVIDER_NAMES[p]}
-                  {p === current && <span class="font-normal text-muted"> (in use)</span>}
-                </span>
-                <span class="text-sm text-muted">{PROVIDER_NOTES[p]}</span>
-              </span>
-            </label>
+            <li>
+              {PROVIDER_NAMES[p]}: {PROVIDER_NOTES[p]}
+            </li>
           ))}
-        </fieldset>
+        </ul>
         <div>
-          <Button
-            type="submit"
-            variant="secondary"
-            size="sm"
-            data-confirm="Send every email of the site (registrations, reminders, community emails) through this service?"
-          >
-            Use this service
+          <Button type="submit" variant="secondary" size="sm">
+            Save the services
           </Button>
         </div>
       </form>
       <p class="text-sm text-muted">
-        Switching takes effect at once and can be undone here at any time. A service shows only once
+        Changes take effect at once and can be undone here at any time. A service shows only once
         its key is set in Setup below. Until a choice is saved, the site uses{' '}
         {PROVIDER_NAMES[defaultEmailProvider()]} (EMAIL_PROVIDER in wrangler.jsonc).
       </p>
@@ -295,7 +315,7 @@ const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
             <div class="mt-3 grid gap-2 text-sm">
               <p>
                 <strong>Webhook address</strong> (Resend &gt; Webhooks &gt; Add webhook, events: all
-                the email.* ones), for Reports &gt; Emails:
+                the email.* ones), for Dashboards and insights &gt; Emails:
               </p>
               <p class="flex flex-wrap items-center gap-2">
                 <code class="break-all">{resendWebhookUrl}</code>
@@ -313,7 +333,8 @@ const REASONS = { bounce: 'Bounced', complaint: 'Marked as spam' } as const;
             <div class="mt-3 grid gap-2 text-sm">
               <p>
                 <strong>SNS subscription address</strong> (AWS &gt; SNS &gt; the topic &gt; Create
-                subscription, protocol HTTPS), for bounces, spam complaints and Reports &gt; Emails:
+                subscription, protocol HTTPS), for bounces, spam complaints and Dashboards and
+                insights &gt; Emails:
               </p>
               {eventsUrl ? (
                 <p class="flex flex-wrap items-center gap-2">

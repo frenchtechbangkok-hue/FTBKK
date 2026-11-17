@@ -484,10 +484,15 @@ export function describeAction(row: LogRow, names: LogNames = emptyNames()): Des
       case 'settings':
         if (action === 'update') return P('Changed site settings');
         if (action === 'partner_groups') return P('Edited the partner groups');
-        if (action === 'email-provider')
+        if (action === 'email-provider') {
+          const name = (v: unknown) =>
+            str(v) === 'ses' ? 'Amazon SES' : str(v) === 'resend' ? 'Resend' : 'the same service';
+          if (!('community' in a) && !('newsletter' in a))
+            return P(`Switched email sending to ${name(a.provider)}`);
           return P(
-            `Switched email sending to ${str(a.provider) === 'ses' ? 'Amazon SES' : 'Resend'}`,
+            `Set the email services: automatic emails through ${name(a.provider)}, community emails through ${name(a.community)}, newsletters through ${name(a.newsletter)}`,
           );
+        }
         if (action === 'email-setup') {
           const keys = Array.isArray(a.keys) ? a.keys.map(String) : [];
           return P(`Changed the email setup${keys.length ? ` (${keys.join(', ')})` : ''}`);

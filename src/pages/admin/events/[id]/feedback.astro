@@ -59,7 +59,7 @@ const base = `/admin/events/${event.id}/feedback`;
     <p class="text-sm text-muted">
       {formatEventDate(event.startsAt, event.endsAt)}
       {' · '}
-      <a href="/admin/reports/events">Reports</a>
+      <a href="/admin/reports/events">Dashboards and insights</a>
     </p>
     <div class="flex flex-wrap gap-2">
       <Button href={anon ? base : `${base}?anon=1`} size="sm" variant="ghost">

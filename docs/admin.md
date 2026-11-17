@@ -13,7 +13,7 @@ The menu has a group per kind of work, then the figures, the switches and the re
 | **Ecosystem**               | To review, All listings, Partners, Renewals                                                                                                                                       |
 | **Website**                 | Blog posts, PDFs and files, Page texts (Home, About, Join, Tech Pulse, Thai page, code of conduct and privacy as tabs), Board and speakers, Guide pages                           |
 | **Emails and social media** | Newsletters, Email the community, Social media posts (share and schedule events and posts), Automatic emails                                                                      |
-| **Reports**                 | Events and attendance, Membership, Website traffic, Emails, Cloudflare usage (tabs of the same Reports screen, for the board)                                                     |
+| **Dashboards and insights** | Events and attendance, Membership, Website traffic, Newsletters, Emails, Cloudflare usage (tabs of the same screen, for the board)                                                |
 | **Settings**                | General (site name, contact email, admin notifications, analytics), Membership (the sign-up switches), Event covers, Social links (the footer links to our pages), Email delivery |
 | **History**                 | Actions log (who did what in the admin), Change history (what changed in the website, version by version)                                                                         |
 
@@ -552,7 +552,9 @@ blocks, and sends them now or at a set time. Each newsletter gets its own figure
 
    Pictures: **Upload**, or paste an address (`/media/…` from Files, or `https://…`). In Photo
    grid, People and Logos, **Or add … from an event** copies an event's recap photos, speakers or
-   partner logos in one go; change or remove any of them after.
+   partner logos in one go; change or remove any of them after. In People, **Or pick a person…**
+   lists everyone in Board and speakers (board, institutional, speakers) and adds their photo,
+   name, role and LinkedIn as a new card.
 
 4. **Preview** on the right: the real email as Camille would get it, at **Computer** or **Phone**
    width, with the list of what still stops sending (a block without its picture, an event that
@@ -578,7 +580,8 @@ Unsubscribing records "no" to the newsletter on their contact card.
 
 ## Reports
 
-**Reports** has four tabs, for the team and the board. Figures are live. Every tab is laid out the
+**Dashboards and insights** (called Reports before 17 November 2026; the pages below still say
+Reports) has six tabs, for the team and the board. Figures are live. Every tab is laid out the
 same way: the four main figures on top (with the change against the period before, green when
 better, and a small trend line), the other figures in a **More figures** panel, then charts and
 tables.
@@ -589,6 +592,12 @@ tables.
   weeks a year earlier). Green is better, red is worse. The address of the page keeps the
   filters, so you can bookmark or send it. Over the last 30 days (or custom dates of a month or
   less) the charts and CSV exports go day by day; longer periods go by week, then by month or year.
+- **Newsletters**: the newsletters sent in the period. Key numbers: newsletters sent (and emails
+  in all), open and click rates (against delivered emails), and website visits from their links,
+  each against the period before. **The newsletter list**: subscribers today, people who joined
+  and who left the list in the period (and how many through a newsletter's unsubscribe link). A
+  chart of each newsletter's open and click rates, a table of every newsletter (click one for its
+  own page) and the pages people opened from them.
 - **Events and attendance**: pick an **Event type** (Connect, Talk, Select, Other) to see only
   those. Key numbers: events held, registrations, check-ins (with walk-ins and guests), show-up
   rate and no-shows, average per event, seats filled, first-timers (people at their first event of
@@ -848,9 +857,13 @@ event's page) is written each time, so it is only listed. Every save and reset i
 **Settings > Email delivery** shows which service sends the site's emails (Resend
 or Amazon SES) and whether each one has its key, and is where both are set up.
 
-- **Sending service**: pick Resend or Amazon SES and press **Use this service**. It applies at
-  once to every email (registrations, reminders, Email the community) and can be switched back
-  the same way; the switch is in the Actions log. Only a service whose key is set is offered.
+- **Sending service**: pick Resend or Amazon SES for each kind of email and press **Save the
+  services**: **Automatic emails** (registrations, tickets, reminders, confirmations, member
+  emails, notifications to the team), **Community emails** (Email the community and the emails
+  written to an event's attendees) and **Newsletters** (everything sent from Newsletters, tests
+  included). Community emails and newsletters can also follow automatic emails ("The same service
+  as automatic emails"). It applies at once and can be changed back the same way; each change is
+  in the Actions log. Only a service whose key is set is offered.
   Amazon SES sends the site's emails since 9 November 2026 (production access in Sydney: no
   practical cap). It costs about US$0.10 per 1,000 emails, billed each month by AWS. Resend's
   daily cap (100) stops counting while SES sends.

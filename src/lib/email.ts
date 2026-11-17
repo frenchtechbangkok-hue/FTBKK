@@ -51,6 +51,11 @@ export interface EmailMessage {
    * (src/lib/email-links.ts). Empty = "other".
    */
   campaign?: string;
+  /**
+   * Which service sends it (Admin > Email delivery): set by newsletters; otherwise read from the
+   * campaign (emailKindOf).
+   */
+  kind?: EmailKind;
   /** The preview line mail apps show after the subject (hidden in the email itself). */
   preheader?: string;
   /** A small link above the content, such as "View in your browser". */
@@ -202,23 +207,73 @@ export const defaultEmailProvider = (): EmailProvider =>
   env.EMAIL_PROVIDER === 'ses' ? 'ses' : 'resend';
 
 /**
- * The provider every email goes through: the one chosen in Admin > Email delivery (settings key
- * `emailProvider`), else EMAIL_PROVIDER. A chosen service whose key was removed falls back too.
+ * The three kinds of email, each sent through its own service (Admin > Email delivery):
+ * automatic emails (registrations, reminders, confirmations, notifications), emails the team
+ * writes to a list (Email the community, an event's attendees) and newsletters.
  */
-export async function emailProvider(e?: EmailEnv): Promise<EmailProvider> {
-  let chosen: unknown = null;
+export type EmailKind = 'transactional' | 'community' | 'newsletter';
+export const EMAIL_KINDS: EmailKind[] = ['transactional', 'community', 'newsletter'];
+export const EMAIL_KIND_NAMES: Record<EmailKind, string> = {
+  transactional: 'Automatic emails',
+  community: 'Community emails',
+  newsletter: 'Newsletters',
+};
+
+/** The kind of an email, from its campaign unless it says (newsletter-3, community-…, event-…). */
+export function emailKindOf(m: Pick<EmailMessage, 'campaign' | 'kind'>): EmailKind {
+  if (m.kind) return m.kind;
+  const c = m.campaign ?? '';
+  if (c.startsWith('newsletter-')) return 'newsletter';
+  if (c.startsWith('community-') || c.startsWith('event-')) return 'community';
+  return 'transactional';
+}
+
+const isProvider = (v: unknown): v is EmailProvider => v === 'resend' || v === 'ses';
+
+/** The services chosen in Admin > Email delivery (settings emailProvider and emailProviders). */
+async function chosenProviders() {
+  const out: { main: unknown; byKind: Partial<Record<EmailKind, unknown>> } = {
+    main: null,
+    byKind: {},
+  };
   try {
-    const row = await env.DB.prepare(
-      "SELECT value FROM settings WHERE key = 'emailProvider'",
-    ).first<{
-      value: string;
-    }>();
-    chosen = row ? JSON.parse(row.value) : null;
+    const { results } = await env.DB.prepare(
+      "SELECT key, value FROM settings WHERE key IN ('emailProvider', 'emailProviders')",
+    ).all<{ key: string; value: string }>();
+    for (const r of results) {
+      const v: unknown = JSON.parse(r.value);
+      if (r.key === 'emailProvider') out.main = v;
+      else if (v && typeof v === 'object') out.byKind = v as typeof out.byKind;
+    }
   } catch {
     // No database (tests) or table not migrated yet.
   }
-  if ((chosen === 'resend' || chosen === 'ses') && (await providerReady(chosen, e))) return chosen;
+  return out;
+}
+
+/**
+ * The provider an email goes through. Automatic emails: the service chosen in Admin > Email
+ * delivery (settings key `emailProvider`), else EMAIL_PROVIDER. Community emails and newsletters:
+ * their own choice (`emailProviders`), else the same as automatic emails. A chosen service whose
+ * key was removed falls back too.
+ */
+export async function emailProvider(
+  e?: EmailEnv,
+  kind: EmailKind = 'transactional',
+): Promise<EmailProvider> {
+  const { main, byKind } = await chosenProviders();
+  const own = kind === 'transactional' ? null : byKind[kind];
+  if (isProvider(own) && (await providerReady(own, e))) return own;
+  if (isProvider(main) && (await providerReady(main, e))) return main;
   return defaultEmailProvider();
+}
+
+/** The service of each kind of email, for Admin > Email delivery and the reports. */
+export async function emailProviders(e?: EmailEnv): Promise<Record<EmailKind, EmailProvider>> {
+  const [transactional, community, newsletter] = await Promise.all(
+    EMAIL_KINDS.map((k) => emailProvider(e, k)),
+  );
+  return { transactional: transactional!, community: community!, newsletter: newsletter! };
 }
 
 /**
@@ -323,7 +378,7 @@ async function resendSend(e: EmailEnv, m: EmailMessage, to: string[]) {
 }
 
 /**
- * Sends one email (to one or a few people) through emailProvider(), or through `provider` for an
+ * Sends one email (to one or a few people) through emailProvider() for its kind, or through `provider` for an
  * admin's test. Addresses on the suppression list (bounced, marked as spam) are left out; when
  * nobody is left, nothing is sent and the result says so.
  */
@@ -332,7 +387,7 @@ export async function sendEmail(
   opts: { provider?: EmailProvider } = {},
 ): Promise<{ ok: boolean; error?: string; suppressed?: string[] }> {
   const e = await emailEnv();
-  const provider = opts.provider ?? (await emailProvider(e));
+  const provider = opts.provider ?? (await emailProvider(e, emailKindOf(m)));
   const all = recipients(m);
   if (!all.length) return { ok: true };
   const blocked = await suppressedAmong(all);
@@ -386,7 +441,8 @@ export async function sendEmailBatch(
   if (!outgoing.length) return { ok: true, sent: messages.length, suppressed: skipped };
 
   const e = await emailEnv();
-  if ((await emailProvider(e)) === 'ses') {
+  // One batch is one kind of email (a newsletter, a community email, reminders).
+  if ((await emailProvider(e, emailKindOf(outgoing[0]!))) === 'ses') {
     const cfg = sesConfig(e);
     if (!cfg)
       return done(false, 0, 'Amazon SES has no access key (Admin > Email delivery > Setup).');

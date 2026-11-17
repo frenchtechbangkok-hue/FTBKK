@@ -8,7 +8,7 @@ import { env } from 'cloudflare:workers';
 import { z } from 'zod';
 import { and, desc, eq, gte, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { getDb } from '../db';
-import { contacts, events, newsletterSends, newsletters, posts } from '../db/schema';
+import { contacts, events, newsletterSends, newsletters, people, posts } from '../db/schema';
 import { communityRecipients, FOOTERS, loadCards, type Recipient } from './community-emails';
 import type { EmailCard } from './email-markdown';
 import { sendEmailBatch, type EmailMessage } from './email';
@@ -211,6 +211,7 @@ export function newsletterMessage(
           : undefined,
         replyTo: opts.replyTo,
         campaign: opts.test ? 'test' : campaignOf(n.id),
+        kind: 'newsletter',
       };
     },
   };
@@ -537,11 +538,22 @@ export interface EventChoice {
   photos: number;
 }
 
-/** Events (upcoming, then the last 3 years) and the latest posts for the builder's menus. */
+export interface PersonChoice {
+  group: 'board' | 'institutional' | 'speaker';
+  photo: string;
+  name: string;
+  role: string;
+  link: string;
+}
+
+/**
+ * Events (upcoming, then the last 3 years), the latest posts and everyone in Board and speakers
+ * for the builder's menus.
+ */
 export async function builderChoices(now = new Date()) {
   const db = getDb();
   const since = new Date(now.getTime() - 3 * 365 * 86_400_000);
-  const [eventRows, postRows] = await Promise.all([
+  const [eventRows, postRows, peopleRows] = await Promise.all([
     db
       .select({
         slug: events.slug,
@@ -560,6 +572,7 @@ export async function builderChoices(now = new Date()) {
       .where(and(eq(posts.status, 'published'), isNotNull(posts.publishedAt)))
       .orderBy(desc(posts.publishedAt))
       .limit(80),
+    db.select().from(people).orderBy(people.name),
   ]);
   const evs: EventChoice[] = eventRows.map((e) => ({
     slug: e.slug,
@@ -574,6 +587,13 @@ export async function builderChoices(now = new Date()) {
       slug: p.slug,
       title: p.title,
       meta: p.publishedAt ? formatDate(p.publishedAt) : '',
+    })),
+    people: peopleRows.map((p): PersonChoice => ({
+      group: p.group,
+      photo: mediaUrl(p.photoKey) ?? '',
+      name: p.name,
+      role: personLine(p) || (p.ftRole ?? ''),
+      link: p.linkedin ?? '',
     })),
   };
 }

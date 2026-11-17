@@ -9,7 +9,8 @@ import {
 import { BLOCK_DEFS, BLOCK_TYPES, STARTERS } from '../src/lib/newsletter-block-defs';
 import { recapFigures } from '../src/lib/recap-stats';
 import { readResendEvent, readSesEvent } from '../src/lib/email-events';
-import { campaignTag } from '../src/lib/email';
+import { campaignTag, emailKindOf } from '../src/lib/email';
+import { newsletterTotals } from '../src/lib/newsletter-report';
 import { campaignLabel, tagUrl } from '../src/lib/email-links';
 import { isDailyRun } from '../src/lib/cron';
 
@@ -213,5 +214,48 @@ describe('isDailyRun', () => {
     expect(isDailyRun(new Date('2026-11-17T02:00:00Z'))).toBe(true);
     expect(isDailyRun(new Date('2026-11-17T02:05:00Z'))).toBe(false);
     expect(isDailyRun(new Date('2026-11-17T03:00:00Z'))).toBe(false);
+  });
+});
+
+describe('emailKindOf', () => {
+  it('sends newsletters, community emails and automatic emails through their own service', () => {
+    expect(emailKindOf({ campaign: 'newsletter-3' })).toBe('newsletter');
+    expect(emailKindOf({ campaign: 'test', kind: 'newsletter' })).toBe('newsletter');
+    expect(emailKindOf({ campaign: 'community-hello' })).toBe('community');
+    expect(emailKindOf({ campaign: 'event-connect-52' })).toBe('community');
+    expect(emailKindOf({ campaign: 'member.welcome' })).toBe('transactional');
+    expect(emailKindOf({})).toBe('transactional');
+  });
+});
+
+describe('newsletterTotals', () => {
+  it('adds up the newsletters and rates only over the tracked ones', () => {
+    const email = (sent: number, opened: number, clicked: number) => ({
+      sent,
+      delivered: sent,
+      bounced: 0,
+      permanentBounces: 0,
+      delayed: 0,
+      complained: 0,
+      opened,
+      clicked,
+      failed: 0,
+    });
+    const row = (id: number, e: ReturnType<typeof email> | null) => ({
+      id,
+      subject: `N${id}`,
+      slug: null,
+      sentAt: new Date('2026-11-01T00:00:00Z'),
+      recipients: 100,
+      email: e,
+      visits: 10,
+      unsubscribed: 1,
+    });
+    const t = newsletterTotals([row(1, email(100, 50, 10)), row(2, null)]);
+    expect(t).toMatchObject({ newsletters: 2, tracked: 1, recipients: 200, visits: 20 });
+    expect(t.openRate).toBe(0.5);
+    expect(t.clickRate).toBe(0.1);
+    expect(t.unsubscribeRate).toBe(0.01);
+    expect(newsletterTotals([]).openRate).toBeNull();
   });
 });

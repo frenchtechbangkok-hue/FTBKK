@@ -20,6 +20,14 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.12',
+    date: '2026-11-17',
+    pr: 133,
+    title: 'Newsletter dashboard, a service per kind of email, people from a list',
+    summary:
+      'Reports is now Dashboards and insights, with a new Newsletters tab (opens, clicks, visits, list growth and each newsletter side by side); Settings > Email delivery picks Resend or Amazon SES separately for automatic emails, community emails and newsletters; and a newsletter People block can pick anyone from Board and speakers.',
+  },
+  {
     version: '26.11.11',
     date: '2026-11-17',
     pr: 132,

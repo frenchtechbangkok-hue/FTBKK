@@ -63,7 +63,7 @@ export const SETUP_FIELDS: SetupField[] = [
     label: 'Webhook signing secret',
     secret: true,
     placeholder: 'whsec_…',
-    hint: 'Resend > Webhooks > the webhook with the address above > Signing secret. Without the right one, Resend shows "401 Bad signature" and Reports > Emails gets nothing.',
+    hint: 'Resend > Webhooks > the webhook with the address above > Signing secret. Without the right one, Resend shows "401 Bad signature" and Dashboards and insights > Emails gets nothing.',
   },
   {
     key: 'EMAIL_DAILY_LIMIT',
@@ -79,7 +79,7 @@ export const SETUP_FIELDS: SetupField[] = [
     label: 'Monthly cap',
     number: true,
     placeholder: '3000',
-    hint: "Resend's plan cap per month (Free: 3,000), shown in Reports > Emails. 0 = none.",
+    hint: "Resend's plan cap per month (Free: 3,000), shown in Dashboards and insights > Emails. 0 = none.",
   },
   {
     key: 'AWS_SES_ACCESS_KEY_ID',
@@ -116,7 +116,7 @@ export const SETUP_FIELDS: SetupField[] = [
     group: 'ses',
     label: 'Configuration set',
     placeholder: 'ft-bkk-site',
-    hint: 'SES > Configuration sets: the set whose event destination publishes sends, deliveries, opens and clicks to the SNS topic. Without it, Reports > Emails only gets bounces and spam complaints from SES.',
+    hint: 'SES > Configuration sets: the set whose event destination publishes sends, deliveries, opens and clicks to the SNS topic. Without it, Dashboards and insights > Emails only gets bounces and spam complaints from SES.',
   },
   {
     key: 'SES_EVENTS_KEY',
