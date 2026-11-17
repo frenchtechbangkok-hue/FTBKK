@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.12',
+    date: '2026-11-17',
+    title: 'Newsletters: pick people from a list',
+    summary:
+      'In a newsletter People block, "Or pick a person…" lists everyone in Board and speakers and adds their photo, name, role and LinkedIn as a card in one click.',
+  },
+  {
     version: '26.11.11',
     date: '2026-11-17',
     pr: 132,

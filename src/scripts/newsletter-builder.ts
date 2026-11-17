@@ -13,7 +13,14 @@ type Row = Record<string, unknown>;
 interface Choices {
   events: { slug: string; title: string; meta: string; upcoming: boolean; photos: number }[];
   posts: { slug: string; title: string; meta: string }[];
+  people: { group: string; photo: string; name: string; role: string; link: string }[];
 }
+
+const PEOPLE_GROUPS: [string, string][] = [
+  ['board', 'Board'],
+  ['institutional', 'Institutional'],
+  ['speaker', 'Speakers'],
+];
 
 let uid = 0;
 const nextId = (p: string) => `nb-${p}-${++uid}`;
@@ -59,7 +66,9 @@ function summary(b: Row) {
 export function startBuilder(form: HTMLFormElement) {
   const root = form.querySelector<HTMLElement>('[data-builder]')!;
   const hidden = form.querySelector<HTMLInputElement>('[data-blocks-input]')!;
-  const choices = JSON.parse(root.dataset.choices ?? '{"events":[],"posts":[]}') as Choices;
+  const choices = JSON.parse(
+    root.dataset.choices ?? '{"events":[],"posts":[],"people":[]}',
+  ) as Choices;
   const blocks = (JSON.parse(hidden.value || '[]') as Row[]).filter(
     (b) => typeof b?.type === 'string' && (BLOCK_TYPES as readonly string[]).includes(b.type),
   );
@@ -241,6 +250,28 @@ export function startBuilder(form: HTMLFormElement) {
       changed(true);
     });
     const tools = el('div', { class: 'flex flex-wrap items-center gap-2' }, add);
+    if (def.fill === 'speakers' && choices.people?.length) {
+      const pick = el('select', { class: `${INPUT} w-auto max-w-72`, 'aria-label': 'Person' });
+      put(pick, el('option', { value: '' }, 'Or pick a person…'));
+      for (const [group, label] of PEOPLE_GROUPS) {
+        const og = el('optgroup', { label });
+        choices.people.forEach((p, n) => {
+          if (p.group === group)
+            put(og, el('option', { value: String(n) }, p.role ? `${p.name} · ${p.role}` : p.name));
+        });
+        if (og.childElementCount) put(pick, og);
+      }
+      pick.disabled = rows.length >= (def.maxItems ?? 24);
+      pick.addEventListener('change', () => {
+        const p = choices.people[Number(pick.value)];
+        if (pick.value && p) {
+          rows.push({ photo: p.photo, name: p.name, role: p.role, link: p.link });
+          changed(true);
+        }
+        pick.value = '';
+      });
+      put(tools, pick);
+    }
     if (def.fill) {
       const what = { photos: 'its recap photos', speakers: 'its speakers', partners: 'its logos' }[
         def.fill

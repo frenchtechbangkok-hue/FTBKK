@@ -552,7 +552,9 @@ blocks, and sends them now or at a set time. Each newsletter gets its own figure
 
    Pictures: **Upload**, or paste an address (`/media/…` from Files, or `https://…`). In Photo
    grid, People and Logos, **Or add … from an event** copies an event's recap photos, speakers or
-   partner logos in one go; change or remove any of them after.
+   partner logos in one go; change or remove any of them after. In People, **Or pick a person…**
+   lists everyone in Board and speakers (board, institutional, speakers) and adds their photo,
+   name, role and LinkedIn as a new card.
 
 4. **Preview** on the right: the real email as Camille would get it, at **Computer** or **Phone**
    width, with the list of what still stops sending (a block without its picture, an event that

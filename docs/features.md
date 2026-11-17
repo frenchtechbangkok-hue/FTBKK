@@ -256,7 +256,8 @@ screen by screen for the team.
   write-up and partner logos, each part ticked or not), picture and text, video (YouTube picture
   linked to it), button, logos and divider. Blocks are added anywhere, moved, duplicated, folded
   and removed; photo grids, people and logos can be filled from an event (its recap photos,
-  speakers or partners, `/api/admin/newsletter-event`); pictures upload to R2 like the blog
+  speakers or partners, `/api/admin/newsletter-event`), and people cards can be picked one by one
+  from Board and speakers (a drop-down grouped by board, institutional and speakers); pictures upload to R2 like the blog
   editor. A live preview (`/api/admin/newsletter-preview`) shows the real email at computer or
   phone width and lists what still stops sending. New newsletters start from a template (news,
   event recap, blank). Audience: newsletter subscribers (default), members, all contacts, or
