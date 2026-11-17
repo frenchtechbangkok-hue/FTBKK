@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.13',
+    date: '2026-11-17',
+    title: 'Newsletters dashboard: one newsletter in detail',
+    summary:
+      'Dashboards and insights > Newsletters can show one newsletter: its opens, clicks and visits against the 5 sent before it, unsubscribes, bounces, opens and clicks day by day after sending, and the pages people visited.',
+  },
+  {
     version: '26.11.12',
     date: '2026-11-17',
     pr: 133,

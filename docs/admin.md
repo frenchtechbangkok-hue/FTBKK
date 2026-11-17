@@ -596,8 +596,10 @@ tables.
   in all), open and click rates (against delivered emails), and website visits from their links,
   each against the period before. **The newsletter list**: subscribers today, people who joined
   and who left the list in the period (and how many through a newsletter's unsubscribe link). A
-  chart of each newsletter's open and click rates, a table of every newsletter (click one for its
-  own page) and the pages people opened from them.
+  chart of each newsletter's open and click rates, a table of every newsletter and the pages people
+  opened from them. Pick one in **Newsletter** (or click it in the table) for its own figures:
+  emails sent, opened, clicked and website visits compared with the 5 newsletters sent before it,
+  unsubscribes, bounces and spam, opens and clicks day by day after sending, and the pages visited.
 - **Events and attendance**: pick an **Event type** (Connect, Talk, Select, Other) to see only
   those. Key numbers: events held, registrations, check-ins (with walk-ins and guests), show-up
   rate and no-shows, average per event, seats filled, first-timers (people at their first event of
