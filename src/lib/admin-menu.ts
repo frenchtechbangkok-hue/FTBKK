@@ -73,11 +73,12 @@ export const MENU: NavGroup[] = [
     ],
   },
   {
-    label: 'Reports',
+    label: 'Dashboards and insights',
     links: [
       { href: '/admin/reports/events', label: 'Events and attendance' },
       { href: '/admin/reports/members', label: 'Membership' },
       { href: '/admin/reports/traffic', label: 'Website traffic' },
+      { href: '/admin/reports/newsletters', label: 'Newsletters' },
       { href: '/admin/reports/emails', label: 'Emails' },
       { href: '/admin/reports/cloudflare', label: 'Cloudflare usage' },
     ],

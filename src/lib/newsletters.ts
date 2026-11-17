@@ -211,6 +211,7 @@ export function newsletterMessage(
           : undefined,
         replyTo: opts.replyTo,
         campaign: opts.test ? 'test' : campaignOf(n.id),
+        kind: 'newsletter',
       };
     },
   };

@@ -7,9 +7,10 @@ const tabs = [
   { href: '/admin/reports/events', label: 'Events and attendance' },
   { href: '/admin/reports/members', label: 'Membership' },
   { href: '/admin/reports/traffic', label: 'Website traffic' },
+  { href: '/admin/reports/newsletters', label: 'Newsletters' },
   { href: '/admin/reports/emails', label: 'Emails' },
   { href: '/admin/reports/cloudflare', label: 'Cloudflare usage' },
 ].map((t) => ({ ...t, current: t.href === path }));
 ---
 
-<PageTabs label="Reports" tabs={tabs} />
+<PageTabs label="Dashboards and insights" tabs={tabs} />

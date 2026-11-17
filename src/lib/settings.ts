@@ -68,6 +68,8 @@ export interface Settings {
   partnerGroups: PartnerGroup[];
   /** Admin > Email delivery: the service that sends every email; '' = EMAIL_PROVIDER (lib/email.ts). */
   emailProvider: '' | 'resend' | 'ses';
+  /** Its own service for community emails and newsletters; missing or '' = as emailProvider. */
+  emailProviders: Partial<Record<'community' | 'newsletter', '' | 'resend' | 'ses'>>;
   /** Contacts > Possible duplicates: pairs marked "not the same person" (see pairKey). */
   notDuplicates: string[];
   /** Reports > Cloudflare usage: the Workers plan the account is on, for its limits. */
@@ -115,6 +117,7 @@ export const defaultSettings: Settings = {
   notDuplicates: [],
   partnerGroups: [],
   emailProvider: '',
+  emailProviders: {},
   cloudflarePlan: 'free',
 };
 

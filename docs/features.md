@@ -197,6 +197,13 @@ screen by screen for the team.
   `workersInvocationsAdaptive`, `d1AnalyticsAdaptiveGroups`, `d1StorageAdaptiveGroups`,
   `r2OperationsAdaptiveGroups` and `r2StorageAdaptiveGroups`, and each product shows its own
   error if it fails.
+- **Newsletter report** (`/admin/reports/newsletters`, `src/lib/newsletter-report.ts`): a
+  Dashboards and insights tab (the admin menu group formerly called Reports) with the newsletters
+  sent in the period: newsletters, open and click rates over the tracked ones (provider events
+  tagged `newsletter-<id>`), website visits (`email_visits`) with the change against the previous
+  period; subscribers today (the Newsletters audience count), list joins and leaves from
+  `contacts.newsletter_at`, unsubscribes through each newsletter's link; a per-newsletter chart and
+  table, and the pages opened from them.
 - **Email report** (`/admin/reports/emails`, `src/lib/email-metrics.ts`): the fourth Reports
   tab shows what happened to the emails the site sent, with the same period picker: emails sent,
   delivered, opened and clicked (rates against delivered), bounced and marked as spam, each with
@@ -276,8 +283,12 @@ screen by screen for the team.
   "there") and is listed at `/newsletters` and in the sitemap. Deleting someone's data deletes
   their `newsletter_sends` rows.
 - **Email delivery** (`/admin/email-delivery`): emails go through Resend or Amazon SES, picked
-  on the page under **Sending service** (settings key `emailProvider`, read by `emailProvider()` in
-  `src/lib/email.ts`; only services whose key is set are offered; `EMAIL_PROVIDER` in
+  on the page under **Sending service** for each kind of email (`emailKindOf()` in
+  `src/lib/email.ts`: automatic emails, community emails from campaigns `community-…` and
+  `event-…`, newsletters from `newsletter-…` or `kind: 'newsletter'`). Settings key
+  `emailProvider` holds the automatic emails' service and `emailProviders` the community and
+  newsletter ones (empty = the same as automatic emails), read by `emailProvider(env, kind)` in
+  `src/lib/email.ts`; a batch is one kind; only services whose key is set are offered; `EMAIL_PROVIDER` in
   `wrangler.jsonc` is the default until a choice is saved, and the fallback if the chosen key is
   removed; each switch is in the Actions log). `EMAIL_DAILY_LIMIT` and `EMAIL_MONTHLY_LIMIT` only
   apply while Resend sends. SES messages are raw MIME signed with `aws4fetch` in `src/lib/ses.ts`,

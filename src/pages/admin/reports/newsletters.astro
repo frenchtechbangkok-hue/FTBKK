@@ -1,0 +1,232 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import LineChart from '../../../components/admin/LineChart.astro';
+import ReportTabs from '../../../components/admin/ReportTabs.astro';
+import ReportFilters from '../../../components/admin/ReportFilters.astro';
+import Kpi from '../../../components/admin/Kpi.astro';
+import MoreFigures from '../../../components/admin/MoreFigures.astro';
+import Alert from '../../../components/Alert.astro';
+import { delta, num, pct } from '../../../lib/report-period';
+import { loadNewsletterReport } from '../../../lib/newsletter-report';
+
+// Dashboards and insights > Newsletters: the newsletters sent in the period, how they did, and
+// how the newsletter list grows (src/lib/newsletter-report.ts).
+const { period, report: r, error } = await loadNewsletterReport(Astro.url);
+const n = num;
+const rate = (a: number, b: number) => (b ? a / b : null);
+const day = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'Asia/Bangkok',
+});
+const short = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'Asia/Bangkok',
+});
+const t = r?.totals;
+const p = r?.previous ?? null;
+const kpis = t
+  ? [
+      {
+        label: 'Newsletters sent',
+        value: n(t.newsletters),
+        delta: delta(t.newsletters, p?.newsletters ?? null),
+        hint: `${n(t.recipients)} emails in all`,
+      },
+      {
+        label: 'Opened',
+        value: pct(t.openRate),
+        delta: delta(t.openRate, p?.openRate ?? null, 'rate'),
+        hint: `${n(t.opened)} of ${n(t.delivered)} delivered emails`,
+        spark: r!.rows.map((x) => (x.email ? rate(x.email.opened, x.email.delivered) : null)),
+      },
+      {
+        label: 'Clicked',
+        value: pct(t.clickRate),
+        delta: delta(t.clickRate, p?.clickRate ?? null, 'rate'),
+        hint: `${n(t.clicked)} had a link clicked`,
+        spark: r!.rows.map((x) => (x.email ? rate(x.email.clicked, x.email.delivered) : null)),
+      },
+      {
+        label: 'Website visits',
+        value: n(t.visits),
+        delta: delta(t.visits, p?.visits ?? null),
+        hint: 'From the links in the newsletters',
+        spark: r!.rows.map((x) => x.visits),
+      },
+    ]
+  : [];
+const c = r?.changes;
+const pc = r?.previousChanges ?? null;
+const more =
+  t && c
+    ? [
+        {
+          label: 'Subscribers today',
+          value: r!.subscribers === null ? '–' : n(r!.subscribers),
+          hint: 'Who would get a newsletter sent to subscribers now',
+        },
+        {
+          label: 'Joined the list',
+          value: n(c.joined),
+          delta: delta(c.joined, pc?.joined ?? null),
+          hint: 'Said yes on the Join page, a registration form or their contact card',
+        },
+        {
+          label: 'Left the list',
+          value: n(c.left),
+          delta: delta(c.left, pc?.left ?? null, 'count', false),
+          hint: `${n(t.unsubscribed)} through a newsletter's unsubscribe link (${pct(t.unsubscribeRate)} of emails)`,
+        },
+      ]
+    : [];
+const untracked = t ? t.newsletters - t.tracked : 0;
+---
+
+<AdminLayout title="Dashboards: newsletters">
+  <ReportTabs />
+  <ReportFilters period={period} />
+  <p class="mb-6 max-w-3xl text-sm text-muted">
+    The newsletters sent in the period and how each one did. Opens and clicks come from the sending
+    service (Resend or Amazon SES), visits from the tagged links in each newsletter. Opens are
+    estimates: some mail apps open every email by themselves, others block the tracking image.
+  </p>
+
+  {error && (
+    <Alert tone="danger" class="mb-6">
+      <h2 class="text-lg text-danger">Newsletter figures could not be loaded</h2>
+      <p class="mt-1 text-sm text-ink">{error}</p>
+    </Alert>
+  )}
+
+  {r && t && (
+    <>
+      <section aria-label="Key numbers" class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {kpis.map((k) => (
+          <Kpi {...k} />
+        ))}
+      </section>
+      <MoreFigures figures={more} title="The newsletter list" />
+      {untracked > 0 && (
+        <p class="mb-4 text-sm text-muted">
+          {untracked === 1 ? 'One newsletter has' : `${n(untracked)} newsletters have`} no opens or
+          clicks reported yet: the sending service sends them within minutes once its tracking is on
+          (Dashboards and insights &gt; Emails explains how).
+        </p>
+      )}
+      <div class="mb-6">
+        <LineChart
+          title="Opened and clicked, newsletter by newsletter"
+          wide
+          bars
+          labels={r.rows.map((x) => `${x.subject} (${day.format(x.sentAt)})`)}
+          ticks={r.rows.map((x) => short.format(x.sentAt))}
+          series={[
+            {
+              name: 'Opened (% of delivered)',
+              values: r.rows.map((x) =>
+                x.email && x.email.delivered
+                  ? Math.round((x.email.opened / x.email.delivered) * 100)
+                  : null,
+              ),
+              tone: 'brand',
+            },
+            {
+              name: 'Clicked (% of delivered)',
+              values: r.rows.map((x) =>
+                x.email && x.email.delivered
+                  ? Math.round((x.email.clicked / x.email.delivered) * 100)
+                  : null,
+              ),
+              tone: 'accent',
+            },
+          ]}
+          empty="No newsletter sent in this period."
+        />
+      </div>
+
+      <section class="admin-panel mb-6 overflow-x-auto" aria-labelledby="each-title">
+        <h2 id="each-title" class="mb-1 text-lg">
+          Each newsletter
+        </h2>
+        <p class="mb-3 text-sm text-muted">Newest first. Open one for its pages and details.</p>
+        {r.rows.length ? (
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Newsletter</th>
+                <th>Sent</th>
+                <th>Emails</th>
+                <th>Delivered</th>
+                <th>Opened</th>
+                <th>Clicked</th>
+                <th>Visits</th>
+                <th>Unsubscribed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...r.rows].reverse().map((x) => (
+                <tr>
+                  <td class="max-w-md">
+                    <a
+                      href={`/admin/newsletters/${x.id}`}
+                      class="font-semibold text-navy underline"
+                    >
+                      {x.subject}
+                    </a>
+                  </td>
+                  <td class="whitespace-nowrap">{day.format(x.sentAt)}</td>
+                  <td>{n(x.recipients)}</td>
+                  <td>{x.email ? pct(rate(x.email.delivered, x.email.sent)) : '–'}</td>
+                  <td>{x.email ? pct(rate(x.email.opened, x.email.delivered)) : '–'}</td>
+                  <td>{x.email ? pct(rate(x.email.clicked, x.email.delivered)) : '–'}</td>
+                  <td>{n(x.visits)}</td>
+                  <td>{n(x.unsubscribed)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p class="text-sm text-muted">
+            No newsletter sent in this period.{' '}
+            <a href="/admin/newsletters" class="underline">
+              Write one
+            </a>
+            .
+          </p>
+        )}
+      </section>
+
+      {r.pages.length > 0 && (
+        <section class="admin-panel overflow-x-auto" aria-labelledby="pages-title">
+          <h2 id="pages-title" class="mb-1 text-lg">
+            Pages people opened from the newsletters
+          </h2>
+          <p class="mb-3 text-sm text-muted">All the newsletters of the period together.</p>
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Page</th>
+                <th>Visits</th>
+              </tr>
+            </thead>
+            <tbody>
+              {r.pages.map((x) => (
+                <tr>
+                  <td class="break-all">
+                    <a href={x.path} class="underline">
+                      {x.path}
+                    </a>
+                  </td>
+                  <td>{n(x.visits)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+    </>
+  )}
+</AdminLayout>
