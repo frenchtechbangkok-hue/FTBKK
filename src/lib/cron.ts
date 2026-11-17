@@ -3,17 +3,28 @@ import { sendEventReminders, sendFeedbackRequests, weeklyBackup } from './cron-e
 import { runMemberRenewals } from './members';
 import { getSettings } from './settings';
 import { runSocialPosts } from './social';
+import { runNewsletters } from './newsletters';
 
 /** The daily jobs run at 02:00 UTC = 09:00 Asia/Bangkok. */
 export const DAILY_HOUR_UTC = 2;
 
+/** Minutes between two cron runs (the cron in wrangler.jsonc fires every 5 minutes). */
+export const CRON_EVERY_MINUTES = 5;
+
+/** Whether this run is the one that does the daily jobs (the first run of 02:00 UTC). */
+export const isDailyRun = (now: Date) =>
+  now.getUTCHours() === DAILY_HOUR_UTC && now.getUTCMinutes() < CRON_EVERY_MINUTES;
+
 /**
- * Scheduled jobs. The cron fires every hour (`0 * * * *` in wrangler.jsonc): social media posts
- * go out every hour, the rest once a day at 09:00 Bangkok. Each job is isolated so one failure
- * doesn't stop the others.
+ * Scheduled jobs. The cron fires every 5 minutes (wrangler.jsonc): newsletters and social media
+ * posts go out at their time, the rest once a day at 09:00 Bangkok. Each job is isolated so one
+ * failure doesn't stop the others.
  */
 export async function runScheduled(_env: Env, now: Date): Promise<void> {
-  const hourly: [string, () => Promise<unknown>][] = [['social-posts', () => runSocialPosts(now)]];
+  const often: [string, () => Promise<unknown>][] = [
+    ['social-posts', () => runSocialPosts(now)],
+    ['newsletters', () => runNewsletters(now)],
+  ];
   const daily: [string, () => Promise<unknown>][] = [
     ['event-reminders', () => sendEventReminders(now)],
     ['event-feedback', () => sendFeedbackRequests(now)],
@@ -25,7 +36,7 @@ export async function runScheduled(_env: Env, now: Date): Promise<void> {
     ],
     ['backup', () => weeklyBackup(now)],
   ];
-  const jobs = now.getUTCHours() === DAILY_HOUR_UTC ? [...hourly, ...daily] : hourly;
+  const jobs = isDailyRun(now) ? [...often, ...daily] : often;
   for (const [name, job] of jobs) {
     try {
       console.log(`[cron] ${name}`, JSON.stringify(await job()));

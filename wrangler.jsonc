@@ -83,8 +83,8 @@
     "CF_WEB_ANALYTICS_SITE_TAG": "",
   },
   "triggers": {
-    // Every hour, for scheduled social media posts; the daily jobs run at 02:00 UTC = 09:00
-    // Asia/Bangkok (src/lib/cron.ts).
-    "crons": ["0 * * * *"],
+    // Every 5 minutes, for newsletters and social media posts at their set time; the daily jobs
+    // run at 02:00 UTC = 09:00 Asia/Bangkok (src/lib/cron.ts).
+    "crons": ["*/5 * * * *"],
   },
 }

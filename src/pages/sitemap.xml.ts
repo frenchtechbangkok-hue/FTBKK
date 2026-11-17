@@ -1,4 +1,7 @@
 import type { APIRoute } from 'astro';
+import { and, eq } from 'drizzle-orm';
+import { getDb } from '../db';
+import { newsletters } from '../db/schema';
 import { siteUrl } from '../lib/site';
 import { linkOnline } from '../lib/guides';
 import { getSettings } from '../lib/settings';
@@ -14,13 +17,18 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 /** Built from D1 on each request (edge-cached for an hour). */
 export const GET: APIRoute = async () => {
-  const [up, past, posts, cats, orgs, settings] = await Promise.all([
+  const [up, past, posts, cats, orgs, settings, letters] = await Promise.all([
     upcomingEvents(),
     pastEvents(),
     allPosts(),
     categoriesWithCounts(),
     publishedOrganisations(),
     getSettings(),
+    getDb()
+      .select({ slug: newsletters.slug, updatedAt: newsletters.updatedAt })
+      .from(newsletters)
+      .where(and(eq(newsletters.status, 'sent'), eq(newsletters.webPage, true)))
+      .catch(() => []),
   ]);
   const urls: { loc: string; lastmod?: Date }[] = [
     { loc: '' },
@@ -44,6 +52,8 @@ export const GET: APIRoute = async () => {
       .map((p) => ({ loc: `blog/${p.slug}`, lastmod: p.updatedAt })),
     ...cats.filter((c) => c.count > 0).map((c) => ({ loc: `blog/category/${c.slug}` })),
     ...orgs.map((o) => ({ loc: `ecosystem/${o.slug}`, lastmod: o.updatedAt })),
+    ...(letters.length ? [{ loc: 'newsletters' }] : []),
+    ...letters.map((l) => ({ loc: `newsletters/${l.slug}`, lastmod: l.updatedAt })),
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

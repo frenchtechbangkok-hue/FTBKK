@@ -101,8 +101,12 @@ or roll back first, or from a computer run `npx wrangler versions secret put <NA
 version with the secret, then promote it). A var in `wrangler.jsonc` goes live with the version
 that carries it.
 
-**Cron schedule.** The hourly trigger belongs to the Worker, not to a version: a change to
-`triggers.crons` in `wrangler.jsonc` needs `npx wrangler triggers deploy` once, after promoting.
+**Cron schedule.** The cron trigger (every 5 minutes since 26.11.11, for newsletters; hourly
+before) belongs to the Worker, not to a version: a change to `triggers.crons` in `wrangler.jsonc`
+needs `npx wrangler triggers deploy` once, **after** promoting the version that carries it (or set
+it in the dashboard: Worker > Settings > Trigger events > Cron). Before 26.11.11 the daily jobs
+ran on every run of 02:00 UTC, so an older live version must not get the 5-minute trigger. Until
+the trigger changes, newsletters and social posts simply go out on the next hour.
 
 ## 3. The content
 

@@ -225,6 +225,8 @@ export interface Recipients {
    * so the page can count a segment as boxes are ticked.
    */
   segmentable: { email: string; tags: string[]; groups: number[] }[];
+  /** Every address (lowercased) whose owner said no to emails. */
+  optedOut: Set<string>;
 }
 
 /**
@@ -264,13 +266,14 @@ export async function communityRecipients(
     allWithoutConsent: everyone.filter((r) => !consenting.has(r.email)).length,
     allOptedOut: all.filter((c) => c.email && saidNo(c)).length,
     csvOptedOut: csv.filter((r) => optedOut.has(r.email)).length,
+    optedOut,
     segmentable: reachable
       .filter((c) => c.tags.length || c.groups.length)
       .map((c) => ({ email: c.email!.trim().toLowerCase(), tags: c.tags, groups: c.groups })),
   };
 }
 
-const FOOTERS: Record<CommunityAudience, string> = {
+export const FOOTERS: Record<CommunityAudience, string> = {
   members: 'You get this email because you are a member of La French Tech Bangkok.',
   newsletter: 'You get this email because you subscribed to the La French Tech Bangkok newsletter.',
   all: 'You get this email because you are in touch with La French Tech Bangkok (an event, membership or the directory).',
@@ -368,6 +371,7 @@ export async function loadCards(md: string) {
       meta: formatEventDate(e.startsAt, e.endsAt),
       place: e.venue,
       summary: e.summary,
+      past: (e.endsAt ?? e.startsAt) < new Date(),
     });
   for (const p of postRows)
     cards.set(cardKey('post', p.slug), {

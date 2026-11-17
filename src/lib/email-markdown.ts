@@ -17,6 +17,8 @@ export interface EmailCard {
   /** Venue for an event. */
   place?: string | null;
   summary?: string | null;
+  /** A past event: its card links to the recap instead of inviting to register. */
+  past?: boolean;
 }
 
 /** One card token, alone on its line: {{event: slug}} or {{post: slug}}. */
@@ -104,7 +106,12 @@ export function markdownText(md: string, origin: string) {
 /** The card for an event or post: image on top, then the label, title, date, summary and link. */
 export function cardHtml(c: EmailCard) {
   const label = c.kind === 'event' ? 'Event' : 'Blog';
-  const cta = c.kind === 'event' ? 'See the event and register' : 'Read the article';
+  const cta =
+    c.kind === 'post'
+      ? 'Read the article'
+      : c.past
+        ? 'See the event'
+        : 'See the event and register';
   const summary = c.summary ? clip(c.summary, 220) : '';
   const meta = [c.meta, c.place].filter(Boolean).join(' · ');
   const image = c.image

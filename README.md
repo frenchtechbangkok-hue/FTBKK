@@ -11,12 +11,14 @@ The website of La French Tech Bangkok, live at https://french-tech-bangkok.com s
   posts, ways to join, partners.
 - **Events**: upcoming and past events with built-in registration (capacity, waitlist, guests,
   members-only and private invite-link events), or no registration at all for walk-in events; QR
-  tickets, reminders, feedback emails, speakers, sponsors and recaps.
+  tickets, reminders, feedback emails, speakers, sponsors and recaps (with attendance, companies
+  and feedback figures).
 - **Ecosystem**: a directory of French companies, startups and partners in Thailand. Owners manage
   their listing through email links, no accounts.
 - **Blog** with RSS, and **Resources**: Thailand Tech Pulse (PDFs for members while membership is
   open), the Founder's Guide, Expanding to Thailand and Come work in France
   (French Tech Visa).
+- **Newsletters** at `/newsletters`: the web version of each newsletter sent from the admin.
 - **About**, **Join** (free individual membership, WhatsApp, newsletter, contact form), a **Thai
   page** at `/th`, the code of conduct and the privacy notice.
 - **Members** get a personal page from an email link (no passwords): their events, profile and
@@ -29,17 +31,17 @@ The website of La French Tech Bangkok, live at https://french-tech-bangkok.com s
 **Admin** at `/admin`, behind Cloudflare Access. Anyone who can sign in can do everything; there
 are no roles. The menu:
 
-| Group                       | What is in it                                                                                                                                               |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Dashboard**               | What is waiting for the team, the last 7 days, upcoming events, latest activity                                                                             |
-| **Events**                  | Events, registrations, check-in at the door from a phone                                                                                                    |
-| **Community**               | Members, contacts (tags, groups, merge duplicates), messages                                                                                                |
-| **Ecosystem**               | Listings to review, all listings, partners, renewals                                                                                                        |
-| **Website**                 | Blog posts, files, page texts, board and speakers, guide pages                                                                                              |
-| **Emails and social media** | Email the community, scheduled social media posts (with how to connect LinkedIn and Facebook), automatic emails (Markdown)                                  |
-| **Reports**                 | Events and attendance, membership, website traffic (Cloudflare, plus visits from the site's emails), emails sent (Resend and SES), Cloudflare usage vs plan |
-| **Settings**                | General, membership switches, event covers, social links, email delivery                                                                                    |
-| **History**                 | Actions log (who did what in the admin), Change history (each version of the site)                                                                          |
+| Group                       | What is in it                                                                                                                                                   |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**               | What is waiting for the team, the last 7 days, upcoming events, latest activity                                                                                 |
+| **Events**                  | Events, registrations, check-in at the door from a phone                                                                                                        |
+| **Community**               | Members, contacts (tags, groups, merge duplicates), messages                                                                                                    |
+| **Ecosystem**               | Listings to review, all listings, partners, renewals                                                                                                            |
+| **Website**                 | Blog posts, files, page texts, board and speakers, guide pages                                                                                                  |
+| **Emails and social media** | Newsletters (block builder, scheduled, own figures), Email the community, scheduled social media posts (how to connect LinkedIn and Facebook), automatic emails |
+| **Reports**                 | Events and attendance, membership, website traffic (Cloudflare, plus visits from the site's emails), emails sent (Resend and SES), Cloudflare usage vs plan     |
+| **Settings**                | General, membership switches, event covers, social links, email delivery                                                                                        |
+| **History**                 | Actions log (who did what in the admin), Change history (each version of the site)                                                                              |
 
 Emails go through Resend or Amazon SES, chosen in Settings > Email delivery, where both services' keys,
 secrets and webhook addresses are also set up, with a do-not-email list for bounces and spam complaints.
@@ -52,8 +54,9 @@ Full detail: [docs/features.md](docs/features.md) (every feature, with the files
 
 - [Astro 7](https://astro.build) with `@astrojs/cloudflare` (server output), TypeScript, Tailwind
   CSS v4.
-- Cloudflare Worker `ft-bkk-site` (entry `src/worker.ts`) with an hourly cron: social media posts
-  every hour, daily jobs (reminders, renewals, feedback, weekly backup) at 09:00 Bangkok time.
+- Cloudflare Worker `ft-bkk-site` (entry `src/worker.ts`) with a cron every 5 minutes: newsletters
+  and social media posts at their time, daily jobs (reminders, renewals, feedback, weekly backup)
+  at 09:00 Bangkok time.
 - D1 database `ftbkk` through Drizzle (`src/db/schema.ts`, migrations in `migrations/`).
 - R2 bucket `ftbkk-media` for images and files, served at `/media/*`.
 - Cloudflare Access on `/admin` and `/api/admin`, Turnstile on public forms, Resend or Amazon SES

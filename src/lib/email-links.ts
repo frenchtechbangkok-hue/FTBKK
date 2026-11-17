@@ -27,8 +27,11 @@ export function campaignSlug(s: string, max = 60) {
   );
 }
 
-/** Paths never tagged: files, the admin (team emails) and the API (one-click links). */
-const SKIP = /^\/(api|admin|media|_astro)(\/|$)/;
+/**
+ * Paths never tagged: files, the admin (team emails), the API (one-click links) and the
+ * newsletter's unsubscribe page (leaving isn't a visit).
+ */
+const SKIP = /^\/(api|admin|media|_astro)(\/|$)|^\/newsletters\/unsubscribe(\/|$)/;
 
 /** The site's address and its www / bare twin. */
 export function siteHosts(host: string) {
@@ -112,5 +115,6 @@ export function campaignLabel(campaign: string, templates: Record<string, { labe
   const words = (s: string) => s.replace(/-/g, ' ');
   if (campaign.startsWith('event-')) return `Event email: ${words(campaign.slice(6))}`;
   if (campaign.startsWith('community-')) return `Community email: ${words(campaign.slice(10))}`;
+  if (/^newsletter-\d+$/.test(campaign)) return `Newsletter #${campaign.slice(11)}`;
   return words(campaign);
 }

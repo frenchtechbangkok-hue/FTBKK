@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import type { NewsletterBlock } from '../lib/newsletter-blocks';
 import {
   index,
   integer,
@@ -631,6 +632,8 @@ export const emailMessages = sqliteTable(
     clickedAt: ts('clicked_at'),
     /** The provider refused or dropped it (never sent). */
     failedAt: ts('failed_at'),
+    /** Which email it was (utm_campaign, e.g. "newsletter-3"), from the tag sent with it. */
+    campaign: text('campaign'),
     updatedAt: ts('updated_at')
       .notNull()
       .default(sql`(unixepoch())`),
@@ -638,6 +641,7 @@ export const emailMessages = sqliteTable(
   (t) => [
     primaryKey({ columns: [t.provider, t.messageId] }),
     index('email_messages_sent_at_idx').on(t.sentAt),
+    index('email_messages_campaign_idx').on(t.campaign),
   ],
 );
 
@@ -752,6 +756,76 @@ export const communityEmails = sqliteTable('community_emails', {
   createdAt: createdAt(),
 });
 
+/**
+ * Emails and social media > Newsletters (lib/newsletters.ts): a newsletter built from blocks
+ * (lib/newsletter-blocks.ts), sent now or at a set time by the cron, with its own figures.
+ */
+export const newsletters = sqliteTable(
+  'newsletters',
+  {
+    id: id(),
+    /** Address of its web version (/newsletters/<slug>), set when sending starts. */
+    slug: text('slug').unique(),
+    subject: text('subject').notNull(),
+    /** The preview line mail apps show after the subject. */
+    preheader: text('preheader'),
+    blocks: json<NewsletterBlock[]>('blocks').notNull().default([]),
+    /** members, newsletter, all or segment (COMMUNITY_AUDIENCES). */
+    audience: text('audience', { enum: ['members', 'newsletter', 'all', 'segment'] })
+      .notNull()
+      .default('newsletter'),
+    /** For segment: the groups (ids) and tags (keys) picked. */
+    segment: json<{ groups: number[]; tags: string[] }>('segment'),
+    /** Shown on /newsletters once sent, with a "View in your browser" link in the email. */
+    webPage: integer('web_page', { mode: 'boolean' }).notNull().default(true),
+    status: text('status', { enum: ['draft', 'scheduled', 'sending', 'sent', 'failed'] })
+      .notNull()
+      .default('draft'),
+    scheduledAt: ts('scheduled_at'),
+    startedAt: ts('started_at'),
+    sentAt: ts('sent_at'),
+    /** People on the list when sending started. */
+    recipients: integer('recipients').notNull().default(0),
+    /** Emails handled so far (sent, or skipped because the address is blocked). */
+    sentCount: integer('sent_count').notNull().default(0),
+    /** Skipped: the address bounced or complained before (Email delivery > blocked list). */
+    suppressed: integer('suppressed').notNull().default(0),
+    /** Failed sending runs in a row; the newsletter stops (failed) after a few. */
+    failures: integer('failures').notNull().default(0),
+    error: text('error'),
+    /** A cron run is sending it until then (two runs never send the same newsletter). */
+    lockedUntil: ts('locked_until'),
+    createdBy: text('created_by').notNull(),
+    updatedBy: text('updated_by'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('newsletters_status').on(t.status, t.scheduledAt)],
+);
+
+/**
+ * Who a newsletter goes to, frozen when sending starts, so sending resumes where it stopped and
+ * the one-click unsubscribe link (token) says which newsletter made someone leave.
+ */
+export const newsletterSends = sqliteTable(
+  'newsletter_sends',
+  {
+    newsletterId: integer('newsletter_id')
+      .notNull()
+      .references(() => newsletters.id, { onDelete: 'cascade' }),
+    /** Lowercased. */
+    email: text('email').notNull(),
+    name: text('name').notNull().default(''),
+    token: text('token').notNull().unique(),
+    sentAt: ts('sent_at'),
+    unsubscribedAt: ts('unsubscribed_at'),
+  },
+  (t) => [
+    primaryKey({ columns: [t.newsletterId, t.email] }),
+    index('newsletter_sends_email').on(t.email),
+  ],
+);
+
 /** Result of one network for a social post: posted (with its link) or the error. */
 export interface SocialResult {
   ok: boolean;
@@ -762,7 +836,7 @@ export interface SocialResult {
 }
 
 /**
- * Social media posts about an event or a blog post, published by the hourly cron
+ * Social media posts about an event or a blog post, published by the cron
  * (lib/social.ts): automatically on LinkedIn and Facebook once connected, otherwise (and always
  * for WhatsApp) by an email to whoever scheduled it with the text ready to paste.
  */

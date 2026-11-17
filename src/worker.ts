@@ -4,6 +4,7 @@ import { handleResendEvents } from './lib/resend-events';
 import { handleSesEvents } from './lib/ses-events';
 import { edgeSafe } from './lib/edge-cache';
 import { emailVisitRedirect } from './lib/email-visits';
+import { handleOneClickUnsubscribe } from './lib/newsletter-unsubscribe';
 
 export default {
   async fetch(request, env, ctx) {
@@ -13,6 +14,8 @@ export default {
     const path = new URL(request.url).pathname;
     if (path === '/api/ses-events') return handleSesEvents(request);
     if (path === '/api/resend-events') return handleResendEvents(request);
+    // Mail apps' "Unsubscribe" button (List-Unsubscribe-Post, RFC 8058): a POST without Origin.
+    if (path === '/api/newsletter-unsubscribe') return handleOneClickUnsubscribe(request);
     // A link from one of the site's emails (utm_source=ftbkk): counted, then the same page without
     // the tags (lib/email-visits.ts). Cloudflare Web Analytics can't see where these come from.
     const fromEmail = emailVisitRedirect(request, ctx);
