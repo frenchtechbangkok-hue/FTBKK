@@ -20,7 +20,8 @@ import {
 } from './lifecycle';
 import { audit, adminNotifyEmails, sendExpiredNotice, sendRenewalReminder, siteUrl } from './orgs';
 import { sendEmail } from './email';
-import { renderTemplate } from './email-templates';
+import { EMAIL_TEMPLATES, applyTemplate, loadTemplateText } from './email-templates';
+import { newMemberLine, newMembersSince } from './members';
 import { TZ, formatDate } from './format';
 
 /** Daily directory maintenance. Returns a summary for the logs. */
@@ -97,7 +98,7 @@ export async function runDirectoryJobs(now: Date) {
   await db.delete(claims).where(and(eq(claims.status, 'unverified'), lt(claims.createdAt, cutoff)));
   await db.delete(magicTokens).where(lt(magicTokens.expiresAt, now));
 
-  // 5. Monday digest for moderators.
+  // 5. Monday summary for the team: new members of the week and the directory queue.
   const weekday = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short' }).format(now);
   if (weekday === 'Mon') {
     await sendModeratorDigest(now);
@@ -129,8 +130,27 @@ export async function moderationQueue() {
   return { pendingOrgs, changes, pendingClaims, applications };
 }
 
+/** "2 new members", "1 new member", "no new member". */
+export function newMembersCount(n: number) {
+  return n ? `${n} new member${n === 1 ? '' : 's'}` : 'no new member';
+}
+
+/**
+ * A text saved before new members joined the summary has no {new-members}: add the list at the
+ * end so the team still sees who joined.
+ */
+export function withNewMembers<T extends { body: string }>(text: T | null): T | null {
+  return text && !text.body.includes('{new-members}')
+    ? { ...text, body: `${text.body}\n\n{new-members}` }
+    : text;
+}
+
+/** Monday 9:00: who became a member in the last 7 days, and what waits in the directory. */
 export async function sendModeratorDigest(now: Date) {
-  const q = await moderationQueue();
+  const [q, joined] = await Promise.all([
+    moderationQueue(),
+    newMembersSince(new Date(now.getTime() - 7 * DAY_MS), now),
+  ]);
   const ages = [
     ...q.pendingOrgs.map((o) => o.submittedAt ?? o.updatedAt),
     ...q.changes.map((c) => c.change.createdAt),
@@ -155,8 +175,11 @@ export async function sendModeratorDigest(now: Date) {
     );
   const unclaimedDue = expiring.filter((o) => o.owners.length === 0).length;
   const total = ages.length;
-  if (!total && !expiring.length) return;
-  const w = await renderTemplate('admin.directory-digest', {
+  if (!total && !expiring.length && !joined.length) return;
+  const key = 'admin.directory-digest';
+  const w = applyTemplate(EMAIL_TEMPLATES[key], withNewMembers(await loadTemplateText(key)), {
+    members: newMembersCount(joined.length),
+    'new-members': joined.slice(0, 50).map(newMemberLine),
     items: `${total} item${total === 1 ? '' : 's'}`,
     oldest: oldest > MODERATION_TARGET_DAYS ? ` (oldest ${oldest} days)` : '',
     target: String(MODERATION_TARGET_DAYS),
@@ -173,6 +196,7 @@ export async function sendModeratorDigest(now: Date) {
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     details: [
+      ['New members (last 7 days)', String(joined.length)],
       ['New listings', String(q.pendingOrgs.length)],
       ['Owner changes', String(q.changes.length)],
       ['Claims', String(q.pendingClaims.length)],

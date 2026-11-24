@@ -181,7 +181,6 @@ export type TemplateKey =
   | 'member.renewal'
   | 'member.lapsed'
   | 'admin.contact-form'
-  | 'admin.new-member'
   | 'admin.listing-to-review'
   | 'admin.claim-to-review'
   | 'admin.change-to-review'
@@ -727,31 +726,6 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
       footer: 'Sent from the contact form on french-tech-bangkok.com. Reply to answer directly.',
     },
   },
-  'admin.new-member': {
-    label: 'New member',
-    group: 'Admin notifications',
-    audience: ADMIN_AUDIENCE,
-    trigger:
-      'When someone confirms their membership (not a renewal, and not when the team ticks Member on a contact)',
-    subject: 'New member: {name}',
-    body: '{name} ({email}) just joined La French Tech Bangkok. They show in Members, under To review, where you can add a note.',
-    buttonLabel: 'See new members',
-    placeholders: [
-      P.name,
-      { key: 'email', description: 'Their email', sample: 'camille@example.com' },
-    ],
-    added:
-      'Their company, job title, what describes them best, how they heard about us and LinkedIn, and the link to Members (the button).',
-    preview: {
-      buttonUrl: `${SITE}/admin/members`,
-      details: [
-        ['Company', 'Siam Robotics'],
-        ['Job title', 'CEO'],
-        ['Describes them', 'Founder or co-founder'],
-        ['How they heard', 'LinkedIn'],
-      ],
-    },
-  },
   'admin.listing-to-review': {
     label: 'New listing to review',
     group: 'Admin notifications',
@@ -834,15 +808,33 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
     },
   },
   'admin.directory-digest': {
-    label: 'Directory: weekly summary',
+    label: 'Weekly summary: new members and directory',
     group: 'Admin notifications',
     audience: ADMIN_AUDIENCE,
-    trigger: 'Every Monday at 9:00, when something waits for review or a renewal is due',
-    subject: 'Directory: {items} to review{oldest}',
-    body: 'Weekly summary of the ecosystem directory. Target: answer within {target} days.\n\n{renewals}',
+    trigger:
+      'Every Monday at 9:00, when someone became a member in the last 7 days, something waits for review in the directory or a renewal is due',
+    subject: 'Weekly summary: {members}, {items} to review{oldest}',
+    body: 'Weekly summary for the team.\n\nNew members in the last 7 days: {members}. They are in Members, under To review, where you can add a note.\n\n{new-members}\n\nEcosystem directory: {items} to review{oldest}. Target: answer within {target} days.\n\n{renewals}',
     buttonLabel: 'Open the moderation queue',
     placeholders: [
-      { key: 'items', description: 'How many items wait, e.g. "3 items"', sample: '3 items' },
+      {
+        key: 'members',
+        description: 'How many people became members in the last 7 days, e.g. "2 new members"',
+        sample: '2 new members',
+      },
+      {
+        key: 'new-members',
+        description:
+          'The new members of the last 7 days (name, email, job, what describes them, how they heard of us), one per paragraph when on a line of its own',
+        sample:
+          'New member: Camille Martin (camille@example.com), CEO, Siam Robotics. Founder or co-founder, heard of us via LinkedIn, joined 18 November 2026.\nNew member: Lucas Bernard (lucas@example.com). Student, joined 20 November 2026.',
+        list: true,
+      },
+      {
+        key: 'items',
+        description: 'How many directory items wait, e.g. "3 items"',
+        sample: '3 items',
+      },
       {
         key: 'oldest',
         description:
@@ -859,11 +851,13 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
         list: true,
       },
     ],
-    required: ['renewals'],
-    added: 'The counts per kind of item, and the link to the moderation queue (the button).',
+    required: ['new-members', 'renewals'],
+    added:
+      'The number of new members and the counts per kind of directory item, and the link to the moderation queue (the button). New members also show in the admin under Members > To review.',
     preview: {
       buttonUrl: adminEcosystemUrl,
       details: [
+        ['New members (last 7 days)', '2'],
         ['New listings', '1'],
         ['Owner changes', '1'],
         ['Claims', '1'],

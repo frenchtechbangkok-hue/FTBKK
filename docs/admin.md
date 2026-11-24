@@ -436,7 +436,8 @@ uses any more.
   the day). Unconfirmed listings are hidden 30 days later and deleted after 12 months. Unclaimed
   listings get no reminders: use **Send** to invite someone you know there to claim it.
 
-The team also gets an email for each new request and a summary every Monday, at the addresses in
+The team also gets an email for each new request and a summary every Monday at 9:00 (new members
+of the last 7 days, then the directory queue and renewals), at the addresses in
 Settings > General > Admin notifications.
 
 ## Members
@@ -454,7 +455,9 @@ enrolment at check-in.
   review (the same number as the **To review** tab), then the sign-ups waiting for email
   confirmation (they have not clicked their link yet, so they are not members), the suspended
   members and, when there are some, the lapsed ones.
-  The team gets a "New member" email at the Admin notifications addresses (Settings).
+  New members are not emailed one by one: the Monday summary (9:00, to the Admin notifications
+  addresses in Settings) lists everyone who joined in the last 7 days, with their job, what
+  describes them and how they heard of us.
 - **Members > To review**: active members nobody has looked at yet, newest first. It never
   blocks anyone (they are members already); it just helps the board keep track of who joined.
   Add a **note** if useful, then tick them and **Mark as reviewed**. Members made from a contact's
@@ -699,8 +702,8 @@ tables.
   on the site).
 - **Settings**, one screen per section, each with its own Save button:
   - **General**: site name and description, contact email, **Admin notifications** (who gets the
-    team's emails: contact form messages, new members, directory requests and the Monday
-    summary; **Send a test** emails them now and shows whether Resend accepted it) and the
+    team's emails: contact form messages, directory requests and the Monday
+    summary with the new members; **Send a test** emails them now and shows whether Resend accepted it) and the
     analytics token.
   - **Membership**: the switches for individual sign-up on the Join page, company membership
     applications and member priority on events.
@@ -820,9 +823,9 @@ and when:
 - **Community**: the newsletter confirmation (Email the community is written each time).
   **Privacy**: the "your data" link.
 - **Admin notifications** (to the team, at the addresses in Settings > General > Admin notifications): a
-  contact form message, a new member (first confirmation only, not renewals), a new listing, a
-  claim, a listing change and a membership application to review, and the Monday directory
-  summary.
+  contact form message, a new listing, a claim, a listing change and a membership application to
+  review, and the Monday summary (the new members of the last 7 days, the directory queue and
+  renewals).
 
 A **Default** badge means the text the site came with; **Edited** shows when and by whom.
 

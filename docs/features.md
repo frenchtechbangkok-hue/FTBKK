@@ -110,7 +110,7 @@ screen by screen for the team.
   the member is **active** at once, then gets a welcome email with the WhatsApp invitation, the
   next three events and a button to their member page. Signing up again with a member's address
   just emails their page link, and the page says the same thing either way. The team sees new members
-  in Members > To review (it never blocks them; the line under the Members title gives the same
+  in the Monday summary email (no email per new member) and in Members > To review (it never blocks them; the line under the Members title gives the same
   count next to the active members and the sign-ups still waiting for email confirmation), can add
   notes and can suspend a member. Membership runs a year
   (`renewal_due_at`): a daily cron job emails a one-click reminder 30 and 7 days before
