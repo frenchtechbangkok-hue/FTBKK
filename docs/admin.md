@@ -269,10 +269,16 @@ uses any more.
   registered for and missed (registered for a past event where check-in was used, but not
   checked in), and the ecosystem listings their email manages or is the contact for. Filter by
   "came at least once", "came 2 times or more", "registered, never came", "linked to an
-  ecosystem listing", "members", "regulars not yet members", by tag, by group or by event, then **Export CSV** (the export keeps the filters and has
-  Tags and Groups columns). Click a
+  ecosystem listing", "regulars not yet members", by membership, by tag, by group or by event,
+  then **Export CSV** (the export keeps the filters and has Tags and Groups columns). The filters
+  combine, and a line above the list says how many contacts match (for example "42 of 380
+  contacts"). The search box also looks in job titles. Click a
   name to see their full event history. Details come from their latest registration.
-- **Members** (in the Show filter) lists people with an active individual membership; they carry a
+- **Membership filter**: **Members** (active individual membership), **Not members** (contacts
+  who never joined or whose membership lapsed) or **Invited, not joined yet** (sent "Claim your
+  membership" and still not a member). Combine it with the other filters, e.g. "Came at least
+  once" + "Not members", then tick everyone and **Invite to join** or **Email…**.
+- **Members** carry a
   **Member** badge next to their name, and their page has a Membership line linking to Members.
   In the Ecosystem column, **Member company** marks a listing with company membership.
 - **Regulars not yet members**: people who came to 3 or more events and are not members yet. Copy
