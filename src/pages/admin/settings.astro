@@ -12,6 +12,7 @@ import PhotoSlot from '../../components/admin/PhotoSlot.astro';
 import { readPhotoSlot } from '../../lib/photo-slots';
 import { COVER_KINDS, DEFAULT_EVENT_COVERS, KIND_NAMES } from '../../lib/event-covers';
 import { GUIDES } from '../../lib/guides';
+import { SUMMARY_GROUPS, SUMMARY_PARTS } from '../../lib/weekly-summary';
 
 // Site-wide settings, one screen per section (?section=, listed under Settings in the admin menu).
 // Each screen saves only its own fields. The texts shown on public pages are in Website > Page texts
@@ -22,6 +23,7 @@ const SECTIONS = {
   'event-covers': 'Event covers',
   'social-links': 'Social links',
   guides: 'Guide pages',
+  'weekly-summary': 'Weekly summary',
 } as const;
 type Section = keyof typeof SECTIONS;
 const sectionParam = Astro.url.searchParams.get('section') ?? 'general';
@@ -67,6 +69,10 @@ const Schemas = {
     expansionGuideOnline: z.boolean().optional().default(false),
     frenchTechVisaOnline: z.boolean().optional().default(false),
   }),
+  // A ticked box sends "on"; the parts left unticked are the ones switched off.
+  'weekly-summary': z.record(z.string(), z.unknown()).transform((v) => ({
+    weeklySummaryOff: SUMMARY_PARTS.map((p) => p.key).filter((k) => !v[`part-${k}`]),
+  })),
   'social-links': z.object({
     instagram: url,
     whatsapp: url,
@@ -101,7 +107,7 @@ if (form?.get('intent') === 'test-notify') {
     to: notifyTo,
     subject: '[Test] Admin notifications from the website',
     paragraphs: [
-      'This is a test sent from Admin > Settings. If you can read it, contact form messages, new members, directory requests and the Monday directory summary reach this address too.',
+      'This is a test sent from Admin > Settings. If you can read it, contact form messages, directory requests and the Monday weekly summary reach this address too.',
       `Sent by ${actor}.`,
     ],
     action: { label: 'Open the admin', url: siteUrl('/admin') },
@@ -147,6 +153,8 @@ const INTROS: Record<Section, string> = {
     'The image shown for events that have no cover of their own. Pick the type on each event.',
   guides:
     'Put the guide pages online once their content is checked. While a guide is offline, visitors get "page not found" and its links are hidden from the menu, the footer and the sitemap; admins can still open it to proofread.',
+  'weekly-summary':
+    'The email the team gets every Monday at 9:00 (at the Admin notifications addresses in General). Pick the parts it shows; edit its words in Emails and social media > Automatic emails > Weekly summary.',
   'social-links':
     'Links to our pages, shown in the site footer. To post an event or a blog post on social media, use Emails and social media > Social media posts.',
 };
@@ -288,6 +296,30 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
           </div>
         ))}
       </section>
+    )}
+
+    {section === 'weekly-summary' && (
+      <>
+        {Object.entries(SUMMARY_GROUPS).map(([group, heading]) => (
+          <section class="admin-panel grid gap-4">
+            <h2 class="text-lg font-semibold">{heading}</h2>
+            {SUMMARY_PARTS.filter((p) => p.group === group).map((p) => (
+              <FormField
+                name={`part-${p.key}`}
+                label={p.label}
+                type="checkbox"
+                checked={!current.weeklySummaryOff.includes(p.key)}
+                hint={p.hint}
+              />
+            ))}
+          </section>
+        ))}
+        <p class="text-sm text-muted">
+          <a class="underline" href="/admin/emails/admin.directory-digest">
+            Edit the words of the email and see a preview
+          </a>
+        </p>
+      </>
     )}
 
     {section === 'membership' && (

@@ -1,4 +1,4 @@
-import { and, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, eq, lt } from 'drizzle-orm';
 import { getDb } from '../db';
 import {
   claims,
@@ -8,21 +8,8 @@ import {
   organisations,
   remindersSent,
 } from '../db/schema';
-import {
-  DAY_MS,
-  MODERATION_TARGET_DAYS,
-  UNVERIFIED_TTL_DAYS,
-  ageDays,
-  daysUntil,
-  remindersDue,
-  shouldDelete,
-  shouldExpire,
-} from './lifecycle';
-import { audit, adminNotifyEmails, sendExpiredNotice, sendRenewalReminder, siteUrl } from './orgs';
-import { sendEmail } from './email';
-import { EMAIL_TEMPLATES, applyTemplate, loadTemplateText } from './email-templates';
-import { newMemberLine, newMembersSince } from './members';
-import { formatDate } from './format';
+import { DAY_MS, UNVERIFIED_TTL_DAYS, remindersDue, shouldDelete, shouldExpire } from './lifecycle';
+import { audit, sendExpiredNotice, sendRenewalReminder } from './orgs';
 
 /** Daily directory maintenance. Returns a summary for the logs. */
 export async function runDirectoryJobs(now: Date) {
@@ -123,83 +110,4 @@ export async function moderationQueue() {
       .where(eq(membershipApplications.status, 'pending')),
   ]);
   return { pendingOrgs, changes, pendingClaims, applications };
-}
-
-/** "2 new members", "1 new member", "no new member". */
-export function newMembersCount(n: number) {
-  return n ? `${n} new member${n === 1 ? '' : 's'}` : 'no new member';
-}
-
-/**
- * A text saved before new members joined the summary has no {new-members}: add the list at the
- * end so the team still sees who joined.
- */
-export function withNewMembers<T extends { body: string }>(text: T | null): T | null {
-  return text && !text.body.includes('{new-members}')
-    ? { ...text, body: `${text.body}\n\n{new-members}` }
-    : text;
-}
-
-/** Monday 9:00: who became a member in the last 7 days, and what waits in the directory. */
-export async function sendModeratorDigest(now: Date) {
-  const [q, joined] = await Promise.all([
-    moderationQueue(),
-    newMembersSince(new Date(now.getTime() - 7 * DAY_MS), now),
-  ]);
-  const ages = [
-    ...q.pendingOrgs.map((o) => o.submittedAt ?? o.updatedAt),
-    ...q.changes.map((c) => c.change.createdAt),
-    ...q.pendingClaims.map((c) => c.claim.createdAt),
-    ...q.applications.map((a) => a.app.createdAt),
-  ].map((d) => ageDays(d, now));
-  const oldest = ages.length ? Math.max(...ages) : 0;
-  const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-  const expiring = await getDb()
-    .select({
-      name: organisations.name,
-      renewalDueAt: organisations.renewalDueAt,
-      owners: organisations.ownerEmails,
-    })
-    .from(organisations)
-    .where(
-      and(
-        inArray(organisations.status, ['published']),
-        sql`${organisations.renewalDueAt} IS NOT NULL`,
-        lt(organisations.renewalDueAt, monthEnd),
-      ),
-    );
-  const unclaimedDue = expiring.filter((o) => o.owners.length === 0).length;
-  const total = ages.length;
-  if (!total && !expiring.length && !joined.length) return false;
-  const key = 'admin.directory-digest';
-  const w = applyTemplate(EMAIL_TEMPLATES[key], withNewMembers(await loadTemplateText(key)), {
-    members: newMembersCount(joined.length),
-    'new-members': joined.slice(0, 50).map(newMemberLine),
-    items: `${total} item${total === 1 ? '' : 's'}`,
-    oldest: oldest > MODERATION_TARGET_DAYS ? ` (oldest ${oldest} days)` : '',
-    target: String(MODERATION_TARGET_DAYS),
-    renewals: expiring
-      .slice(0, 20)
-      .map((o) =>
-        `Renewal due: ${o.name}, ${o.renewalDueAt ? formatDate(o.renewalDueAt) : ''}${o.owners.length ? '' : ' (unclaimed, invite someone to claim it)'} ${o.renewalDueAt && daysUntil(o.renewalDueAt, now) < 0 ? '(overdue)' : ''}`.trim(),
-      ),
-  });
-  await sendEmail({
-    to: await adminNotifyEmails(),
-    subject: w.subject,
-    campaign: w.campaign,
-    paragraphs: w.paragraphs,
-    bodyHtml: w.bodyHtml,
-    details: [
-      ['New members (last 7 days)', String(joined.length)],
-      ['New listings', String(q.pendingOrgs.length)],
-      ['Owner changes', String(q.changes.length)],
-      ['Claims', String(q.pendingClaims.length)],
-      ['Company membership applications', String(q.applications.length)],
-      ['Oldest item', `${oldest} days`],
-      ['Renewals due this month', `${expiring.length} (${unclaimedDue} unclaimed)`],
-    ],
-    action: { label: w.buttonLabel, url: siteUrl('/admin/ecosystem') },
-  });
-  return true;
 }

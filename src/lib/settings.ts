@@ -74,6 +74,8 @@ export interface Settings {
   notDuplicates: string[];
   /** Reports > Cloudflare usage: the Workers plan the account is on, for its limits. */
   cloudflarePlan: 'free' | 'paid';
+  /** Settings > Weekly summary: the parts switched off (lib/weekly-summary.ts); empty = all on. */
+  weeklySummaryOff: string[];
 }
 
 /** Fallbacks used when a key has never been saved (fresh database). Real copy is seeded by the import. */
@@ -119,6 +121,7 @@ export const defaultSettings: Settings = {
   emailProvider: '',
   emailProviders: {},
   cloudflarePlan: 'free',
+  weeklySummaryOff: [],
 };
 
 export type Card = { title: string; text: string; link?: string };

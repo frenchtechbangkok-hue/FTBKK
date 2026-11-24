@@ -110,7 +110,7 @@ screen by screen for the team.
   the member is **active** at once, then gets a welcome email with the WhatsApp invitation, the
   next three events and a button to their member page. Signing up again with a member's address
   just emails their page link, and the page says the same thing either way. The team sees new members
-  in the Monday summary email (no email per new member) and in Members > To review (it never blocks them; the line under the Members title gives the same
+  in the weekly summary email (no email per new member) and in Members > To review (it never blocks them; the line under the Members title gives the same
   count next to the active members and the sign-ups still waiting for email confirmation), can add
   notes and can suspend a member. Membership runs a year
   (`renewal_due_at`): a daily cron job emails a one-click reminder 30 and 7 days before
@@ -436,7 +436,7 @@ grouped: **Events** (all events, registrations, check-in), **Community** (member
 and groups, messages), **Ecosystem** (to review, all listings, partners, renewals), **Website**
 (blog posts, PDFs and files, page texts with one tab per public page, board and speakers, guide
 pages), **Emails and social media** (email the community, social media posts, automatic emails),
-**Reports** (`/admin/reports/*`), **Settings** (general, membership, event covers, social links:
+**Reports** (`/admin/reports/*`), **Settings** (general, membership, weekly summary, event covers, social links:
 one `/admin/settings?section=` screen each, plus email delivery) and **History** (**Actions log**
 at `/admin/actions-log`, **Change history** at `/admin/changes`). Red badges show what is waiting
 (members to review, unread messages, directory queue, failed social posts) and a search box at the
@@ -482,11 +482,16 @@ confirmation, welcome, member page link, the link sent on a repeat sign-up, the 
 a newcomer registering for an event, the claim invitation, the yearly reminder and the paused
 email), the newsletter
 confirmation, the "your data" link, and the notifications to the team (contact form message, new
-member, new listing, claim, listing change and membership application to review, weekly directory
-summary). Every team notification goes to the addresses in Settings > General > Admin notifications (the
+listing, claim, listing change and membership application to review, and the weekly summary:
+`src/lib/weekly-summary.ts`, every Monday at 9:00 also on a quiet week, its own cron job so a
+failing directory step never holds it back. It has three groups: This week (new members, event
+registrations, events held, posts published, newsletters sent, messages, listings), Coming up
+(events and scheduled newsletters and social posts of the next 7 days) and To do (members to
+review, messages to answer, drafts, directory queue, renewals). Settings > Weekly summary switches
+each part off (`weeklySummaryOff`); the parts fill `{summary}`. No email per new member). Every team notification goes to the addresses in Settings > General > Admin notifications (the
 contact email when empty); **Send a test** there sends one right away and shows Resend's answer.
 A contact form message whose email fails gets a note saying so in Messages.
-Lists built by the site (the renewals of the directory summary) are placeholders (`{renewals}`)
+Lists built by the site (the weekly summary's `{summary}`) are placeholders (`{renewals}`)
 that must stay in the message (not only the subject or button), like a rejection `{reason}`, the contact form `{message}` or a claim's `{domain-check}`. Optional
 parts of the welcome email are placeholders too: `{whatsapp}` (the WhatsApp sentence, empty
 without a link) and `{next-events}` ("Coming up next:" and the next events, empty when none); a

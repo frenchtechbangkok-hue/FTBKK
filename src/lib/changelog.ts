@@ -23,9 +23,9 @@ export const RELEASES: Release[] = [
     version: '26.11.14',
     date: '2026-11-24',
     pr: 135,
-    title: 'New members in the Monday summary, no email each time',
+    title: 'A real weekly summary, no email for each new member',
     summary:
-      'The team no longer gets an email every time someone becomes a member: the Monday 9:00 summary now lists everyone who joined in the last 7 days (job, what describes them, how they heard of us) before the directory queue, and it is sent even when another directory job fails that morning.',
+      'Every Monday at 9:00 the team gets one summary: what happened this week (new members, registrations, events held, posts, newsletters, messages, listings), what is coming up in the next 7 days and what is waiting (members to review, messages, drafts, directory, renewals). Settings > Weekly summary picks the parts. The email for each new member is gone.',
   },
   {
     version: '26.11.13',

@@ -1,13 +1,10 @@
-import { runDirectoryJobs, sendModeratorDigest } from './cron-directory';
-import { TZ } from './format';
+import { runDirectoryJobs } from './cron-directory';
+import { isMonday, sendWeeklySummary } from './weekly-summary';
 import { sendEventReminders, sendFeedbackRequests, weeklyBackup } from './cron-events';
 import { runMemberRenewals } from './members';
 import { getSettings } from './settings';
 import { runSocialPosts } from './social';
 import { runNewsletters } from './newsletters';
-
-const weekdayIn = (now: Date) =>
-  new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short' }).format(now);
 
 /** The daily jobs run at 02:00 UTC = 09:00 Asia/Bangkok. */
 export const DAILY_HOUR_UTC = 2;
@@ -34,15 +31,7 @@ export async function runScheduled(_env: Env, now: Date): Promise<void> {
     ['event-feedback', () => sendFeedbackRequests(now)],
     ['directory', () => runDirectoryJobs(now)],
     // Its own job, so a failing directory step never holds back the Monday summary.
-    [
-      'weekly-summary',
-      async () =>
-        weekdayIn(now) === 'Mon'
-          ? (await sendModeratorDigest(now))
-            ? 'sent'
-            : 'nothing to say'
-          : 'not Monday',
-    ],
+    ['weekly-summary', async () => (isMonday(now) ? sendWeeklySummary(now) : 'not Monday')],
     // Yearly reconfirmation, only once membership is open (emails must reach everyone).
     [
       'member-renewals',
