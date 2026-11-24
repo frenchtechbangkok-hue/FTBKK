@@ -5,13 +5,13 @@
 // membership is closed, the reports stay free for everyone, as before.
 import type { AstroCookies } from 'astro';
 import { env } from 'cloudflare:workers';
-import { and, eq, like } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { getDb } from '../db';
-import { posts, type Member } from '../db/schema';
+import { categories, postCategories, posts, type Member } from '../db/schema';
 import { getSettings } from './settings';
 import { issueToken, peekToken, TOKEN_TTL } from './tokens';
 import { memberByEmail } from './members';
-import { isTechPulse, reportFile, reportKey } from './tech-pulse';
+import { reportFile, reportKey, TECH_PULSE_CATEGORY } from './tech-pulse';
 
 export const DOWNLOAD_COOKIE = 'ftbkk_member';
 
@@ -20,14 +20,27 @@ export async function downloadsForMembers() {
   return (await getSettings()).memberSignupOpen;
 }
 
+/** Published posts in the Tech Pulse category, optionally only the one with this slug. */
+async function editionPosts(slug?: string) {
+  const rows = await getDb()
+    .select({ post: posts })
+    .from(posts)
+    .innerJoin(postCategories, eq(postCategories.postId, posts.id))
+    .innerJoin(categories, eq(categories.id, postCategories.categoryId))
+    .where(
+      and(
+        eq(posts.status, 'published'),
+        eq(categories.slug, TECH_PULSE_CATEGORY),
+        slug === undefined ? undefined : eq(posts.slug, slug),
+      ),
+    );
+  return rows.map((r) => r.post);
+}
+
 /** A published Tech Pulse edition with a report, by its blog slug. */
 export async function editionBySlug(slug: string) {
-  const [p] = await getDb()
-    .select()
-    .from(posts)
-    .where(and(eq(posts.slug, slug), eq(posts.status, 'published')))
-    .limit(1);
-  if (!p || !isTechPulse(p.title) || !p.publishedAt || p.publishedAt > new Date()) return null;
+  const [p] = await editionPosts(slug);
+  if (!p || !p.publishedAt || p.publishedAt > new Date()) return null;
   const file = reportFile(p);
   return file ? { post: p, file, key: reportKey(p) } : null;
 }
@@ -38,11 +51,8 @@ export async function editionBySlug(slug: string) {
  */
 export async function editionForKey(key: string) {
   if (!/\.pdf$/i.test(key)) return null;
-  const rows = await getDb()
-    .select()
-    .from(posts)
-    .where(and(eq(posts.status, 'published'), like(posts.title, '%pulse%')));
-  return rows.find((p) => isTechPulse(p.title) && reportKey(p) === key) ?? null;
+  const rows = await editionPosts();
+  return rows.find((p) => reportKey(p) === key) ?? null;
 }
 
 /** The active member this browser was remembered as, else null. */

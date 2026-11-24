@@ -1,18 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import {
-  downloadPath,
-  editionOf,
-  isTechPulse,
-  reportFile,
-  reportKey,
-  reportTitle,
-} from '../src/lib/tech-pulse';
+import { downloadPath, editionOf, reportFile, reportKey, reportTitle } from '../src/lib/tech-pulse';
 import { DEFAULT_THAI_PAGE, thaiSections } from '../src/lib/thai-page';
 
 describe('Tech Pulse editions', () => {
   it('recognises editions and reads the quarter from the title', () => {
-    expect(isTechPulse('Thailand Tech Pulse Q3 2026: A New Phase')).toBe(true);
-    expect(isTechPulse('French Tech 2026: An Ecosystem Ready')).toBe(false);
     expect(editionOf('Thailand Tech Pulse Q1 2026 — First Edition Is Out')).toBe('Q1 2026');
     expect(editionOf('Tech Pulse q2, 2027')).toBe('Q2 2027');
     expect(editionOf('Thailand Tech Pulse special edition')).toBeNull();

@@ -2,15 +2,16 @@ import type { Attachment } from '../db/schema';
 import { mediaUrl } from './format';
 
 // The /tech-pulse page: every edition of Thailand Tech Pulse, our quarterly report. Editions are
-// ordinary blog posts with "Tech Pulse" in their title; the report PDF is the post's first PDF
-// attachment, or else the first link to a PDF in its text.
+// ordinary blog posts in the "Tech Pulse" category (migration 0047); the report PDF is the post's
+// first PDF attachment, or else the first link to a PDF in its text.
 
 /** Top of /tech-pulse when Site texts > Tech Pulse is empty. */
 export const DEFAULT_TECH_PULSE_INTRO = `Thailand Tech Pulse is La French Tech Bangkok's quarterly report on the Thai tech ecosystem: digital infrastructure, AI, investment, startups and talent.
 
 Written for founders, investors and corporates who want a clear picture of where Thailand's tech economy is heading. Free to read and download.`;
 
-export const isTechPulse = (title: string) => /tech\s*pulse/i.test(title);
+/** Slug of the blog category whose posts are the editions. */
+export const TECH_PULSE_CATEGORY = 'tech-pulse';
 
 /** "Q3 2026" from a title such as "Thailand Tech Pulse Q3 2026: …", else null. */
 export function editionOf(title: string) {
