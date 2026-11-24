@@ -22,6 +22,7 @@ export const RELEASES: Release[] = [
   {
     version: '26.11.14',
     date: '2026-11-24',
+    pr: 135,
     title: 'New members in the Monday summary, no email each time',
     summary:
       'The team no longer gets an email every time someone becomes a member: the Monday 9:00 summary now lists everyone who joined in the last 7 days (job, what describes them, how they heard of us) before the directory queue.',
