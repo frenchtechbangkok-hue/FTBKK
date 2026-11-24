@@ -17,7 +17,9 @@ const form = {
   profileType: 'founder',
   interests: ['AI', 'Fintech'],
   linkedin: 'linkedin.com/in/jane',
-  howHeard: '',
+  company: 'Acme',
+  jobTitle: 'CTO',
+  howHeard: 'LinkedIn',
   terms: true,
   newsletter: true,
 };
@@ -27,9 +29,33 @@ describe('membership sign-up', () => {
     const r = MemberSignupSchema.parse(signupInput(form));
     expect(r.email).toBe('jane@example.com');
     expect(r.linkedin).toBe('https://linkedin.com/in/jane');
-    expect(r.howHeard).toBeNull();
+    expect(r.howHeard).toBe('LinkedIn');
     expect(r.newsletter).toBe(true);
     expect(r.phone).toBeNull();
+  });
+
+  it('requires company, job title, a sector and how they heard of us', () => {
+    for (const [key, blank] of [
+      ['company', '  '],
+      ['jobTitle', undefined],
+      ['interests', []],
+      ['howHeard', ''],
+    ] as const) {
+      const r = MemberSignupSchema.safeParse(signupInput({ ...form, [key]: blank }));
+      expect(r.success, key).toBe(false);
+      expect(r.error?.issues[0]?.path).toEqual([key]);
+    }
+  });
+
+  it('keeps them optional when a member edits their profile', () => {
+    const r = MemberProfileSchema.parse({
+      ...form,
+      company: '',
+      jobTitle: '',
+      interests: undefined,
+    });
+    expect(r.company).toBeNull();
+    expect(r.interests).toEqual([]);
   });
 
   it('requires the terms', () => {

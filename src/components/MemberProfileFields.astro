@@ -1,5 +1,7 @@
 ---
-// The member profile fields, shared by the sign-up form on /join and the member page.
+// The member profile fields, shared by the sign-up form on /join and the member page. On sign-up
+// (`signup`), company, job title and at least one sector are required; a member editing their page
+// may leave them empty.
 import FormField from './FormField.astro';
 import { SECTORS } from '../lib/directory';
 import { PROFILE_TYPES } from '../lib/members';
@@ -7,8 +9,10 @@ import { PROFILE_TYPES } from '../lib/members';
 interface Props {
   values: Record<string, unknown>;
   errors: Record<string, string>;
+  /** The sign-up form: company, job title and at least one sector are required. */
+  signup?: boolean;
 }
-const { values, errors } = Astro.props;
+const { values, errors, signup = false } = Astro.props;
 const str = (k: string) => (values[k] == null ? '' : String(values[k]));
 const interests = Array.isArray(values.interests) ? (values.interests as string[]) : [];
 ---
@@ -37,14 +41,17 @@ const interests = Array.isArray(values.interests) ? (values.interests as string[
     name="company"
     id="m-company"
     label="Company"
+    required={signup}
     autocomplete="organization"
     value={str('company')}
     error={errors.company}
+    hint={signup ? 'Freelance, student or between jobs? Just say so.' : undefined}
   />
   <FormField
     name="jobTitle"
     id="m-jobTitle"
     label="Job title"
+    required={signup}
     autocomplete="organization-title"
     value={str('jobTitle')}
     error={errors.jobTitle}
@@ -68,9 +75,10 @@ const interests = Array.isArray(values.interests) ? (values.interests as string[
     options={Object.entries(PROFILE_TYPES).map(([value, label]) => ({ value, label }))}
   />
 </div>
-<fieldset>
+<fieldset data-sectors={signup ? 'required' : undefined}>
   <legend class="text-sm font-semibold">
-    Sectors you're interested in <span class="font-normal text-muted">(up to 5)</span>
+    Sectors you're interested in{' '}
+    <span class="font-normal text-muted">{signup ? '(at least 1, up to 5)' : '(up to 5)'}</span>
   </legend>
   <div class="mt-2 flex flex-wrap gap-2">
     {SECTORS.map((s) => (
@@ -90,3 +98,18 @@ const interests = Array.isArray(values.interests) ? (values.interests as string[
   </div>
   {errors.interests && <p class="mt-1 text-sm text-danger">{errors.interests}</p>}
 </fieldset>
+
+<script>
+  // On sign-up, at least one sector must be ticked: the browser shows the message on the first box
+  // (a plain `required` on checkboxes would require every one of them). The server checks it too.
+  const MESSAGE = 'Pick at least one sector you are interested in.';
+  for (const set of document.querySelectorAll<HTMLFieldSetElement>('[data-sectors="required"]')) {
+    const boxes = [...set.querySelectorAll<HTMLInputElement>('input[name="interests"]')];
+    const sync = () => {
+      const none = !boxes.some((b) => b.checked);
+      boxes[0]?.setCustomValidity(none ? MESSAGE : '');
+    };
+    for (const b of boxes) b.addEventListener('change', sync);
+    sync();
+  }
+</script>

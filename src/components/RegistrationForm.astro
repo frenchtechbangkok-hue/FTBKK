@@ -211,14 +211,26 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
       <FormField
         name="company"
         label="Company"
+        required
         autocomplete="organization"
         value={str('company')}
+        error={errors.company}
+        hint="Freelance, student or between jobs? Just say so."
       />
-      <FormField name="role" label="Role" autocomplete="organization-title" value={str('role')} />
+      <FormField
+        name="role"
+        label="Job title"
+        required
+        autocomplete="organization-title"
+        value={str('role')}
+        error={errors.role}
+      />
       <FormField
         name="howHeard"
         label="How did you hear about us?"
+        required
         value={str('howHeard')}
+        error={errors.howHeard}
         options={HOW_HEARD.map((h) => ({ value: h, label: h }))}
       />
       <FormField

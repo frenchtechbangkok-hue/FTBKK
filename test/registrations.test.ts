@@ -101,8 +101,35 @@ describe('registrationState', () => {
   });
 });
 
+describe('RegisterSchema required details', () => {
+  const form = {
+    name: 'Alice',
+    email: 'a@b.co',
+    company: 'Acme',
+    role: 'CTO',
+    howHeard: 'A friend',
+    photoConsent: true,
+  };
+  it('requires company, job title and how they heard of us', () => {
+    expect(RegisterSchema.safeParse(form).success).toBe(true);
+    for (const key of ['company', 'role', 'howHeard'] as const) {
+      const r = RegisterSchema.safeParse({ ...form, [key]: '' });
+      expect(r.success, key).toBe(false);
+      expect(r.error?.issues[0]?.path).toEqual([key]);
+    }
+    expect(RegisterSchema.safeParse({ ...form, howHeard: 'Carrier pigeon' }).success).toBe(false);
+  });
+});
+
 describe('RegisterSchema newsletter consent', () => {
-  const form = { name: 'Alice', email: 'Alice@Example.com', photoConsent: true };
+  const form = {
+    name: 'Alice',
+    email: 'Alice@Example.com',
+    company: 'Acme',
+    role: 'CTO',
+    howHeard: 'LinkedIn',
+    photoConsent: true,
+  };
   it('is opt-in: an unticked box (absent) is a no, a ticked one a yes', () => {
     expect(RegisterSchema.parse(form).newsletter).toBe(false);
     expect(RegisterSchema.parse({ ...form, newsletter: true }).newsletter).toBe(true);
@@ -111,7 +138,14 @@ describe('RegisterSchema newsletter consent', () => {
 });
 
 describe('registration note', () => {
-  const form = { name: 'Alice', email: 'alice@example.com', photoConsent: true };
+  const form = {
+    name: 'Alice',
+    email: 'alice@example.com',
+    company: 'Acme',
+    role: 'CTO',
+    howHeard: 'LinkedIn',
+    photoConsent: true,
+  };
   it('is optional and empty by default', () => {
     expect(RegisterSchema.parse(form).note).toBe('');
     expect(RegisterSchema.parse({ ...form, note: '   ' }).note).toBe('');
@@ -166,7 +200,14 @@ describe('attendeeNotes', () => {
 });
 
 describe('guests', () => {
-  const form = { name: 'Alice', email: 'alice@example.com', photoConsent: true };
+  const form = {
+    name: 'Alice',
+    email: 'alice@example.com',
+    company: 'Acme',
+    role: 'CTO',
+    howHeard: 'LinkedIn',
+    photoConsent: true,
+  };
   it('defaults to none when the field is missing or left on "no guests"', () => {
     expect(RegisterSchema.parse(form).guests).toBe(0);
     expect(RegisterSchema.parse({ ...form, guests: '' }).guests).toBe(0);

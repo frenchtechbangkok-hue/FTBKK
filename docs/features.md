@@ -106,6 +106,10 @@ screen by screen for the team.
   membership" is ticked): email, name, profile type, company, job title, LinkedIn, sectors of
   interest, optional phone, how they heard of us, the
   code of conduct and privacy consent, and an optional newsletter box (Turnstile and rate limits).
+  Company, job title, at least one sector (up to 5) and how they heard of us are **required**
+  wherever someone becomes a member (`/join`, an event registration by a newcomer, the claim page,
+  the Tech Pulse download), checked in the browser and again on the server; on their member page
+  members may leave them empty (older members may not have them).
   We email a single-use `member_confirm` link (7 days); `/member/confirm` asks for one click and
   the member is **active** at once, then gets a welcome email with the WhatsApp invitation, the
   next three events and a button to their member page. Signing up again with a member's address
@@ -239,7 +243,7 @@ screen by screen for the team.
   back" message instead and the `member.claim-event` email: a `member_claim` link whose
   `ref_id` is the event, to `/member/claim` prefilled from what we know, which makes them a
   member and registers them. While membership is closed, the full registration form works as
-  before. While `EMAIL_FROM` is Resend's test sender, the Dashboard and Settings warn that emails
+  before, with company, job title and how they heard of us required. While `EMAIL_FROM` is Resend's test sender, the Dashboard and Settings warn that emails
   only reach the Resend account owner.
 - **Claim your membership**: in Contacts, tick people and **Invite to join** to email them a
   `member_claim` link (60 days) to `/member/claim`, a form prefilled from their contact card; the
