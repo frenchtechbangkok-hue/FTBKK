@@ -294,7 +294,7 @@ share image, so the site must be reachable without the Access login: Access must
 
 ## 8. In the admin
 
-- Settings > **Directory moderators**: who gets listing requests and the Monday digest.
+- Settings > **Directory moderators**: who gets listing requests and the weekly summary (every Monday).
 - Settings > **Cloudflare Web Analytics token** (Dashboard > Analytics & Logs > Web Analytics >
   add the site), if you want visitor stats.
 

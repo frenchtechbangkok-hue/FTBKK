@@ -436,8 +436,9 @@ uses any more.
   the day). Unconfirmed listings are hidden 30 days later and deleted after 12 months. Unclaimed
   listings get no reminders: use **Send** to invite someone you know there to claim it.
 
-The team also gets an email for each new request and a summary every Monday, at the addresses in
-Settings > General > Admin notifications.
+The team also gets an email for each new request, and the directory is part of the weekly
+summary (see Emails > Weekly summary below), at the addresses in Settings > General > Admin
+notifications.
 
 ## Members
 
@@ -454,7 +455,8 @@ enrolment at check-in.
   review (the same number as the **To review** tab), then the sign-ups waiting for email
   confirmation (they have not clicked their link yet, so they are not members), the suspended
   members and, when there are some, the lapsed ones.
-  The team gets a "New member" email at the Admin notifications addresses (Settings).
+  New members are not emailed one by one: the weekly summary lists everyone who joined in the
+  last 7 days, with their job, what describes them and how they heard of us.
 - **Members > To review**: active members nobody has looked at yet, newest first. It never
   blocks anyone (they are members already); it just helps the board keep track of who joined.
   Add a **note** if useful, then tick them and **Mark as reviewed**. Members made from a contact's
@@ -699,9 +701,11 @@ tables.
   on the site).
 - **Settings**, one screen per section, each with its own Save button:
   - **General**: site name and description, contact email, **Admin notifications** (who gets the
-    team's emails: contact form messages, new members, directory requests and the Monday
+    team's emails: contact form messages, directory requests and the weekly
     summary; **Send a test** emails them now and shows whether Resend accepted it) and the
     analytics token.
+  - **Weekly summary**: which parts the Monday email to the team shows (see Emails > Weekly
+    summary).
   - **Membership**: the switches for individual sign-up on the Join page, company membership
     applications and member priority on events.
   - **Event covers**: the cover shown for French Tech Connect, French Tech Talk and
@@ -820,9 +824,25 @@ and when:
 - **Community**: the newsletter confirmation (Email the community is written each time).
   **Privacy**: the "your data" link.
 - **Admin notifications** (to the team, at the addresses in Settings > General > Admin notifications): a
-  contact form message, a new member (first confirmation only, not renewals), a new listing, a
-  claim, a listing change and a membership application to review, and the Monday directory
-  summary.
+  contact form message, a new listing, a claim, a listing change and a membership application to
+  review, and the weekly summary.
+
+### Weekly summary
+
+Every Monday at 9:00 (Bangkok), also on a quiet week, the team gets one email at the Admin
+notifications addresses, in three groups:
+
+- **This week** (the last 7 days): new members (job, company, what describes them, how they heard
+  of us), event registrations per upcoming event, events held with how many came, blog posts
+  published, newsletters sent, contact messages received, ecosystem listings added or published.
+- **Coming up** (the next 7 days): events with registered and waiting list, scheduled newsletters
+  and social media posts.
+- **To do**: members to review, messages to answer, blog posts in draft, the directory queue (with
+  the oldest item's age against the 5-day target) and listing renewals due this month.
+
+**Settings > Weekly summary** has one switch per part: untick what you don't want (a group with
+nothing left disappears). The words around it (subject, opening sentence, button) are edited here
+in Emails like any other email; `{summary}` is where the parts go and must stay in the text.
 
 A **Default** badge means the text the site came with; **Edited** shows when and by whom.
 

@@ -40,7 +40,7 @@ are no roles. The menu:
 | **Website**                 | Blog posts, files, page texts, board and speakers, guide pages                                                                                                   |
 | **Emails and social media** | Newsletters (block builder, scheduled, own figures), Email the community, scheduled social media posts (how to connect LinkedIn and Facebook), automatic emails  |
 | **Dashboards and insights** | Events and attendance, membership, website traffic (Cloudflare, plus visits from the site's emails), newsletters, emails sent (Resend and SES), Cloudflare usage |
-| **Settings**                | General, membership switches, event covers, social links, email delivery                                                                                         |
+| **Settings**                | General, membership switches, weekly summary, event covers, social links, email delivery                                                                         |
 | **History**                 | Actions log (who did what in the admin), Change history (each version of the site)                                                                               |
 
 Emails go through Resend or Amazon SES, chosen in Settings > Email delivery for each kind of email (automatic, community, newsletters), where both services' keys,

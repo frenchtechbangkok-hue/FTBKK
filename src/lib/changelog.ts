@@ -20,6 +20,14 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.14',
+    date: '2026-11-24',
+    pr: 135,
+    title: 'A real weekly summary, no email for each new member',
+    summary:
+      'Every Monday at 9:00 the team gets one summary: what happened this week (new members, registrations, events held, posts, newsletters, messages, listings), what is coming up in the next 7 days and what is waiting (members to review, messages, drafts, directory, renewals). Settings > Weekly summary picks the parts. The email for each new member is gone.',
+  },
+  {
     version: '26.11.13',
     date: '2026-11-17',
     pr: 134,

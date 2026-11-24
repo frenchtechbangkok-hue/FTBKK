@@ -444,28 +444,32 @@ describe('directory, team and admin emails', () => {
       paragraphs: ['Acme applied for the free French Tech Bangkok membership.', 'We hire.'],
       buttonLabel: 'Review in the admin',
     });
-    const digest = (items: string, oldest: string, renewals: string[]) =>
-      d('admin.directory-digest', { items, oldest, target: '5', renewals });
-    expect(digest('1 item', '', [])).toEqual({
-      subject: 'Directory: 1 item to review',
-      paragraphs: ['Weekly summary of the ecosystem directory. Target: answer within 5 days.'],
-      buttonLabel: 'Open the moderation queue',
+    const w = d('admin.directory-digest', {
+      week: 'Mon 17 Nov to Sun 23 Nov',
+      members: '1 new member',
+      registrations: 'no new registration',
+      todo: '3 things to do',
+      summary: ['TO DO', 'Members to review: 3.'],
     });
-    expect(digest('3 items', ' (oldest 9 days)', ['Renewal due: Acme, 1 Dec 2026'])).toEqual({
-      subject: 'Directory: 3 items to review (oldest 9 days)',
+    expect(w).toEqual({
+      subject: 'Weekly summary: 1 new member, no new registration, 3 things to do',
       paragraphs: [
-        'Weekly summary of the ecosystem directory. Target: answer within 5 days.',
-        'Renewal due: Acme, 1 Dec 2026',
+        'Here is the week on the website (Mon 17 Nov to Sun 23 Nov): what happened, what is coming up and what is waiting for the team.',
+        'TO DO',
+        'Members to review: 3.',
       ],
-      buttonLabel: 'Open the moderation queue',
+      buttonLabel: 'Open the admin',
     });
   });
 
   it('keep the lists and reasons required', () => {
     const def = EMAIL_TEMPLATES['admin.directory-digest'];
     expect(
-      templateSchema(def).safeParse({ subject: 'S', body: '{items} to review', buttonLabel: 'Go' })
-        .success,
+      templateSchema(def).safeParse({
+        subject: 'S',
+        body: '{week} only',
+        buttonLabel: 'Go',
+      }).success,
     ).toBe(false);
     expect(EMAIL_TEMPLATES['directory.claim-rejected'].required).toEqual(['reason']);
     const claim = EMAIL_TEMPLATES['admin.claim-to-review'];
@@ -548,12 +552,18 @@ describe('membership emails', () => {
 
 describe('list placeholders', () => {
   const def = EMAIL_TEMPLATES['admin.directory-digest'];
-  const vars = { items: '2 items', oldest: '', target: '5', renewals: ['One', 'Two'] };
+  const vars = {
+    week: 'W',
+    members: '1 new member',
+    registrations: 'no new registration',
+    todo: 'no thing to do',
+    summary: ['One', 'Two'],
+  };
 
   it('become one paragraph per item on a line of their own', () => {
     const w = applyTemplate(
       def,
-      { subject: 'Due: {renewals}', body: 'A\n\n{renewals}\n\nB', buttonLabel: 'Go' },
+      { subject: 'Due: {summary}', body: 'A\n\n{summary}\n\nB', buttonLabel: 'Go' },
       vars,
     );
     expect(w.subject).toBe('Due: One, Two');
@@ -561,18 +571,14 @@ describe('list placeholders', () => {
   });
 
   it('are joined with line breaks inside a sentence', () => {
-    const w = applyTemplate(
-      def,
-      { subject: 'S', body: 'Due: {renewals}', buttonLabel: 'Go' },
-      vars,
-    );
+    const w = applyTemplate(def, { subject: 'S', body: 'Due: {summary}', buttonLabel: 'Go' }, vars);
     expect(w.paragraphs).toEqual(['Due: One\nTwo']);
   });
 
   it('use the sample items in the admin preview', () => {
     const m = sampleEmail(def, defaultText(def));
-    expect(m.paragraphs.length).toBe(3);
-    expect(m.paragraphs[1]).toMatch(/^Renewal due: /);
+    expect(m.paragraphs[1]).toBe('THIS WEEK (MON 17 NOV TO SUN 23 NOV)');
+    expect(m.paragraphs.at(-1)).toMatch(/^Lotus Labs/);
   });
 });
 

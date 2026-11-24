@@ -2,7 +2,7 @@
 // email links (no passwords). Members are active as soon as they confirm; the team looks at new
 // members afterwards (Members > To review, never blocking) and can suspend them. See docs/admin.md.
 import { z } from 'zod';
-import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull, lt } from 'drizzle-orm';
 import { getDb } from '../db';
 import { contacts, events, members, registrations, type Event, type Member } from '../db/schema';
 import { email, optionalText, optionalUrl } from './forms';
@@ -21,7 +21,7 @@ import {
   loadTemplateText,
   renderTemplate,
 } from './email-templates';
-import { adminNotifyEmails, audit, siteUrl } from './orgs';
+import { audit, siteUrl } from './orgs';
 import { confirmNewsletter } from './newsletter';
 import { getSettings } from './settings';
 import { upcomingEvents } from './queries';
@@ -252,35 +252,36 @@ export async function confirmMembership(token: string, now = new Date()) {
       registration = { event, outcome };
     }
   }
-  // First membership only: renewals and lapsed members coming back don't notify the team.
-  if (!m.memberSince)
-    await notifyNewMember(updated!, registration?.event.title ?? null).catch((e) =>
-      console.error('[email] new member notification', e),
-    );
   return { member: updated!, link, registration };
 }
 
-/** Tells the admin notification addresses (Settings) that someone just became a member. */
-export async function notifyNewMember(m: Member, event: string | null) {
-  const w = await renderTemplate('admin.new-member', { name: m.name, email: m.email });
-  const details: [string, string][] = [
-    ['Company', m.company ?? '-'],
-    ['Job title', m.jobTitle ?? '-'],
-    ['Describes them', PROFILE_TYPES[m.profileType as ProfileType] ?? m.profileType],
-    ['How they heard', m.howHeard ?? '-'],
-  ];
-  if (m.linkedin) details.push(['LinkedIn', m.linkedin]);
-  if (event) details.push(['Registered for', event]);
-  return sendEmail({
-    to: await adminNotifyEmails(),
-    replyTo: m.email,
-    subject: w.subject,
-    campaign: w.campaign,
-    paragraphs: w.paragraphs,
-    bodyHtml: w.bodyHtml,
-    details,
-    action: { label: w.buttonLabel, url: siteUrl('/admin/members') },
-  });
+/**
+ * Active members who first joined between `since` and `now`, oldest first: the "New members"
+ * part of the Monday summary to the team (renewals keep their first `member_since`).
+ */
+export async function newMembersSince(since: Date, now = new Date()) {
+  return getDb()
+    .select()
+    .from(members)
+    .where(
+      and(
+        eq(members.status, 'active'),
+        gte(members.memberSince, since),
+        lt(members.memberSince, now),
+      ),
+    )
+    .orderBy(members.memberSince);
+}
+
+/** One line per new member in the Monday summary: who they are and how they heard of us. */
+export function newMemberLine(m: Member): string {
+  const work = [m.jobTitle, m.company].filter(Boolean).join(', ');
+  const about = [
+    PROFILE_TYPES[m.profileType as ProfileType] ?? m.profileType,
+    m.howHeard ? `heard of us via ${m.howHeard}` : '',
+    m.memberSince ? `joined ${formatDate(m.memberSince)}` : '',
+  ].filter(Boolean);
+  return `New member: ${m.name} (${m.email})${work ? `, ${work}` : ''}.${about.length ? ` ${about.join(', ')}.` : ''}`;
 }
 
 async function sendWelcome(m: Member, link: string) {

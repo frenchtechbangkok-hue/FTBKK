@@ -88,6 +88,7 @@ export const MENU: NavGroup[] = [
     links: [
       { href: '/admin/settings', label: 'General' },
       { href: '/admin/settings?section=membership', label: 'Membership' },
+      { href: '/admin/settings?section=weekly-summary', label: 'Weekly summary' },
       { href: '/admin/settings?section=event-covers', label: 'Event covers' },
       { href: '/admin/settings?section=social-links', label: 'Social links' },
       { href: '/admin/email-delivery', label: 'Email delivery' },

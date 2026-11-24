@@ -181,7 +181,6 @@ export type TemplateKey =
   | 'member.renewal'
   | 'member.lapsed'
   | 'admin.contact-form'
-  | 'admin.new-member'
   | 'admin.listing-to-review'
   | 'admin.claim-to-review'
   | 'admin.change-to-review'
@@ -727,31 +726,6 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
       footer: 'Sent from the contact form on french-tech-bangkok.com. Reply to answer directly.',
     },
   },
-  'admin.new-member': {
-    label: 'New member',
-    group: 'Admin notifications',
-    audience: ADMIN_AUDIENCE,
-    trigger:
-      'When someone confirms their membership (not a renewal, and not when the team ticks Member on a contact)',
-    subject: 'New member: {name}',
-    body: '{name} ({email}) just joined La French Tech Bangkok. They show in Members, under To review, where you can add a note.',
-    buttonLabel: 'See new members',
-    placeholders: [
-      P.name,
-      { key: 'email', description: 'Their email', sample: 'camille@example.com' },
-    ],
-    added:
-      'Their company, job title, what describes them best, how they heard about us and LinkedIn, and the link to Members (the button).',
-    preview: {
-      buttonUrl: `${SITE}/admin/members`,
-      details: [
-        ['Company', 'Siam Robotics'],
-        ['Job title', 'CEO'],
-        ['Describes them', 'Founder or co-founder'],
-        ['How they heard', 'LinkedIn'],
-      ],
-    },
-  },
   'admin.listing-to-review': {
     label: 'New listing to review',
     group: 'Admin notifications',
@@ -834,44 +808,72 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
     },
   },
   'admin.directory-digest': {
-    label: 'Directory: weekly summary',
+    label: 'Weekly summary',
     group: 'Admin notifications',
     audience: ADMIN_AUDIENCE,
-    trigger: 'Every Monday at 9:00, when something waits for review or a renewal is due',
-    subject: 'Directory: {items} to review{oldest}',
-    body: 'Weekly summary of the ecosystem directory. Target: answer within {target} days.\n\n{renewals}',
-    buttonLabel: 'Open the moderation queue',
+    trigger:
+      'Every Monday at 9:00, also on a quiet week. Pick its parts in Settings > Weekly summary',
+    subject: 'Weekly summary: {members}, {registrations}, {todo}',
+    body: 'Here is the week on the website ({week}): what happened, what is coming up and what is waiting for the team.\n\n{summary}',
+    buttonLabel: 'Open the admin',
     placeholders: [
-      { key: 'items', description: 'How many items wait, e.g. "3 items"', sample: '3 items' },
+      { key: 'week', description: 'The 7 days it covers', sample: 'Mon 17 Nov to Sun 23 Nov' },
       {
-        key: 'oldest',
-        description:
-          '" (oldest 9 days)" when the oldest waits longer than the target, otherwise empty',
-        sample: ' (oldest 9 days)',
+        key: 'members',
+        description: 'How many people became members in the last 7 days, e.g. "2 new members"',
+        sample: '2 new members',
       },
-      { key: 'target', description: 'The target answer time, in days', sample: '5' },
       {
-        key: 'renewals',
+        key: 'registrations',
         description:
-          'Listings due for renewal this month, one per paragraph when on a line of its own',
-        sample:
-          'Renewal due: Siam Robotics, 12 Nov 2026\nRenewal due: Lotus Labs, 20 Nov 2026 (unclaimed, invite someone to claim it)',
+          'New registrations of the week for upcoming events, e.g. "14 new registrations"',
+        sample: '14 new registrations',
+      },
+      {
+        key: 'todo',
+        description:
+          'Members to review, messages to answer, drafts and directory items together, e.g. "9 things to do"',
+        sample: '9 things to do',
+      },
+      {
+        key: 'summary',
+        description:
+          'The parts switched on in Settings > Weekly summary, under This week, Coming up and To do, one paragraph per line',
+        sample: [
+          'THIS WEEK (MON 17 NOV TO SUN 23 NOV)',
+          'New members: 2.',
+          'New member: Camille Martin (camille@example.com), CEO, Siam Robotics. Founder or co-founder, heard of us via LinkedIn, joined 18 November 2026.',
+          'New member: Lucas Bernard (lucas@example.com). Student, joined 20 November 2026.',
+          'Event registrations: 14 new registrations.',
+          'French Tech Connect #54 (27 November): 12 new, 64 registered in all.',
+          'Career Forum (6 December): 2 new, 31 registered in all.',
+          'Events held: none.',
+          'Blog posts published: none.',
+          'Newsletters sent: none.',
+          'Messages received: 3.',
+          'Ecosystem listings added or published:',
+          'Siam Robotics: added and published.',
+          'COMING UP (TO SUN 30 NOV)',
+          'Events in the next 7 days:',
+          'French Tech Connect #54, Thursday 27 November 2026, 18:30: 64 registered.',
+          'Scheduled newsletters and social media posts: none.',
+          'TO DO',
+          'Members to review: 5.',
+          'Messages to answer: 1.',
+          'Blog posts in draft: 2.',
+          'Thailand data centres, a reality check (last edited 21 November 2026).',
+          'Welcome to our new website (last edited 12 November 2026).',
+          'Directory to review: nothing waiting.',
+          'Listing renewals due this month: 1.',
+          'Lotus Labs, 30 November 2026 (unclaimed, invite someone to claim it)',
+        ].join('\n'),
         list: true,
       },
     ],
-    required: ['renewals'],
-    added: 'The counts per kind of item, and the link to the moderation queue (the button).',
-    preview: {
-      buttonUrl: adminEcosystemUrl,
-      details: [
-        ['New listings', '1'],
-        ['Owner changes', '1'],
-        ['Claims', '1'],
-        ['Membership applications', '0'],
-        ['Oldest item', '9 days'],
-        ['Renewals due this month', '2 (1 unclaimed)'],
-      ],
-    },
+    required: ['summary'],
+    added:
+      'The link to the admin (the button). Which parts show is set in Settings > Weekly summary.',
+    preview: { buttonUrl: `${SITE}/admin` },
   },
   'admin.social-post': {
     label: 'Social media post to publish by hand',

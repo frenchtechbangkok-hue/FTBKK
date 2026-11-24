@@ -1,4 +1,5 @@
 import { runDirectoryJobs } from './cron-directory';
+import { isMonday, sendWeeklySummary } from './weekly-summary';
 import { sendEventReminders, sendFeedbackRequests, weeklyBackup } from './cron-events';
 import { runMemberRenewals } from './members';
 import { getSettings } from './settings';
@@ -29,6 +30,8 @@ export async function runScheduled(_env: Env, now: Date): Promise<void> {
     ['event-reminders', () => sendEventReminders(now)],
     ['event-feedback', () => sendFeedbackRequests(now)],
     ['directory', () => runDirectoryJobs(now)],
+    // Its own job, so a failing directory step never holds back the Monday summary.
+    ['weekly-summary', async () => (isMonday(now) ? sendWeeklySummary(now) : 'not Monday')],
     // Yearly reconfirmation, only once membership is open (emails must reach everyone).
     [
       'member-renewals',
