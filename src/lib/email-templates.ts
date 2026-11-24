@@ -186,6 +186,7 @@ export type TemplateKey =
   | 'admin.change-to-review'
   | 'admin.membership-application'
   | 'admin.directory-digest'
+  | 'admin.event-tomorrow'
   | 'admin.social-post';
 
 /** Every email built from a template, in the order of the admin list. */
@@ -876,6 +877,69 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
     added:
       'The link to the admin (the button). Which parts show is set in Settings > Weekly summary.',
     preview: { buttonUrl: `${SITE}/admin` },
+  },
+  'admin.event-tomorrow': {
+    label: 'Event tomorrow (team)',
+    group: 'Admin notifications',
+    audience: ADMIN_AUDIENCE,
+    trigger:
+      'At 9:00 the day before each published event with registration, once per event. Switch it off in Settings > General > Admin notifications',
+    subject: 'Reminder: {event} {day}, {registered}',
+    body: 'Reminder: {event} is {day}, {date}.\n\n{figures}\n\n{notes}\n\nOn the day, open the check-in page from your phone: {checkin}',
+    buttonLabel: 'Open the check-in page',
+    placeholders: [
+      { key: 'event', description: 'The event title', sample: SAMPLE_EVENT },
+      {
+        key: 'day',
+        description:
+          '"tomorrow", or "today" for an event published after the previous morning\'s email',
+        sample: 'tomorrow',
+      },
+      {
+        key: 'date',
+        description: 'Date, time and venue',
+        sample: `${SAMPLE_DATE}, ${SAMPLE_VENUE}`,
+      },
+      {
+        key: 'registered',
+        description: 'How many are registered, e.g. "64 registered"',
+        sample: '64 registered',
+      },
+      {
+        key: 'figures',
+        description:
+          'Key figures: registered (and guests), waiting list, first time at one of our events, new members, people who left a message',
+        sample: [
+          'KEY FIGURES',
+          'Registered: 64 people, plus 3 guests, 67 seats of 80.',
+          'Waiting list: 5.',
+          'First time at one of our events: 21.',
+          'New members (joined in the last 30 days): 6.',
+          'Left a message: 4.',
+        ].join('\n'),
+        list: true,
+      },
+      {
+        key: 'notes',
+        description:
+          'What attendees told us when registering ("Anything we should know, or something you are looking for?"), with their names',
+        sample: [
+          'WHAT ATTENDEES TOLD US',
+          'Camille Martin (Siam Robotics): Looking for a CTO co-founder with robotics experience.',
+          'Lucas Bernard: First time in Bangkok, happy to meet other French founders.',
+          'Nina Wong (Lotus Labs, waiting list): Vegetarian, please.',
+        ].join('\n'),
+        list: true,
+      },
+      {
+        key: 'checkin',
+        description: 'The link to the check-in page of this event (admins only)',
+        sample: `${SITE}/admin/events/12/checkin`,
+      },
+    ],
+    required: ['figures', 'notes'],
+    added: 'The button to the check-in page of the event.',
+    preview: { buttonUrl: `${SITE}/admin/events/12/checkin` },
   },
   'admin.social-post': {
     label: 'Social media post to publish by hand',

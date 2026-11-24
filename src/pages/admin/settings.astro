@@ -56,6 +56,7 @@ const Schemas = {
       .string()
       .transform((s) => lines(s.replace(/[,;]/g, '\n')).map((e) => e.toLowerCase()))
       .pipe(z.array(z.email('One of these emails is not valid.')).max(10)),
+    teamEventReminder: z.boolean().optional().default(false),
     analyticsToken: z.string().max(100),
   }),
   membership: z.object({
@@ -107,7 +108,7 @@ if (form?.get('intent') === 'test-notify') {
     to: notifyTo,
     subject: '[Test] Admin notifications from the website',
     paragraphs: [
-      'This is a test sent from Admin > Settings. If you can read it, contact form messages, directory requests and the Monday weekly summary reach this address too.',
+      'This is a test sent from Admin > Settings. If you can read it, contact form messages, directory requests, the Monday weekly summary and the day-before event emails reach this address too.',
       `Sent by ${actor}.`,
     ],
     action: { label: 'Open the admin', url: siteUrl('/admin') },
@@ -219,7 +220,7 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
             rows={3}
             value={str('moderatorEmails')}
             error={errors.moderatorEmails}
-            hint="One email per line. They get every email meant for the team: contact form messages, new members, directory requests and claims, and the Monday directory summary. Empty = the contact email."
+            hint="One email per line. They get every email meant for the team: contact form messages, directory requests and claims, the Monday weekly summary and the day-before email of each event. Empty = the contact email."
           />
           <div class="flex flex-wrap items-center gap-3 text-sm">
             <Button type="submit" variant="secondary" size="sm" form="test-notify">
@@ -229,6 +230,18 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
               Goes now to {notifyTo.join(', ')} (the saved addresses; save first after a change).
             </span>
           </div>
+          <FormField
+            name="teamEventReminder"
+            label="Email the team the day before each event"
+            type="checkbox"
+            checked={!!values.teamEventReminder}
+            hint="At 9:00 the day before, once per event: a reminder, the key figures (registered, waiting list, first time, new members), what attendees told us with their names, and the link to the check-in page."
+          />
+          <p class="text-sm text-muted">
+            <a class="underline" href="/admin/emails/admin.event-tomorrow">
+              Edit the words of the day-before email and send yourself one for the next event
+            </a>
+          </p>
         </section>
 
         <section class="admin-panel grid gap-4">

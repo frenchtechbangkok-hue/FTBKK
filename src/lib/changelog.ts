@@ -20,6 +20,14 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.19',
+    date: '2026-11-24',
+    pr: 141,
+    title: 'Email to the team the day before each event',
+    summary:
+      'At 9:00 the day before each event, the team gets a reminder with the key figures (registered, waiting list, first time, new members), what attendees told us when registering with their names, and the link to the check-in page. Switch it off in Settings > General.',
+  },
+  {
     version: '26.11.18',
     date: '2026-11-24',
     pr: 140,

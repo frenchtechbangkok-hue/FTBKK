@@ -707,9 +707,10 @@ tables.
   on the site).
 - **Settings**, one screen per section, each with its own Save button:
   - **General**: site name and description, contact email, **Admin notifications** (who gets the
-    team's emails: contact form messages, directory requests and the weekly
-    summary; **Send a test** emails them now and shows whether Resend accepted it) and the
-    analytics token.
+    team's emails: contact form messages, directory requests, the weekly summary and the
+    day-before email of each event; **Send a test** emails them now and shows whether the email
+    service accepted it), the **Email the team the day before each event** switch (on by
+    default) and the analytics token.
   - **Weekly summary**: which parts the Monday email to the team shows (see Emails > Weekly
     summary).
   - **Membership**: the switches for individual sign-up on the Join page, company membership
@@ -842,7 +843,28 @@ and when:
   **Privacy**: the "your data" link.
 - **Admin notifications** (to the team, at the addresses in Settings > General > Admin notifications): a
   contact form message, a new listing, a claim, a listing change and a membership application to
-  review, and the weekly summary.
+  review, the weekly summary and the day-before email of each event.
+
+### Event tomorrow (team)
+
+At 9:00 (Bangkok) the day before each published event with registration, the team gets one
+email at the Admin notifications addresses, once per event:
+
+- a **reminder**: the event, its date, time and venue;
+- the **key figures**: how many are registered (with guests, and seats of the capacity), the
+  waiting list, how many come for the first time (never checked in at one of our earlier events,
+  the same rule as the "First time" badge at check-in), how many became members in the last 30
+  days, and how many left a message;
+- **what attendees told us**: everyone who answered "Anything we should know, or something you're
+  looking for?" when registering, with their name and company (the waiting list last, marked);
+- the **link to the check-in page** of the event (the button, and in the text), to open on your
+  phone on the day.
+
+An event published after that morning's run gets it on the morning of the event instead (if it
+has not started). Switch it off with **Email the team the day before each event** in Settings >
+General > Admin notifications. The words are edited here like any other email (`{figures}` and
+`{notes}` must stay in the text); **Send me the one for the next event** emails only you the real
+email of the next upcoming event, with today's figures, without marking it as sent.
 
 ### Weekly summary
 

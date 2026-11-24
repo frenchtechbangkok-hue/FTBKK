@@ -504,7 +504,17 @@ failing directory step never holds it back. It has three groups: This week (new 
 registrations, events held, posts published, newsletters sent, messages, listings), Coming up
 (events, scheduled newsletters and social posts, and membership renewals of the next 7 days) and To do (members to
 review, messages to answer, failed social posts, drafts, directory queue, renewals). Settings > Weekly summary switches
-each part off (`weeklySummaryOff`); the parts fill `{summary}`; **Send me this week's summary** (Emails > Weekly summary) sends the real one to the signed-in admin only. No email per new member). Every team notification goes to the addresses in Settings > General > Admin notifications (the
+each part off (`weeklySummaryOff`); the parts fill `{summary}`; **Send me this week's summary** (Emails > Weekly summary) sends the real one to the signed-in admin only. No email per new member; and the day-before email of each event, `admin.event-tomorrow` in
+`src/lib/event-eve.ts`: daily job at 9:00 for published events with registration on tomorrow's
+Bangkok date (or today's, not started, when it was missed), once per event through
+`events.team_reminder_sent_at` (migration 0046; marked before sending, unmarked if the email
+fails). It gives `{figures}` (registered people, guests and seats of the capacity, waiting list,
+first time = no earlier check-in as in `lib/regulars.ts`, new members = active members whose
+`memberSince` is in the last 30 days, messages left), `{notes}` (`attendeeNotes()`, name, company,
+waiting list marked) and `{checkin}` (`/admin/events/<id>/checkin`, also the button). Switch:
+`teamEventReminder` in Settings > General, on by default. **Send me the one for the next event**
+(Emails > Event tomorrow (team)) sends the real email of the next event to the signed-in admin
+only, without marking it). Every team notification goes to the addresses in Settings > General > Admin notifications (the
 contact email when empty); **Send a test** there sends one right away and shows Resend's answer.
 A contact form message whose email fails gets a note saying so in Messages.
 Lists built by the site (the weekly summary's `{summary}`) are placeholders (`{renewals}`)
