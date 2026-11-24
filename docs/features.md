@@ -106,6 +106,10 @@ screen by screen for the team.
   membership" is ticked): email, name, profile type, company, job title, LinkedIn, sectors of
   interest, optional phone, how they heard of us, the
   code of conduct and privacy consent, and an optional newsletter box (Turnstile and rate limits).
+  Company, job title, at least one sector (up to 5) and how they heard of us are **required**
+  wherever someone becomes a member (`/join`, an event registration by a newcomer, the claim page,
+  the Tech Pulse download), checked in the browser and again on the server; on their member page
+  members may leave them empty (older members may not have them).
   We email a single-use `member_confirm` link (7 days); `/member/confirm` asks for one click and
   the member is **active** at once, then gets a welcome email with the WhatsApp invitation, the
   next three events and a button to their member page. Signing up again with a member's address
@@ -239,7 +243,7 @@ screen by screen for the team.
   back" message instead and the `member.claim-event` email: a `member_claim` link whose
   `ref_id` is the event, to `/member/claim` prefilled from what we know, which makes them a
   member and registers them. While membership is closed, the full registration form works as
-  before. While `EMAIL_FROM` is Resend's test sender, the Dashboard and Settings warn that emails
+  before, with company, job title and how they heard of us required. While `EMAIL_FROM` is Resend's test sender, the Dashboard and Settings warn that emails
   only reach the Resend account owner.
 - **Claim your membership**: in Contacts, tick people and **Invite to join** to email them a
   `member_claim` link (60 days) to `/member/claim`, a form prefilled from their contact card; the
@@ -382,7 +386,8 @@ screen by screen for the team.
   to the cover while it is out of date. Each event or post has a Share page: download the image,
   copy the text, open it in WhatsApp, and schedule the announcement on a chosen date and time plus,
   for an event, a reminder the day before (09:00 by default). The cron (every 5 minutes) publishes what
-  is due: on the LinkedIn and Facebook pages through their APIs once connected (`docs/deploy.md`),
+  is due: on the LinkedIn and Facebook pages and the Instagram account through their APIs once
+  connected (`docs/deploy.md`),
   otherwise by an email to the admin who scheduled it with the text and a one-tap WhatsApp
   button. WhatsApp has no API for groups, so WhatsApp posts are always that email. A reminder
   whose event moved to another day, or a post about a cancelled or unpublished event or post, is
@@ -394,8 +399,19 @@ screen by screen for the team.
   image URL); LinkedIn's Post Inspector and Facebook's Sharing Debugger refresh a cached preview.
   The **Connected pages** box says per network whether it is connected and which Worker value is
   missing (`networkSetup()` in `lib/social.ts`: `LINKEDIN_ORGANIZATION_ID` /
-  `LINKEDIN_ACCESS_TOKEN`, `FACEBOOK_PAGE_ID` / `FACEBOOK_PAGE_TOKEN`), with a folding **How to
-  connect** guide per network (developer app, token, page ID, Cloudflare secret, `wrangler.jsonc`).
+  `LINKEDIN_ACCESS_TOKEN`, `FACEBOOK_PAGE_ID` / `FACEBOOK_PAGE_TOKEN`, `INSTAGRAM_ACCOUNT_ID` /
+  `FACEBOOK_PAGE_TOKEN`), with a folding **How to connect** guide per network (developer app,
+  token, page ID, Cloudflare secret, `wrangler.jsonc`).
+  **Instagram** posts on the Instagram business account linked to the Facebook page, with the
+  same page token (it needs the `instagram_basic` and `instagram_content_publish` permissions too)
+  and the account ID in `INSTAGRAM_ACCOUNT_ID`. The Graph API makes a media container from the
+  image's public URL and the caption, waits until Instagram has fetched it, publishes it and reads
+  back the post's permalink. Instagram needs an image and takes only JPEG between 4:5 and 1.91:1,
+  so the post uses the up-to-date share image, else `brand/share-default.jpg`, never a cover of
+  unknown shape (`instagramImagePath()` in `lib/share.ts`); the caption is cut at 2,200 characters
+  and its links are not clickable. Instagram is ticked by default on the Schedule form once
+  connected. Until then an Instagram post arrives in the same email, with the image's address to
+  save and post by hand.
 - **Code of conduct** at `/code-of-conduct`: how everyone is expected to behave at events, in our
   online groups (WhatsApp, LinkedIn) and on the website, and how to report a problem. Linked in
   the footer, on every event page and in the registration form. The text is edited in the admin.

@@ -68,18 +68,37 @@ export function attendeeNotes<
     );
 }
 
+export const HOW_HEARD = [
+  'LinkedIn',
+  'Instagram',
+  'WhatsApp group',
+  'A friend',
+  'Newsletter',
+  'Other',
+];
+
 export const RegisterSchema = z.object({
   name: z.string().min(2, 'Enter your name.').max(120),
   email,
-  company: z.string().max(120).optional().default(''),
+  company: z
+    .string({ error: 'Tell us your company (or "Freelance", "Student"…).' })
+    .trim()
+    .min(1, 'Tell us your company (or "Freelance", "Student"…).')
+    .max(120),
   phone: z
     .string()
     .max(40)
     .regex(/^[+\d\s().-]*$/, 'Enter a phone number (digits, spaces, +).')
     .optional()
     .default(''),
-  role: z.string().max(120).optional().default(''),
-  howHeard: z.string().max(120).optional().default(''),
+  role: z
+    .string({ error: 'Tell us your job title.' })
+    .trim()
+    .min(1, 'Tell us your job title.')
+    .max(120),
+  howHeard: z.enum(HOW_HEARD as [string, ...string[]], {
+    error: 'Tell us how you heard about us.',
+  }),
   /** "Anything we should know, or something you're looking for?" Plain text, shown to admins only. */
   note: z.preprocess(
     // formToObject turns a field that says exactly "on" into true; keep it as text.
@@ -112,15 +131,6 @@ export const MemberRegisterSchema = RegisterSchema.pick({
   photoConsent: true,
 });
 export type MemberRegister = z.infer<typeof MemberRegisterSchema>;
-
-export const HOW_HEARD = [
-  'LinkedIn',
-  'Instagram',
-  'WhatsApp group',
-  'A friend',
-  'Newsletter',
-  'Other',
-];
 
 type EventRules = Pick<
   Event,

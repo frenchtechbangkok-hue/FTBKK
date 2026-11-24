@@ -92,6 +92,10 @@ const missingParts = (s: { id: boolean; token: boolean }, idName: string, tokenN
 const status = {
   linkedin: missingParts(setup.linkedin, 'LINKEDIN_ORGANIZATION_ID', 'LINKEDIN_ACCESS_TOKEN'),
   facebook: missingParts(setup.facebook, 'FACEBOOK_PAGE_ID', 'FACEBOOK_PAGE_TOKEN'),
+  instagram: [
+    !setup.instagram.id && 'the Instagram account ID (INSTAGRAM_ACCOUNT_ID)',
+    !setup.instagram.token && 'the Facebook page token (FACEBOOK_PAGE_TOKEN)',
+  ].filter(Boolean),
 };
 const workerSettings = 'Workers & Pages > ft-bkk-site > Settings > Variables and Secrets';
 const missing = items.filter((i) => !i.imageUrl).length;
@@ -235,6 +239,63 @@ const missing = items.filter((i) => !i.imageUrl).length;
             </li>
             <li>
               Come back here: Facebook shows <strong>connected</strong>.
+            </li>
+          </ol>
+        </details>
+      </li>
+      <li data-network="instagram">
+        <p>
+          <strong>Instagram:</strong>{' '}
+          {connected.instagram ? (
+            <span class="font-semibold text-success">connected</span>
+          ) : (
+            <span class="font-semibold text-warning">not connected</span>
+          )}
+          {connected.instagram
+            ? ', posts go out automatically with the share image.'
+            : `. Still missing: ${status.instagram.join(' and ')}.`}
+        </p>
+        <details class="mt-1">
+          <summary class="cursor-pointer text-accent">How to connect Instagram</summary>
+          <p class="mt-2">
+            Instagram uses the same Facebook app and page token as Facebook: connect Facebook first.
+            Every Instagram post is the event's or post's share image with the text (Instagram needs
+            a picture, and links in captions cannot be clicked).
+          </p>
+          <ol class="mt-2 grid list-decimal gap-2 pl-5">
+            <li>
+              In the Instagram app, make the French Tech Bangkok account a{' '}
+              <strong>Professional account</strong> (Business) if it is not already: Settings &gt;
+              Account type and tools.
+            </li>
+            <li>
+              Link it to the Facebook page: on Facebook, open the page, then{' '}
+              <strong>Settings &gt; Linked accounts &gt; Instagram</strong> and connect the account.
+            </li>
+            <li>
+              In the Facebook app at developers.facebook.com, add the <strong>Instagram</strong>{' '}
+              product (Instagram API with Facebook Login).
+            </li>
+            <li>
+              In the <strong>Graph API Explorer</strong>, make the page token again (Facebook step
+              2) with these permissions added: <code>instagram_basic</code> and{' '}
+              <code>instagram_content_publish</code>. Extend it as for Facebook, then replace the
+              value of the <code>FACEBOOK_PAGE_TOKEN</code> secret in Cloudflare (
+              <strong>{workerSettings}</strong>) with it. Facebook keeps working with the new token.
+            </li>
+            <li>
+              Find the Instagram account ID: in the Graph API Explorer, with the page token, ask for{' '}
+              <code>&lt;page ID&gt;?fields=instagram_business_account</code>. The number shown is
+              the ID (it is not the @name).
+            </li>
+            <li>
+              The ID goes in the site's settings file: set <code>INSTAGRAM_ACCOUNT_ID</code> in{' '}
+              <code>wrangler.jsonc</code> on GitHub, or ask Claude to do it. It is live after the
+              next deploy.
+            </li>
+            <li>
+              Come back here: Instagram shows <strong>connected</strong>. Instagram allows 50 posts
+              a day through the API, far more than we need.
             </li>
           </ol>
         </details>

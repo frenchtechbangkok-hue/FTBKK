@@ -75,19 +75,39 @@ export const MemberProfileSchema = z.object({
 });
 export type MemberProfile = z.infer<typeof MemberProfileSchema>;
 
-/** The sign-up form on /join. */
+/** Text a new member must give (company, job title). */
+const requiredText = (message: string, max = 120) =>
+  z.string({ error: message }).trim().min(1, message).max(max);
+
+/**
+ * The sign-up form (/join, an event registration by a newcomer, the claim page, the Tech Pulse
+ * download): company, job title, at least one sector and how they heard of us are required here,
+ * but stay optional when a member edits their profile (older members may not have them).
+ */
 export const MemberSignupSchema = MemberProfileSchema.extend({
   email,
-  howHeard: z
-    .union([z.literal(''), z.enum(HOW_HEARD as [string, ...string[]])])
-    .optional()
-    .transform((v) => v || null),
+  company: requiredText('Tell us your company (or "Freelance", "Student"…).'),
+  jobTitle: requiredText('Tell us your job title.'),
+  interests: z
+    .array(z.enum(SECTORS), { error: 'Pick at least one sector you are interested in.' })
+    .min(1, 'Pick at least one sector you are interested in.')
+    .max(5, 'Pick up to 5 sectors.'),
+  howHeard: z.enum(HOW_HEARD as [string, ...string[]], {
+    error: 'Tell us how you heard about us.',
+  }),
   terms: z.literal(true, {
     error: 'Please accept the code of conduct and the privacy notice to join.',
   }),
   newsletter: z.boolean().optional().default(false),
 });
-export type MemberSignup = z.infer<typeof MemberSignupSchema>;
+/**
+ * What becomes a member: the sign-up form's answers, or (at the door, from the admin) the little we
+ * know, where company, job title and how they heard of us may be missing.
+ */
+export type MemberSignup = Omit<
+  z.infer<typeof MemberSignupSchema>,
+  'company' | 'jobTitle' | 'howHeard'
+> & { company: string | null; jobTitle: string | null; howHeard: string | null };
 
 /** Form values (checkboxes arrive as "on") to schema input. */
 export function signupInput(values: Record<string, unknown>) {
