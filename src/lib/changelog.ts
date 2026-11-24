@@ -22,6 +22,7 @@ export const RELEASES: Release[] = [
   {
     version: '26.11.23',
     date: '2026-11-24',
+    pr: 145,
     title: 'Less Worker CPU time: public pages cached an hour',
     summary:
       'Public pages are now kept an hour at Cloudflare (was one minute) and refreshed at once whenever something is saved in the admin or a form is sent, so the site builds far fewer pages and uses less CPU time; bots looking for WordPress or PHP files get a tiny "not found" instead of the full page.',
