@@ -101,7 +101,7 @@ if (form?.get('intent') === 'test-notify') {
     to: notifyTo,
     subject: '[Test] Admin notifications from the website',
     paragraphs: [
-      'This is a test sent from Admin > Settings. If you can read it, contact form messages, new members, directory requests and the Monday directory summary reach this address too.',
+      'This is a test sent from Admin > Settings. If you can read it, contact form messages, new members, directory requests and the Monday weekly digest reach this address too.',
       `Sent by ${actor}.`,
     ],
     action: { label: 'Open the admin', url: siteUrl('/admin') },
@@ -211,7 +211,7 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
             rows={3}
             value={str('moderatorEmails')}
             error={errors.moderatorEmails}
-            hint="One email per line. They get every email meant for the team: contact form messages, new members, directory requests and claims, and the Monday directory summary. Empty = the contact email."
+            hint="One email per line. They get every email meant for the team: contact form messages, new members, directory requests and claims, and the Monday weekly digest. Empty = the contact email."
           />
           <div class="flex flex-wrap items-center gap-3 text-sm">
             <Button type="submit" variant="secondary" size="sm" form="test-notify">

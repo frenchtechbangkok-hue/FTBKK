@@ -444,29 +444,15 @@ describe('directory, team and admin emails', () => {
       paragraphs: ['Acme applied for the free French Tech Bangkok membership.', 'We hire.'],
       buttonLabel: 'Review in the admin',
     });
-    const digest = (items: string, oldest: string, renewals: string[]) =>
-      d('admin.directory-digest', { items, oldest, target: '5', renewals });
-    expect(digest('1 item', '', [])).toEqual({
-      subject: 'Directory: 1 item to review',
-      paragraphs: ['Weekly summary of the ecosystem directory. Target: answer within 5 days.'],
-      buttonLabel: 'Open the moderation queue',
-    });
-    expect(digest('3 items', ' (oldest 9 days)', ['Renewal due: Acme, 1 Dec 2026'])).toEqual({
-      subject: 'Directory: 3 items to review (oldest 9 days)',
-      paragraphs: [
-        'Weekly summary of the ecosystem directory. Target: answer within 5 days.',
-        'Renewal due: Acme, 1 Dec 2026',
-      ],
-      buttonLabel: 'Open the moderation queue',
-    });
   });
 
   it('keep the lists and reasons required', () => {
-    const def = EMAIL_TEMPLATES['admin.directory-digest'];
+    // The weekly digest keeps no list required: removing one leaves that section out.
+    const def = EMAIL_TEMPLATES['admin.weekly-digest'];
     expect(
-      templateSchema(def).safeParse({ subject: 'S', body: '{items} to review', buttonLabel: 'Go' })
+      templateSchema(def).safeParse({ subject: 'S', body: 'Only {pending}', buttonLabel: 'Go' })
         .success,
-    ).toBe(false);
+    ).toBe(true);
     expect(EMAIL_TEMPLATES['directory.claim-rejected'].required).toEqual(['reason']);
     const claim = EMAIL_TEMPLATES['admin.claim-to-review'];
     expect(claim.required).toEqual(['domain-check']);
@@ -547,13 +533,18 @@ describe('membership emails', () => {
 });
 
 describe('list placeholders', () => {
-  const def = EMAIL_TEMPLATES['admin.directory-digest'];
-  const vars = { items: '2 items', oldest: '', target: '5', renewals: ['One', 'Two'] };
+  const def = EMAIL_TEMPLATES['admin.weekly-digest'];
+  const vars = {
+    week: '1–7 June',
+    next: '8–14 June',
+    todo: '2 things to do',
+    pending: ['One', 'Two'],
+  };
 
   it('become one paragraph per item on a line of their own', () => {
     const w = applyTemplate(
       def,
-      { subject: 'Due: {renewals}', body: 'A\n\n{renewals}\n\nB', buttonLabel: 'Go' },
+      { subject: 'Due: {pending}', body: 'A\n\n{pending}\n\nB', buttonLabel: 'Go' },
       vars,
     );
     expect(w.subject).toBe('Due: One, Two');
@@ -561,18 +552,15 @@ describe('list placeholders', () => {
   });
 
   it('are joined with line breaks inside a sentence', () => {
-    const w = applyTemplate(
-      def,
-      { subject: 'S', body: 'Due: {renewals}', buttonLabel: 'Go' },
-      vars,
-    );
+    const w = applyTemplate(def, { subject: 'S', body: 'Due: {pending}', buttonLabel: 'Go' }, vars);
     expect(w.paragraphs).toEqual(['Due: One\nTwo']);
   });
 
   it('use the sample items in the admin preview', () => {
     const m = sampleEmail(def, defaultText(def));
-    expect(m.paragraphs.length).toBe(3);
-    expect(m.paragraphs[1]).toMatch(/^Renewal due: /);
+    expect(m.paragraphs[1]).toBe('Last week, 16–22 November');
+    expect(m.paragraphs[2]).toMatch(/^Event: /);
+    expect(m.paragraphs).toContain('1 unread message');
   });
 });
 
@@ -594,7 +582,8 @@ describe('Markdown messages', () => {
       .replace(/&amp;/g, '&');
 
   it('leave every default plain-text email looking as before', () => {
-    for (const k of TEMPLATE_KEYS) {
+    // The weekly digest is newer than Markdown: its default has bold section titles.
+    for (const k of TEMPLATE_KEYS.filter((k) => k !== 'admin.weekly-digest')) {
       const d = EMAIL_TEMPLATES[k];
       const r = applyTemplate(d, null, sampleVars(d), origin);
       expect(visible(r.bodyHtml), k).toBe(visible(oldHtml(r.paragraphs)));

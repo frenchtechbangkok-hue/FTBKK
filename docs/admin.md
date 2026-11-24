@@ -436,8 +436,8 @@ uses any more.
   the day). Unconfirmed listings are hidden 30 days later and deleted after 12 months. Unclaimed
   listings get no reminders: use **Send** to invite someone you know there to claim it.
 
-The team also gets an email for each new request and a summary every Monday, at the addresses in
-Settings > General > Admin notifications.
+The team also gets an email for each new request, and the pending ones are in the weekly digest
+every Monday, at the addresses in Settings > General > Admin notifications.
 
 ## Members
 
@@ -700,7 +700,7 @@ tables.
 - **Settings**, one screen per section, each with its own Save button:
   - **General**: site name and description, contact email, **Admin notifications** (who gets the
     team's emails: contact form messages, new members, directory requests and the Monday
-    summary; **Send a test** emails them now and shows whether Resend accepted it) and the
+    weekly digest; **Send a test** emails them now and shows whether Resend accepted it) and the
     analytics token.
   - **Membership**: the switches for individual sign-up on the Join page, company membership
     applications and member priority on events.
@@ -821,8 +821,14 @@ and when:
   **Privacy**: the "your data" link.
 - **Admin notifications** (to the team, at the addresses in Settings > General > Admin notifications): a
   contact form message, a new member (first confirmation only, not renewals), a new listing, a
-  claim, a listing change and a membership application to review, and the Monday directory
-  summary.
+  claim, a listing change and a membership application to review, and the **Weekly digest**.
+
+The **Weekly digest** goes out every Monday at 9:00: what happened last week, what is coming this
+week, and what waits for someone. Its message holds three placeholders, `{lastWeek}`,
+`{comingWeek}` and `{pending}`: delete one to leave that part out, move them to change the order,
+and type your own text around them (it goes in every digest until you change it). **Send me this
+week's digest** emails you the real one, with today's figures and the words in the form, before
+you save.
 
 A **Default** badge means the text the site came with; **Edited** shows when and by whom.
 
@@ -838,7 +844,7 @@ others per email. The list under the form shows which ones that email knows; cli
 it. A placeholder the email doesn't know is sent as typed, and the page warns you. Some must stay
 in the message (marked "must stay"; not only in the subject or the button, where a long value
 doesn't fit): the reason of a refusal, the contact form message, the membership motivation, the
-domain check of a claim, and the list the site builds (`{renewals}` in the directory summary). In the
+domain check of a claim, and the text of a social media post. In the
 welcome email, `{whatsapp}` is the invitation to the WhatsApp community (empty when Settings has
 no WhatsApp link) and `{next-events}` is "Coming up next:" with the next three events (empty when
 none is planned); when one is empty, its paragraph is simply left out. Put a list on a line of its own to get one paragraph per

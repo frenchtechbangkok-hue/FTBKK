@@ -186,7 +186,7 @@ export type TemplateKey =
   | 'admin.claim-to-review'
   | 'admin.change-to-review'
   | 'admin.membership-application'
-  | 'admin.directory-digest'
+  | 'admin.weekly-digest'
   | 'admin.social-post';
 
 /** Every email built from a template, in the order of the admin list. */
@@ -833,45 +833,50 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
       details: [['Contact', 'Camille Martin (CEO) <camille@example.com>']],
     },
   },
-  'admin.directory-digest': {
-    label: 'Directory: weekly summary',
+  'admin.weekly-digest': {
+    label: 'Weekly digest',
     group: 'Admin notifications',
     audience: ADMIN_AUDIENCE,
-    trigger: 'Every Monday at 9:00, when something waits for review or a renewal is due',
-    subject: 'Directory: {items} to review{oldest}',
-    body: 'Weekly summary of the ecosystem directory. Target: answer within {target} days.\n\n{renewals}',
-    buttonLabel: 'Open the moderation queue',
+    trigger:
+      'Every Monday at 9:00: last week, the coming week and what waits. Take out {lastWeek}, {comingWeek} or {pending} to leave that part out, and add any text of your own',
+    subject: 'Weekly digest: {todo}',
+    body: 'Here is the week at La French Tech Bangkok.\n\n**Last week, {week}**\n\n{lastWeek}\n\n**Coming week, {next}**\n\n{comingWeek}\n\n**Waiting for you**\n\n{pending}',
+    buttonLabel: 'Open the dashboard',
     placeholders: [
-      { key: 'items', description: 'How many items wait, e.g. "3 items"', sample: '3 items' },
+      { key: 'week', description: 'The days of last week', sample: '16–22 November' },
+      { key: 'next', description: 'The days of the coming week', sample: '23–29 November' },
       {
-        key: 'oldest',
-        description:
-          '" (oldest 9 days)" when the oldest waits longer than the target, otherwise empty',
-        sample: ' (oldest 9 days)',
+        key: 'todo',
+        description: 'How many things wait, e.g. "3 things to do" or "nothing to do"',
+        sample: '3 things to do',
       },
-      { key: 'target', description: 'The target answer time, in days', sample: '5' },
       {
-        key: 'renewals',
+        key: 'lastWeek',
         description:
-          'Listings due for renewal this month, one per paragraph when on a line of its own',
+          'What happened last week: events held, registrations, new members, posts, newsletters, emails, social media posts, listings and messages',
         sample:
-          'Renewal due: Siam Robotics, 12 Nov 2026\nRenewal due: Lotus Labs, 20 Nov 2026 (unclaimed, invite someone to claim it)',
+          'Event: French Tech Connect: AI in Southeast Asia, 64 checked in of 80 registrations\n42 new event registrations\n5 new members\nNewsletter sent: November news (1,204 recipients)',
+        list: true,
+      },
+      {
+        key: 'comingWeek',
+        description:
+          'The coming week: events with their seats, scheduled newsletters and social media posts, listing and membership renewals',
+        sample:
+          'Event: French Tech Talk: Fintech, Thu, 26 November 2026, 18:30 – 21:00 (38/60 seats taken)\n2 social media posts scheduled\nListing renewal due: Lotus Labs, 27 November (unclaimed, invite someone to claim it)',
+        list: true,
+      },
+      {
+        key: 'pending',
+        description:
+          'What waits: listings to review, unread messages, new members, failed posts, renewals, drafts',
+        sample:
+          '2 listings to review in the directory (oldest 6 days)\n1 unread message\n1 draft post not published yet',
         list: true,
       },
     ],
-    required: ['renewals'],
-    added: 'The counts per kind of item, and the link to the moderation queue (the button).',
-    preview: {
-      buttonUrl: adminEcosystemUrl,
-      details: [
-        ['New listings', '1'],
-        ['Owner changes', '1'],
-        ['Claims', '1'],
-        ['Membership applications', '0'],
-        ['Oldest item', '9 days'],
-        ['Renewals due this month', '2 (1 unclaimed)'],
-      ],
-    },
+    added: 'The link to the admin dashboard (the button).',
+    preview: { buttonUrl: `${SITE}/admin` },
   },
   'admin.social-post': {
     label: 'Social media post to publish by hand',

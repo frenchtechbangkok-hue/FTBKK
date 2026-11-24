@@ -23,6 +23,7 @@ import { renderEmail, sendEmail } from '../../../lib/email';
 import { fieldErrors } from '../../../lib/forms';
 import { audit } from '../../../lib/orgs';
 import { formatDate, formatTime } from '../../../lib/format';
+import { weeklyDigestEmail } from '../../../lib/weekly-digest';
 
 // Edit the wording of one email, preview it with sample values, send a test, or go back to the
 // default text. Admin only (middleware).
@@ -113,6 +114,16 @@ if (Astro.request.method === 'POST') {
         : { ok: false, error: 'No admin email (are you signed in through Cloudflare Access?)' };
       if (res.ok) notice = `Test sent to ${to}, with the sample values. It is not saved yet.`;
       else error = `The test could not be sent: ${res.error ?? 'unknown error'}.`;
+    } else if (action === 'digest' && key === 'admin.weekly-digest') {
+      // This week's real digest with the words in the form, to the admin only.
+      const to = Astro.locals.adminEmail;
+      const { message } = await weeklyDigestEmail(new Date(), t);
+      const res = to
+        ? await sendEmail({ ...message, to, subject: `[Test] ${message.subject}` })
+        : { ok: false, error: 'No admin email (are you signed in through Cloudflare Access?)' };
+      if (res.ok)
+        notice = `This week's digest sent to ${to}, with today's figures. It is not saved yet.`;
+      else error = `The digest could not be sent: ${res.error ?? 'unknown error'}.`;
     } else if (action === 'preview') {
       notice = 'Preview updated below. Not saved yet.';
     }
@@ -225,10 +236,17 @@ const hasButton = def.buttonLabel !== undefined;
           <Button type="submit" name="action" value="test" variant="secondary">
             Send me a test
           </Button>
+          {key === 'admin.weekly-digest' && (
+            <Button type="submit" name="action" value="digest" variant="secondary">
+              Send me this week's digest
+            </Button>
+          )}
           {unsaved && <span class="text-sm font-semibold text-ink">Not saved yet</span>}
         </div>
         <p class="text-sm text-muted">
           The test goes only to {Astro.locals.adminEmail ?? 'you'}, with the sample values below.
+          {key === 'admin.weekly-digest' &&
+            " This week's digest uses today's real figures, also only to you."}
         </p>
       </form>
 

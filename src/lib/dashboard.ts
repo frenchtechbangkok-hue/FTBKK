@@ -18,7 +18,7 @@ import { guestsLabel } from './registrations';
 import { TZ } from './format';
 
 const OFFSET = 7 * 3600_000; // Asia/Bangkok, no daylight saving.
-const bkkMidnight = (d: Date) => {
+export const bkkMidnight = (d: Date) => {
   const b = new Date(d.getTime() + OFFSET);
   return new Date(Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate()) - OFFSET);
 };

@@ -1,4 +1,4 @@
-import { and, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, eq, lt } from 'drizzle-orm';
 import { getDb } from '../db';
 import {
   claims,
@@ -8,20 +8,8 @@ import {
   organisations,
   remindersSent,
 } from '../db/schema';
-import {
-  DAY_MS,
-  MODERATION_TARGET_DAYS,
-  UNVERIFIED_TTL_DAYS,
-  ageDays,
-  daysUntil,
-  remindersDue,
-  shouldDelete,
-  shouldExpire,
-} from './lifecycle';
-import { audit, adminNotifyEmails, sendExpiredNotice, sendRenewalReminder, siteUrl } from './orgs';
-import { sendEmail } from './email';
-import { renderTemplate } from './email-templates';
-import { TZ, formatDate } from './format';
+import { DAY_MS, UNVERIFIED_TTL_DAYS, remindersDue, shouldDelete, shouldExpire } from './lifecycle';
+import { audit, sendExpiredNotice, sendRenewalReminder } from './orgs';
 
 /** Daily directory maintenance. Returns a summary for the logs. */
 export async function runDirectoryJobs(now: Date) {
@@ -97,12 +85,6 @@ export async function runDirectoryJobs(now: Date) {
   await db.delete(claims).where(and(eq(claims.status, 'unverified'), lt(claims.createdAt, cutoff)));
   await db.delete(magicTokens).where(lt(magicTokens.expiresAt, now));
 
-  // 5. Monday digest for moderators.
-  const weekday = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short' }).format(now);
-  if (weekday === 'Mon') {
-    await sendModeratorDigest(now);
-    summary.digest = 1;
-  }
   return summary;
 }
 
@@ -127,59 +109,4 @@ export async function moderationQueue() {
       .where(eq(membershipApplications.status, 'pending')),
   ]);
   return { pendingOrgs, changes, pendingClaims, applications };
-}
-
-export async function sendModeratorDigest(now: Date) {
-  const q = await moderationQueue();
-  const ages = [
-    ...q.pendingOrgs.map((o) => o.submittedAt ?? o.updatedAt),
-    ...q.changes.map((c) => c.change.createdAt),
-    ...q.pendingClaims.map((c) => c.claim.createdAt),
-    ...q.applications.map((a) => a.app.createdAt),
-  ].map((d) => ageDays(d, now));
-  const oldest = ages.length ? Math.max(...ages) : 0;
-  const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-  const expiring = await getDb()
-    .select({
-      name: organisations.name,
-      renewalDueAt: organisations.renewalDueAt,
-      owners: organisations.ownerEmails,
-    })
-    .from(organisations)
-    .where(
-      and(
-        inArray(organisations.status, ['published']),
-        sql`${organisations.renewalDueAt} IS NOT NULL`,
-        lt(organisations.renewalDueAt, monthEnd),
-      ),
-    );
-  const unclaimedDue = expiring.filter((o) => o.owners.length === 0).length;
-  const total = ages.length;
-  if (!total && !expiring.length) return;
-  const w = await renderTemplate('admin.directory-digest', {
-    items: `${total} item${total === 1 ? '' : 's'}`,
-    oldest: oldest > MODERATION_TARGET_DAYS ? ` (oldest ${oldest} days)` : '',
-    target: String(MODERATION_TARGET_DAYS),
-    renewals: expiring
-      .slice(0, 20)
-      .map((o) =>
-        `Renewal due: ${o.name}, ${o.renewalDueAt ? formatDate(o.renewalDueAt) : ''}${o.owners.length ? '' : ' (unclaimed, invite someone to claim it)'} ${o.renewalDueAt && daysUntil(o.renewalDueAt, now) < 0 ? '(overdue)' : ''}`.trim(),
-      ),
-  });
-  await sendEmail({
-    to: await adminNotifyEmails(),
-    subject: w.subject,
-    campaign: w.campaign,
-    paragraphs: w.paragraphs,
-    bodyHtml: w.bodyHtml,
-    details: [
-      ['New listings', String(q.pendingOrgs.length)],
-      ['Owner changes', String(q.changes.length)],
-      ['Claims', String(q.pendingClaims.length)],
-      ['Company membership applications', String(q.applications.length)],
-      ['Oldest item', `${oldest} days`],
-      ['Renewals due this month', `${expiring.length} (${unclaimedDue} unclaimed)`],
-    ],
-    action: { label: w.buttonLabel, url: siteUrl('/admin/ecosystem') },
-  });
 }

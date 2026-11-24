@@ -482,12 +482,20 @@ confirmation, welcome, member page link, the link sent on a repeat sign-up, the 
 a newcomer registering for an event, the claim invitation, the yearly reminder and the paused
 email), the newsletter
 confirmation, the "your data" link, and the notifications to the team (contact form message, new
-member, new listing, claim, listing change and membership application to review, weekly directory
-summary). Every team notification goes to the addresses in Settings > General > Admin notifications (the
+member, new listing, claim, listing change and membership application to review, the weekly
+digest). Every team notification goes to the addresses in Settings > General > Admin notifications (the
 contact email when empty); **Send a test** there sends one right away and shows Resend's answer.
 A contact form message whose email fails gets a note saying so in Messages.
-Lists built by the site (the renewals of the directory summary) are placeholders (`{renewals}`)
-that must stay in the message (not only the subject or button), like a rejection `{reason}`, the contact form `{message}` or a claim's `{domain-check}`. Optional
+The **weekly digest** goes out every Monday at 09:00 Bangkok (`src/lib/weekly-digest.ts`, a daily
+cron job that only sends on Mondays), even in a quiet week. It has three lists: `{lastWeek}`
+(Monday to Sunday just ended: events held with check-ins, registrations, new members, blog posts,
+newsletters and community emails sent, social media posts published, listings submitted,
+messages), `{comingWeek}` (events with their seats and drafts not published yet, scheduled
+newsletters and social media posts, listing and membership renewals due) and `{pending}` (the
+dashboard's "Waiting for you"). None is required: taking one out of the message leaves that part
+out, and any text typed around them goes in every digest. On its edit page **Send me this week's
+digest** sends it to the admin alone with today's real figures and the words in the form.
+Other lists built by the site are placeholders that must stay in the message (not only the subject or button), like a rejection `{reason}`, the contact form `{message}` or a claim's `{domain-check}`. Optional
 parts of the welcome email are placeholders too: `{whatsapp}` (the WhatsApp sentence, empty
 without a link) and `{next-events}` ("Coming up next:" and the next events, empty when none); a
 placeholder left empty on its own line leaves no blank paragraph. "Email registrants" is written each time, so it is listed but not a

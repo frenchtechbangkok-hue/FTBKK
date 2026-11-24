@@ -3,6 +3,7 @@ import { sendEventReminders, sendFeedbackRequests, weeklyBackup } from './cron-e
 import { runMemberRenewals } from './members';
 import { getSettings } from './settings';
 import { runSocialPosts } from './social';
+import { isDigestDay, sendWeeklyDigest } from './weekly-digest';
 import { runNewsletters } from './newsletters';
 
 /** The daily jobs run at 02:00 UTC = 09:00 Asia/Bangkok. */
@@ -29,6 +30,8 @@ export async function runScheduled(_env: Env, now: Date): Promise<void> {
     ['event-reminders', () => sendEventReminders(now)],
     ['event-feedback', () => sendFeedbackRequests(now)],
     ['directory', () => runDirectoryJobs(now)],
+    // Monday: last week, the coming week and what waits, to the admin notification addresses.
+    ['weekly-digest', async () => (isDigestDay(now) ? sendWeeklyDigest(now) : 'not Monday')],
     // Yearly reconfirmation, only once membership is open (emails must reach everyone).
     [
       'member-renewals',
