@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.16',
+    date: '2026-11-24',
+    title: 'Contacts: "Not members" filter',
+    summary:
+      'Community > Contacts has a Membership filter (Members, Not members, Invited, not joined yet) that combines with the others, a line saying how many contacts match, and the search also looks in job titles.',
+  },
+  {
     version: '26.11.15',
     date: '2026-11-24',
     title: "Weekly summary: send me this week's, renewals and failed posts",

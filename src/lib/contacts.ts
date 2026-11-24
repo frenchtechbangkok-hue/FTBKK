@@ -374,16 +374,31 @@ export const CONTACT_FILTERS = {
   attended: 'Came at least once',
   regulars: 'Came 2 times or more',
   never: 'Registered, never came',
-  members: 'Members',
   ecosystem: 'Linked to an ecosystem listing',
   newsletter: 'Agreed to the newsletter',
   membership: 'Regulars not yet members',
 } as const;
 export type ContactFilter = keyof typeof CONTACT_FILTERS;
 
+/** The Membership filter, combined with the others (e.g. Came at least once + Not members). */
+export const MEMBER_FILTERS = {
+  '': 'Members or not',
+  yes: 'Members',
+  no: 'Not members',
+  invited: 'Invited, not joined yet',
+} as const;
+export type MemberFilter = keyof typeof MEMBER_FILTERS;
+
+/** A line explaining a Membership filter, shown above the list while it is active. */
+export const MEMBER_FILTER_HINTS: Partial<Record<MemberFilter, string>> = {
+  yes: 'People with an active individual membership (see Members for the full list).',
+  no: 'Contacts without an active individual membership (never joined, or their membership lapsed).',
+  invited:
+    'Contacts sent “Claim your membership” who have not joined yet: you can invite them again 30 days after the last invitation.',
+};
+
 /** A line explaining a filter, shown above the list while it is active. */
 export const CONTACT_FILTER_HINTS: Partial<Record<ContactFilter, string>> = {
-  members: 'People with an active individual membership (see Members for the full list).',
   membership: `People who came to ${REGULAR_MIN_EVENTS} or more events and are not members yet: select them and click Invite to join (once membership is open).`,
 };
 
@@ -396,9 +411,19 @@ export function filterContacts(
     event = 0,
     tag = '',
     group = 0,
-  }: { q?: string; show?: string; event?: number; tag?: string; group?: number },
+    member = '',
+  }: {
+    q?: string;
+    show?: string;
+    event?: number;
+    tag?: string;
+    group?: number;
+    member?: string;
+  },
 ) {
   const query = q.trim().toLowerCase();
+  // Old links: "Members" used to be one of the Show choices.
+  if (show === 'members') [show, member] = ['all', 'yes'];
   return list.filter((c) => {
     if (
       query &&
@@ -407,6 +432,7 @@ export function filterContacts(
         c.email,
         ...c.otherEmails,
         c.company,
+        c.role,
         c.phone,
         c.notes,
         ...c.organisations.map((o) => o.name),
@@ -421,12 +447,14 @@ export function filterContacts(
     if (group && !c.groups.includes(group)) return false;
     if (event && !c.history.some((r) => r.event.id === event && r.status !== 'cancelled'))
       return false;
+    if (member === 'yes' && !isActiveMember(c)) return false;
+    if (member === 'no' && isActiveMember(c)) return false;
+    if (member === 'invited' && (isActiveMember(c) || !c.invitedAt)) return false;
     if (show === 'attended') return c.attended > 0;
     if (show === 'regulars') return c.attended > 1;
     if (show === 'never') return c.attended === 0 && c.registrations > 0;
     if (show === 'ecosystem') return c.organisations.length > 0;
     if (show === 'newsletter') return c.newsletter.agreed;
-    if (show === 'members') return isActiveMember(c);
     if (show === 'membership') return suggestForMembership(c);
     return true;
   });

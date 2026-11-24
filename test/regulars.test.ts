@@ -99,6 +99,20 @@ describe('Regulars not yet members', () => {
     ]);
   });
 
+  it('filters by membership, combined with the other filters', () => {
+    expect(filterContacts(list, { member: 'yes' }).map((c) => c.email)).toEqual([
+      'member@example.com',
+    ]);
+    expect(filterContacts(list, { member: 'no' }).map((c) => c.email)).not.toContain(
+      'member@example.com',
+    );
+    expect(filterContacts(list, { member: 'no' })).toHaveLength(list.length - 1);
+    expect(filterContacts(list, { member: 'no', q: 'twice' }).map((c) => c.email)).toEqual([
+      'twice@example.com',
+    ]);
+    expect(filterContacts(list, { member: 'invited' })).toEqual([]);
+  });
+
   it('matches company names loosely', () => {
     expect(companyKey('Acme Co., Ltd.')).toBe('acme');
     expect(companyKey('ACME (Thailand) Limited')).toBe('acme');
