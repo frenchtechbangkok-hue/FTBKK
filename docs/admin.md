@@ -901,7 +901,7 @@ in the message (marked "must stay"; not only in the subject or the button, where
 doesn't fit): the reason of a refusal, the contact form message, the membership motivation, the
 domain check of a claim, and the list the site builds (`{renewals}` in the directory summary). In the
 welcome email, `{whatsapp}` is the invitation to the WhatsApp community (empty when Settings has
-no WhatsApp link) and `{next-events}` is "Coming up next:" with the next three events (empty when
+no WhatsApp link) and `{next-events}` is "Coming up next:" (in bold) with the next three events (empty when
 none is planned); when one is empty, its paragraph is simply left out. Put a list on a line of its own to get one paragraph per
 item. After Preview or a test, the page says "Not saved yet" and warns you before you leave.
 
