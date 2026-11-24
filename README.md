@@ -92,8 +92,9 @@ and uploads a new Worker version, testable at `https://dev-ft-bkk-site.frenchtec
 goes live only when it is promoted in Cloudflare > ft-bkk-site > Deployments (rollback is there
 too). Migrations must only add tables and columns. Other branches get a preview URL. Cloudflare setup (R2, build
 settings, Access, Turnstile, email, social media, traffic report, edge cache, backups, domain)
-is in [docs/deploy.md](docs/deploy.md). Public pages are kept 60 seconds at Cloudflare's edge
-(`"cache": { "enabled": true }` in `wrangler.jsonc`); admin, member pages, forms and API answers
+is in [docs/deploy.md](docs/deploy.md). Public pages are kept an hour at Cloudflare's edge
+(`"cache": { "enabled": true }` in `wrangler.jsonc`) and cleared whenever something is saved;
+bot probes (`.php`, `.env`…) get a tiny 404 before Astro; admin, member pages, forms and API answers
 never are (`src/lib/edge-cache.ts`). Old Wix links get a 301 that the edge keeps a day.
 
 ## Contributing

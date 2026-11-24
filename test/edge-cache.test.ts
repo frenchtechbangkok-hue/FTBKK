@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   EDGE_HEADER,
   PUBLIC_PAGE,
+  changesContent,
   edgeSafe,
+  isProbe,
   oldLinkRedirect,
   privatePage,
   publicPageHeaders,
@@ -128,5 +130,49 @@ describe('publicPageHeaders', () => {
     );
     expect(cc(admin)).toBe('private, no-store');
     expect(admin.headers.has(EDGE_HEADER)).toBe(false);
+  });
+});
+
+describe('changesContent', () => {
+  const r = (method: string, path: string) =>
+    new Request(`https://${HOST}${path}`, { method, body: method === 'GET' ? undefined : 'x' });
+  it('clears the edge after a saved change', () => {
+    expect(changesContent(r('POST', '/admin/posts/3'), new Response(null, { status: 303 }))).toBe(
+      true,
+    );
+    expect(changesContent(r('POST', '/events/meetup'), new Response('ok'))).toBe(true);
+    expect(changesContent(r('DELETE', '/api/admin/upload'), new Response('ok'))).toBe(true);
+  });
+  it('not for reads, failures, previews or check-in', () => {
+    expect(changesContent(r('GET', '/events'), new Response('ok'))).toBe(false);
+    expect(changesContent(r('POST', '/join'), new Response('x', { status: 400 }))).toBe(false);
+    for (const p of ['preview', 'newsletter-preview', 'checkin', 'walk-in', 'dashboard-traffic'])
+      expect(changesContent(r('POST', `/api/admin/${p}`), new Response('ok')), p).toBe(false);
+  });
+});
+
+describe('isProbe', () => {
+  it('spots bots looking for other software', () => {
+    for (const p of [
+      '/wp-login.php',
+      '/wp-admin/',
+      '/.env',
+      '/.git/config',
+      '/xmlrpc.php',
+      '/index.php',
+      '/cgi-bin/x',
+    ])
+      expect(isProbe(p), p).toBe(true);
+  });
+  it('leaves the site alone', () => {
+    for (const p of [
+      '/',
+      '/events/wordpress-meetup',
+      '/media/a.pdf',
+      '/blog/php-tips',
+      '/admin',
+      '/environment',
+    ])
+      expect(isProbe(p), p).toBe(false);
   });
 });

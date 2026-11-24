@@ -352,11 +352,21 @@ Cloudflare's cache in front of the Worker: a public page it already has is sent 
 Cloudflare data centre without running the Worker or reading the database.
 
 - **Public pages** (any HTML page answering a GET with 200; the middleware sets it) send
-  `Cloudflare-CDN-Cache-Control: max-age=60, stale-while-revalidate=600, stale-if-error=86400`:
-  the edge keeps a copy one minute, then
-  refreshes it in the background while still answering at once (and keeps answering for a day if
-  the Worker fails). Browsers get `max-age=0, must-revalidate`, so they always ask again. An edit
-  in the admin shows on the public site within about a minute; every deploy starts a fresh cache.
+  `Cloudflare-CDN-Cache-Control: max-age=3600, stale-while-revalidate=3600, stale-if-error=86400`:
+  the edge keeps a copy an hour, then refreshes it in the background while still answering at
+  once (and keeps answering for a day if the Worker fails). Browsers get `max-age=0,
+must-revalidate`, so they always ask again. Every saved change clears the whole edge cache at
+  once (`purgeEdgeCache()`, Workers Caching's `ctx.cache.purge`): any POST that doesn't fail (admin
+  edits, registrations and other forms on the site), the daily cron run and a cron run that sent a
+  newsletter. Admin calls that only preview, count or check people in don't clear it. So an
+  edit shows at once; only changes that come with time (an event becoming "past") wait up to an
+  hour. A failed purge (Cloudflare's purge rate limit) is logged as `[edge-cache] purge failed`;
+  the pages then refresh within the hour. Every deploy starts a fresh cache.
+  Why an hour and not a minute: each page the edge serves is a page the Worker doesn't build, and
+  building pages is most of the Worker's CPU time.
+- **Bots probing for other software** (`/wp-login.php`, `.env`, `.git`, `xmlrpc`, `cgi-bin`…)
+  get a tiny plain 404 in `src/worker.ts` before Astro (`isProbe()`), instead of the full "page
+  not found" page with its database read.
 - **Never stored**: pages that call `privatePage(Astro)` in their own frontmatter (member page,
   tickets, forms with a token, my data…), admin and `/api/admin`, every POST (forms, webhooks), any answer that sets a cookie,
   redirects, errors and 404s, and anything without a Cache-Control header. `src/worker.ts` passes

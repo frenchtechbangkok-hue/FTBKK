@@ -20,9 +20,10 @@ export const isDailyRun = (now: Date) =>
 /**
  * Scheduled jobs. The cron fires every 5 minutes (wrangler.jsonc): newsletters and social media
  * posts go out at their time, the rest once a day at 09:00 Bangkok. Each job is isolated so one
- * failure doesn't stop the others.
+ * failure doesn't stop the others. Returns whether a newsletter was sent (its web version and
+ * the newsletter pages change), so the edge cache is cleared (src/worker.ts).
  */
-export async function runScheduled(_env: Env, now: Date): Promise<void> {
+export async function runScheduled(_env: Env, now: Date): Promise<boolean> {
   const often: [string, () => Promise<unknown>][] = [
     ['social-posts', () => runSocialPosts(now)],
     ['newsletters', () => runNewsletters(now)],
@@ -43,11 +44,15 @@ export async function runScheduled(_env: Env, now: Date): Promise<void> {
     ['backup', () => weeklyBackup(now)],
   ];
   const jobs = isDailyRun(now) ? [...often, ...daily] : often;
+  let sentNewsletter = false;
   for (const [name, job] of jobs) {
     try {
-      console.log(`[cron] ${name}`, JSON.stringify(await job()));
+      const result = await job();
+      if (name === 'newsletters' && result && Object.keys(result).length) sentNewsletter = true;
+      console.log(`[cron] ${name}`, JSON.stringify(result));
     } catch (e) {
       console.error(`[cron] ${name} failed`, e);
     }
   }
+  return sentNewsletter;
 }
