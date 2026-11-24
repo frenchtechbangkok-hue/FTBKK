@@ -882,9 +882,9 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
     group: 'Admin notifications',
     audience: 'The admin who scheduled the post',
     trigger:
-      'At the time set in Social media posts, for WhatsApp, and for LinkedIn or Facebook while the page is not connected (or when posting failed)',
+      'At the time set in Social media posts, for WhatsApp, and for LinkedIn, Facebook or Instagram while the page is not connected (or when posting failed)',
     subject: 'Time to post on {networks}: {title}',
-    body: 'Your post about {title} is due on {networks}. Copy the text below and paste it with the link; the link shows the share image.\n\n{text}\n\n{errors}',
+    body: 'Your post about {title} is due on {networks}. Copy the text below and paste it with the link; the link shows the share image. For Instagram, save the image (link below) and post it with the text.\n\n{text}\n\n{errors}',
     buttonLabel: 'Open WhatsApp with this text',
     buttonNote: 'Only when WhatsApp is one of the networks',
     placeholders: [

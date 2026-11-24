@@ -777,7 +777,8 @@ tables.
 
 Every event and blog post has a **share image** (1200x630): the logo, a red label (French Tech
 Connect, French Tech Talk, French Tech Select, the series, or Blog), the title, the date and venue or the author, and
-the cover photo. It is what LinkedIn, Facebook and WhatsApp show when someone shares the link. You
+the cover photo. It is what LinkedIn, Facebook and WhatsApp show when someone shares the link, and
+the picture of the Instagram post. You
 don't have to do anything: when you open an event or post in the admin and its title, date, venue
 or photo changed, the image is redrawn in your browser. **Emails and social media > Social media posts** has a button to
 make the missing ones for upcoming events and recent posts at once.
@@ -787,18 +788,28 @@ make the missing ones for upcoming events and recent posts at once.
 - **Share image**: preview, Download, Redraw.
 - **Share now**: the ready text, Copy, Open in WhatsApp (pick the group), Share on LinkedIn or
   Facebook (your own profile).
-- **Schedule**: tick LinkedIn, Facebook, WhatsApp, then the announcement (date and time, text) and,
+- **Schedule**: tick LinkedIn, Facebook, Instagram, WhatsApp, then the announcement (date and time, text) and,
   for an event, the reminder the day before (09:00 by default, text). Times are Bangkok time;
   posts go out at that time (within 5 minutes).
 
-**Connected pages** (top of Social media posts) shows, for LinkedIn and Facebook, **connected** or
+**Connected pages** (top of Social media posts) shows, for LinkedIn, Facebook and Instagram, **connected** or
 **not connected** with what is still missing in Cloudflare (the page ID, the token, or both). Under
 each network, **How to connect** opens the steps: create the app on the network's developer site,
 get the page token and the page ID, add the token in Cloudflare (Workers & Pages > ft-bkk-site >
 Settings > Variables and Secrets > Add > Secret) and set the page ID in `wrangler.jsonc`. The
 LinkedIn token lasts 60 days and has to be renewed the same way.
 
-When a post is due, LinkedIn and Facebook are posted on the pages automatically once connected
+**Instagram** uses the Facebook connection: connect Facebook first. Then make the Instagram
+account a Professional account, link it to the Facebook page (page Settings > Linked accounts),
+add the Instagram product to the Facebook app, make the page token again with the two Instagram
+permissions (`instagram_basic`, `instagram_content_publish`) and put it in place of the
+`FACEBOOK_PAGE_TOKEN` secret, and set the Instagram account ID in `wrangler.jsonc`
+(`INSTAGRAM_ACCOUNT_ID`; **How to connect Instagram** says how to find it). Each Instagram post
+is the share image with the text below it; links in Instagram captions cannot be clicked, so the
+text keeps the address for people to copy. Until Instagram is connected it is not ticked by
+default; if you tick it, the email gives you the image to save and post yourself.
+
+When a post is due, LinkedIn, Facebook and Instagram are posted on automatically once connected
 (`docs/deploy.md`, section 7). Otherwise, and always for WhatsApp, you get an email with the text,
 the link and, for WhatsApp, a button that opens WhatsApp with the text ready. If an automatic post
 fails (for example an expired LinkedIn token), you get the same email with the reason. A post about

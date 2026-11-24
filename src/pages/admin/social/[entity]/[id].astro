@@ -37,7 +37,8 @@ const upcoming = isEvent && item.startsAt && item.startsAt > now;
 let errors: Record<string, string> = {};
 let message: { tone: 'success' | 'danger'; text: string } | null = null;
 let values: Record<string, unknown> = {
-  networks: ['linkedin', 'facebook', 'whatsapp'],
+  // Instagram is ticked by default once connected (by hand it means saving the image first).
+  networks: ['linkedin', 'facebook', ...(connected.instagram ? ['instagram'] : []), 'whatsapp'],
   launch: true,
   launchAt: toLocalInput(defaultLaunchAt(now)),
   launchText: item.launchText,
@@ -120,7 +121,8 @@ const picked = new Set(values.networks as string[]);
   <section class="admin-panel mb-6">
     <h2 class="mb-1 text-lg">Share image</h2>
     <p class="mb-4 text-sm text-muted">
-      Shown by LinkedIn, Facebook and WhatsApp when someone shares the link.
+      Shown by LinkedIn, Facebook and WhatsApp when someone shares the link, and posted as the
+      picture on Instagram.
     </p>
     <ShareImage spec={item.spec} fingerprint={item.fingerprint} url={item.imageUrl} />
   </section>
@@ -169,13 +171,14 @@ const picked = new Set(values.networks as string[]);
     <h2 class="mb-1 text-lg">Schedule</h2>
     <p class="mb-4 text-sm text-muted">
       Posts go out on the hour.{' '}
-      {NETWORKS.filter((n) => n !== 'whatsapp')
+      {(['linkedin', 'facebook', 'instagram'] as const)
         .map(
           (n) =>
-            `${NETWORK_LABELS[n]}: ${connected[n as 'linkedin' | 'facebook'] ? 'posted automatically on the page' : 'not connected yet, you get an email to post it yourself'}`,
+            `${NETWORK_LABELS[n]}: ${connected[n] ? 'posted automatically on the page' : 'not connected yet, you get an email to post it yourself'}`,
         )
         .join('. ')}
-      . WhatsApp: you get an email with the text and a button that opens WhatsApp.
+      . WhatsApp: you get an email with the text and a button that opens WhatsApp. Instagram posts
+      the share image with the text; links in Instagram captions cannot be clicked.
     </p>
     {Object.keys(errors).length > 0 && (
       <Alert tone="danger" class="mb-4">

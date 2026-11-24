@@ -31,17 +31,17 @@ The website of La French Tech Bangkok, live at https://french-tech-bangkok.com s
 **Admin** at `/admin`, behind Cloudflare Access. Anyone who can sign in can do everything; there
 are no roles. The menu:
 
-| Group                       | What is in it                                                                                                                                                    |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Dashboard**               | What is waiting for the team, the last 7 days, upcoming events, latest activity                                                                                  |
-| **Events**                  | Events, registrations, check-in at the door from a phone                                                                                                         |
-| **Community**               | Members, contacts (tags, groups, merge duplicates), messages                                                                                                     |
-| **Ecosystem**               | Listings to review, all listings, partners, renewals                                                                                                             |
-| **Website**                 | Blog posts, files, page texts, board and speakers, guide pages                                                                                                   |
-| **Emails and social media** | Newsletters (block builder, scheduled, own figures), Email the community, scheduled social media posts (how to connect LinkedIn and Facebook), automatic emails  |
-| **Dashboards and insights** | Events and attendance, membership, website traffic (Cloudflare, plus visits from the site's emails), newsletters, emails sent (Resend and SES), Cloudflare usage |
-| **Settings**                | General, membership switches, weekly summary, event covers, social links, email delivery                                                                         |
-| **History**                 | Actions log (who did what in the admin), Change history (each version of the site)                                                                               |
+| Group                       | What is in it                                                                                                                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**               | What is waiting for the team, the last 7 days, upcoming events, latest activity                                                                                                    |
+| **Events**                  | Events, registrations, check-in at the door from a phone                                                                                                                           |
+| **Community**               | Members, contacts (tags, groups, merge duplicates), messages                                                                                                                       |
+| **Ecosystem**               | Listings to review, all listings, partners, renewals                                                                                                                               |
+| **Website**                 | Blog posts, files, page texts, board and speakers, guide pages                                                                                                                     |
+| **Emails and social media** | Newsletters (block builder, scheduled, own figures), Email the community, scheduled social media posts on LinkedIn, Facebook and Instagram (how to connect them), automatic emails |
+| **Dashboards and insights** | Events and attendance, membership, website traffic (Cloudflare, plus visits from the site's emails), newsletters, emails sent (Resend and SES), Cloudflare usage                   |
+| **Settings**                | General, membership switches, weekly summary, event covers, social links, email delivery                                                                                           |
+| **History**                 | Actions log (who did what in the admin), Change history (each version of the site)                                                                                                 |
 
 Emails go through Resend or Amazon SES, chosen in Settings > Email delivery for each kind of email (automatic, community, newsletters), where both services' keys,
 secrets and webhook addresses are also set up, with a do-not-email list for bounces and spam complaints.

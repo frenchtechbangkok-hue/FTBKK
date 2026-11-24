@@ -260,7 +260,7 @@ Moving to the French Tech domain later: verify the new domain in SES (step 1), t
 `EMAIL_FROM`. Production access, keys and the SNS topic stay; add the new identity to the feedback
 notifications (step 5).
 
-## 7. Connect LinkedIn and Facebook (optional)
+## 7. Connect LinkedIn, Facebook and Instagram (optional)
 
 Until this is done, scheduled social media posts arrive by email to post by hand (Admin > Social
 media says which pages are connected). WhatsApp has no posting API and always works by email.
@@ -275,6 +275,23 @@ media says which pages are connected). WhatsApp has no posting API and always wo
 3. Put the page's numeric ID in `FACEBOOK_PAGE_ID` in `wrangler.jsonc` and deploy, then add the
    token as a secret: Worker > Settings > Variables and Secrets > Add > Secret, name
    `FACEBOOK_PAGE_TOKEN` (or `npx wrangler secret put FACEBOOK_PAGE_TOKEN`).
+
+**Instagram account** (uses the Facebook app and page token: do Facebook first)
+
+1. Make the Instagram account a Professional (Business) account and link it to the Facebook page
+   (Facebook page > Settings > Linked accounts > Instagram).
+2. In the Facebook app, add the Instagram product (Instagram API with Facebook Login). Make the
+   page token again with `instagram_basic` and `instagram_content_publish` added to the Facebook
+   permissions, extend it, and replace the `FACEBOOK_PAGE_TOKEN` secret with it (Facebook keeps
+   working with the new token).
+3. Get the Instagram business account ID with the Graph API Explorer:
+   `<FACEBOOK_PAGE_ID>?fields=instagram_business_account`. Put it in `INSTAGRAM_ACCOUNT_ID` in
+   `wrangler.jsonc` and deploy.
+
+Each Instagram post is the share image (the general `brand/share-default.jpg` when an event or
+post has none: Instagram takes only JPEG between 4:5 and 1.91:1) with the text as caption, cut at
+2,200 characters. Instagram fetches the image from the site, so `/media/*` must be public. The API
+allows 50 posts a day per account.
 
 **LinkedIn page**
 

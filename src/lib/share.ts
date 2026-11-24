@@ -77,11 +77,14 @@ export function shareImageFor(key: string | null | undefined, fingerprint: strin
 
 // ---------- social media posts ----------
 
-export const NETWORKS = ['linkedin', 'facebook', 'whatsapp'] as const;
+export const NETWORKS = ['linkedin', 'facebook', 'instagram', 'whatsapp'] as const;
 export type Network = (typeof NETWORKS)[number];
+/** The networks the site can post to by itself once connected (WhatsApp never). */
+export type ApiNetwork = Exclude<Network, 'whatsapp'>;
 export const NETWORK_LABELS: Record<Network, string> = {
   linkedin: 'LinkedIn',
   facebook: 'Facebook',
+  instagram: 'Instagram',
   whatsapp: 'WhatsApp',
 };
 
@@ -140,6 +143,25 @@ export const whatsappLink = (text: string) => `https://wa.me/?text=${encodeURICo
  */
 export function linkedinText(text: string) {
   return text.replace(/[\\|{}@[\]()<>#*_~]/g, (c) => `\\${c}`);
+}
+
+/** Image used on Instagram when the event or post has no up-to-date share image. */
+export const INSTAGRAM_DEFAULT_IMAGE = '/brand/share-default.jpg';
+
+/**
+ * Path of the image an Instagram post uses. Instagram needs a picture with every post, takes only
+ * JPEG and refuses images narrower than 4:5 or wider than 1.91:1: the 1200x630 share image fits,
+ * a cover photo of any shape may not, so without a share image the general one is used.
+ */
+export function instagramImagePath(imageKey: string | null | undefined) {
+  return imageKey && imageKey.startsWith('share/') && imageKey.endsWith('.jpg')
+    ? mediaUrl(imageKey)!
+    : INSTAGRAM_DEFAULT_IMAGE;
+}
+
+/** Instagram captions stop at 2,200 characters; links in them are not clickable. */
+export function instagramCaption(text: string) {
+  return text.length <= 2200 ? text : `${text.slice(0, 2199).trimEnd()}…`;
 }
 
 // ---------- the schedule form (Admin > Social media posts) ----------
