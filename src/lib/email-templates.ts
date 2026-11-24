@@ -34,6 +34,8 @@ export interface Placeholder {
    * paragraph per item; inside a sentence the items are joined with line breaks.
    */
   list?: boolean;
+  /** For a list on a line of its own: its first item is a heading, shown in bold in the email. */
+  heading?: boolean;
 }
 
 export interface EmailTemplateDef {
@@ -574,9 +576,10 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
       {
         key: 'next-events',
         description:
-          '"Coming up next:" and the next three events, one per paragraph when on a line of its own (empty when none is planned)',
+          '"Coming up next:" (in bold) and the next three events, one per paragraph when on a line of its own (empty when none is planned)',
         sample: `Coming up next:\n${SAMPLE_EVENT}, ${SAMPLE_DATE}: ${sampleEventUrl}`,
         list: true,
+        heading: true,
       },
     ],
     added:
@@ -1128,11 +1131,13 @@ export function applyTemplate(
     const k = STANDALONE.exec(p)?.[1];
     const v = k && has(vars, k) ? vars[k] : undefined;
     if (v !== undefined && typeof v !== 'string') {
-      // A list on a line of its own: one paragraph per item.
+      // A list on a line of its own: one paragraph per item (the first in bold when a heading).
+      let bold = def.placeholders.some((ph) => ph.key === k && ph.heading);
       for (const item of v) {
         if (!item.trim()) continue;
         paragraphs.push(item);
-        md.push(hold(item));
+        md.push(bold ? `**${hold(item)}**` : hold(item));
+        bold = false;
       }
       continue;
     }

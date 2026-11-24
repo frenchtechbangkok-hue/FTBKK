@@ -544,6 +544,17 @@ describe('membership emails', () => {
     });
   });
 
+  it('show "Coming up next:" in bold, the events in plain text', () => {
+    const w = applyTemplate(EMAIL_TEMPLATES['member.welcome'], null, {
+      name: 'Ann',
+      whatsapp: '',
+      'next-events': ['Coming up next:', 'Connect, Thu 5 Nov: https://x/events/connect'],
+    });
+    expect(w.bodyHtml).toMatch(/<strong[^>]*>Coming up next:<\/strong>/);
+    expect(w.bodyHtml).not.toMatch(/<strong[^>]*>Connect/);
+    expect(w.paragraphs).toContain('Coming up next:');
+  });
+
   it('are in the Membership group', () => {
     for (const k of ['member.confirm', 'member.welcome', 'member.link', 'member.already-member'])
       expect(EMAIL_TEMPLATES[k as keyof typeof EMAIL_TEMPLATES].group).toBe('Membership');
@@ -603,7 +614,11 @@ describe('Markdown messages', () => {
     for (const k of TEMPLATE_KEYS) {
       const d = EMAIL_TEMPLATES[k];
       const r = applyTemplate(d, null, sampleVars(d), origin);
-      expect(visible(r.bodyHtml), k).toBe(visible(oldHtml(r.paragraphs)));
+      // A list heading (the welcome email's "Coming up next:") is the one change: now in bold.
+      const html = visible(r.bodyHtml).replace(/<strong>([^<]*)<\/strong>/g, (_m, t: string) =>
+        d.placeholders.some((p) => p.heading) ? t : _m,
+      );
+      expect(html, k).toBe(visible(oldHtml(r.paragraphs)));
     }
   });
 

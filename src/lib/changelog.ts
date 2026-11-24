@@ -20,11 +20,20 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
-    version: '26.11.20',
+    version: '26.11.21',
     date: '2026-11-24',
+    pr: 143,
     title: 'Tech Pulse editions chosen by a blog category',
     summary:
       'The Tech Pulse page now lists the blog posts in the new "Tech Pulse" category instead of every post with Tech Pulse in its title; the three existing editions are already in it, so to publish a new edition, tick the category on its blog post.',
+  },
+  {
+    version: '26.11.20',
+    date: '2026-11-24',
+    pr: 142,
+    title: '"Coming up next" in bold in the welcome email',
+    summary:
+      'In the "Welcome to the membership" email, the "Coming up next:" heading above the next events is now in bold; nothing to change in Admin > Automatic emails.',
   },
   {
     version: '26.11.19',
