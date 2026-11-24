@@ -19,7 +19,8 @@ The website of La French Tech Bangkok, live at https://french-tech-bangkok.com s
   open), the Founder's Guide, Expanding to Thailand and Come work in France
   (French Tech Visa).
 - **Newsletters** at `/newsletters`: the web version of each newsletter sent from the admin.
-- **About**, **Join** (free individual membership, WhatsApp, newsletter, contact form), a **Thai
+- **About**, **Join** (free individual membership: company, job title, a sector and how they
+  heard of us are required; WhatsApp, newsletter, contact form), a **Thai
   page** at `/th`, the code of conduct and the privacy notice.
 - **Members** get a personal page from an email link (no passwords): their events, profile and
   yearly renewal.

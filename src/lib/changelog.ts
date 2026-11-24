@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.16',
+    date: '2026-11-24',
+    title: 'Company, job title, sector and "how did you hear" required on sign-up',
+    summary:
+      'New members (Join page, event registration, claim link, Tech Pulse download) must now give their company, job title, at least one sector of interest and how they heard of us; the event registration form asks for company, job title and how they heard of us too.',
+  },
+  {
     version: '26.11.15',
     date: '2026-11-24',
     title: "Weekly summary: send me this week's, renewals and failed posts",

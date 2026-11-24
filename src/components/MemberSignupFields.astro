@@ -31,12 +31,14 @@ const { values, errors, fixedEmail } = Astro.props;
     error={errors.email}
   />
 )}
-<MemberProfileFields values={values} errors={errors} />
+<MemberProfileFields values={values} errors={errors} signup />
 <FormField
   name="howHeard"
   id="m-howHeard"
   label="How did you hear about us?"
+  required
   value={values.howHeard as string}
+  error={errors.howHeard}
   options={HOW_HEARD.map((h) => ({ value: h, label: h }))}
 />
 <FormField
