@@ -22,6 +22,7 @@ export const RELEASES: Release[] = [
   {
     version: '26.11.14',
     date: '2026-11-24',
+    pr: 136,
     title: 'Weekly digest for the team',
     summary:
       "Every Monday at 9:00 the team gets the weekly digest: what happened last week, what is coming this week and what waits for someone, even in a quiet week. Its words and parts are edited in Emails > Automatic emails > Weekly digest, with a button to send yourself this week's real digest.",
