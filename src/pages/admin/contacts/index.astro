@@ -11,6 +11,8 @@ import {
   deleteContacts,
   filterContacts,
   loadContacts,
+  MEMBER_FILTER_HINTS,
+  MEMBER_FILTERS,
   tagContacts,
   type ContactLabel,
 } from '../../../lib/contacts';
@@ -84,7 +86,10 @@ if (Astro.request.method === 'POST') {
   return Astro.redirect(`/admin/contacts${back.size ? `?${back}` : ''}`);
 }
 const q = url.searchParams.get('q') ?? '';
-const show = url.searchParams.get('show') ?? 'all';
+let show = url.searchParams.get('show') ?? 'all';
+let member = url.searchParams.get('member') ?? '';
+if (show === 'members') [show, member] = ['all', 'yes']; // old links
+if (!(member in MEMBER_FILTERS)) member = '';
 const event = Number(url.searchParams.get('event')) || 0;
 const tagParam = url.searchParams.get('tag') ?? '';
 const tag = labels.tagName.has(tagParam) ? tagParam : '';
@@ -92,8 +97,11 @@ const groupParam = Number(url.searchParams.get('group')) || 0;
 const group = labels.groupName.has(groupParam) ? groupParam : 0;
 const currentGroup = labels.groups.find((g) => g.id === group);
 const all = await loadContacts();
-const shown = filterContacts(all, { q, show, event, tag, group });
-const hint = CONTACT_FILTER_HINTS[show as keyof typeof CONTACT_FILTER_HINTS];
+const shown = filterContacts(all, { q, show, event, tag, group, member });
+const hints = [
+  CONTACT_FILTER_HINTS[show as keyof typeof CONTACT_FILTER_HINTS],
+  MEMBER_FILTER_HINTS[member as keyof typeof MEMBER_FILTER_HINTS],
+].filter(Boolean);
 
 // The result of an "Add tag" / "Remove tag" bulk action, shown once after the redirect.
 const tagged = Astro.request.method === 'GET' ? url.searchParams.get('tagged') : null;
@@ -162,7 +170,7 @@ const summary = [
   ['Linked to the ecosystem', all.filter((c) => c.organisations.length > 0).length],
 ];
 const csv = `/admin/contacts.csv${url.search}`;
-const filtered = Boolean(q || event || tag || group || show !== 'all');
+const filtered = Boolean(q || event || tag || group || member || show !== 'all');
 const emails = [...new Set(shown.map((c) => c.email).filter(Boolean))].join(', ');
 ---
 
@@ -213,7 +221,7 @@ const emails = [...new Set(shown.map((c) => c.email).filter(Boolean))].join(', '
         name="q"
         value={q}
         type="search"
-        placeholder="Name, email, company or listing"
+        placeholder="Name, email, company, job or listing"
         class="w-full rounded-lg border border-line px-3 py-1.5 sm:w-72"
       />
       <label for="show" class="sr-only">
@@ -227,6 +235,21 @@ const emails = [...new Set(shown.map((c) => c.email).filter(Boolean))].join(', '
       >
         {Object.entries(CONTACT_FILTERS).map(([k, label]) => (
           <option value={k} selected={k === show}>
+            {label}
+          </option>
+        ))}
+      </select>
+      <label for="member" class="sr-only">
+        Membership
+      </label>
+      <select
+        id="member"
+        name="member"
+        class="max-w-full rounded-lg border border-line px-3 py-1.5"
+        onchange="this.form.requestSubmit()"
+      >
+        {Object.entries(MEMBER_FILTERS).map(([k, label]) => (
+          <option value={k} selected={k === member}>
             {label}
           </option>
         ))}
@@ -307,7 +330,17 @@ const emails = [...new Set(shown.map((c) => c.email).filter(Boolean))].join(', '
       </Button>
     </form>
 
-    {hint && <p class="mb-3 text-sm text-muted">{hint}</p>}
+    {filtered && (
+      <p class="mb-3 text-sm text-muted" aria-live="polite">
+        <strong class="text-ink">
+          {shown.length} of {all.length} contact{all.length === 1 ? '' : 's'}
+        </strong>{' '}
+        match these filters.
+        {hints.map((h) => (
+          <span class="block">{h}</span>
+        ))}
+      </p>
+    )}
     {currentGroup && (
       <div class="mb-3 flex flex-wrap items-center gap-3 rounded-lg bg-surface p-3 text-sm">
         <p class="mr-auto">

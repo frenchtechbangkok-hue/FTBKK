@@ -526,8 +526,12 @@ backup); a second send of the same message within 10 minutes, even from another 
 per person (grouped by email), with no sign-up needed. For each person it shows how many events
 they attended, registered for and missed, which events those were, their company, and the
 ecosystem listings they manage or are the contact for. The list can be filtered (regulars, never
-came, linked to the ecosystem, by event, by tag, by group, "Members" (active individual members) and
-"Regulars not yet members": people who came to 3 or more events and haven't joined, to invite) and exported to CSV, and "Copy emails" copies
+came, linked to the ecosystem, by event, by tag, by group, by membership: "Members" (active
+individual members), "Not members" (no active individual membership) or "Invited, not joined yet",
+and "Regulars not yet members": people who came to 3 or more events and haven't joined, to invite).
+The filters combine (`filterContacts` in `lib/contacts.ts`, `member=yes|no|invited` in the URL;
+old `show=members` links still work), a line says how many contacts match, the search also covers
+job titles, and the list can be exported to CSV, and "Copy emails" copies
 the filtered addresses for the Bcc field of an email. **Tags and groups** (`/admin/contacts/labels`,
 `lib/contact-labels.ts`, migration 0039) turn Contacts into a small CRM: the team creates, renames
 and deletes tags (short labels shown next to a name; Speaker, Sponsor, Volunteer, Board and Press to

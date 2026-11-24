@@ -36,7 +36,7 @@ are no roles. The menu:
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Dashboard**               | What is waiting for the team, the last 7 days, upcoming events, latest activity                                                                                  |
 | **Events**                  | Events, registrations, check-in at the door from a phone                                                                                                         |
-| **Community**               | Members, contacts (tags, groups, merge duplicates), messages                                                                                                     |
+| **Community**               | Members, contacts (filters, tags, groups, merge duplicates), messages                                                                                            |
 | **Ecosystem**               | Listings to review, all listings, partners, renewals                                                                                                             |
 | **Website**                 | Blog posts, files, page texts, board and speakers, guide pages                                                                                                   |
 | **Emails and social media** | Newsletters (block builder, scheduled, own figures), Email the community, scheduled social media posts (how to connect LinkedIn and Facebook), automatic emails  |
