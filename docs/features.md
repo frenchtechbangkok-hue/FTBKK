@@ -486,9 +486,9 @@ listing, claim, listing change and membership application to review, and the wee
 `src/lib/weekly-summary.ts`, every Monday at 9:00 also on a quiet week, its own cron job so a
 failing directory step never holds it back. It has three groups: This week (new members, event
 registrations, events held, posts published, newsletters sent, messages, listings), Coming up
-(events and scheduled newsletters and social posts of the next 7 days) and To do (members to
-review, messages to answer, drafts, directory queue, renewals). Settings > Weekly summary switches
-each part off (`weeklySummaryOff`); the parts fill `{summary}`. No email per new member). Every team notification goes to the addresses in Settings > General > Admin notifications (the
+(events, scheduled newsletters and social posts, and membership renewals of the next 7 days) and To do (members to
+review, messages to answer, failed social posts, drafts, directory queue, renewals). Settings > Weekly summary switches
+each part off (`weeklySummaryOff`); the parts fill `{summary}`; **Send me this week's summary** (Emails > Weekly summary) sends the real one to the signed-in admin only. No email per new member). Every team notification goes to the addresses in Settings > General > Admin notifications (the
 contact email when empty); **Send a test** there sends one right away and shows Resend's answer.
 A contact form message whose email fails gets a note saying so in Messages.
 Lists built by the site (the weekly summary's `{summary}`) are placeholders (`{renewals}`)

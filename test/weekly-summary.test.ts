@@ -83,6 +83,8 @@ const data = {
   sent: [],
   scheduledNewsletters: [],
   scheduledSocial: [],
+  renewing: [],
+  socialFailed: 0,
   expiring: [],
 } as unknown as SummaryData;
 
@@ -132,7 +134,7 @@ describe('weekly summary: the parts', () => {
   });
 
   it('leaves out the parts switched off, and a group with none left', () => {
-    const on = partsOn(['upcoming-events', 'scheduled', 'messages']);
+    const on = partsOn(['upcoming-events', 'scheduled', 'member-renewals', 'messages']);
     const lines = summaryLines(data, on, now);
     expect(lines.some((l) => l.startsWith('COMING UP'))).toBe(false);
     expect(lines).not.toContain('Messages received: 3.');
