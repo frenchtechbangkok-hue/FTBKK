@@ -11,10 +11,15 @@
 /** Header that sets the edge cache only (browsers ignore it); takes precedence over Cache-Control. */
 export const EDGE_HEADER = 'Cloudflare-CDN-Cache-Control';
 
-/** Public pages: browsers always ask again, the edge keeps a copy 60 s and refreshes it in the background. */
+/**
+ * Public pages: browsers always ask again; the edge keeps a copy an hour and refreshes it in the
+ * background. Anything saved (admin, or a form on the site) clears the whole edge cache at once
+ * (purgeAfterChange), so the hour only matters for changes that come with time alone, such as an
+ * event moving to "past". Each copy the edge serves is a page the Worker doesn't build: CPU time.
+ */
 export const PUBLIC_PAGE = {
   browser: 'public, max-age=0, must-revalidate',
-  edge: 'max-age=60, stale-while-revalidate=600, stale-if-error=86400',
+  edge: 'max-age=3600, stale-while-revalidate=3600, stale-if-error=86400',
 };
 
 const NEVER = 'private, no-store';
@@ -87,3 +92,49 @@ export function publicPageHeaders(request: Request, res: Response) {
   res.headers.set('Cache-Control', PUBLIC_PAGE.browser);
   res.headers.set(EDGE_HEADER, PUBLIC_PAGE.edge);
 }
+
+/**
+ * Requests that change what public pages show: anything but a read that didn't fail, except the
+ * admin calls that only preview, count or check people in (frequent, and nothing public changes).
+ * The webhooks and one-click unsubscribe are answered before this check (src/worker.ts).
+ */
+export function changesContent(request: Request, res: Response) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(request.method) || res.status >= 400) return false;
+  const path = new URL(request.url).pathname;
+  return !/^\/api\/admin\/(?:[\w-]*preview|dashboard-traffic|post-views|checkin|walk-in)\b/.test(
+    path,
+  );
+}
+
+/**
+ * Clears the edge cache (ctx.cache.purge, Workers Caching) so the next visit of any page is built
+ * again with the new content. In the background; a failure (e.g. Cloudflare's purge rate limit)
+ * is logged and the pages refresh within the hour anyway.
+ */
+export function purgeEdgeCache(ctx: ExecutionContext, why: string) {
+  if (!ctx.cache) return;
+  ctx.waitUntil(
+    ctx.cache.purge({ purgeEverything: true }).then(
+      (r) => {
+        if (!r.success) console.warn('[edge-cache] purge failed', why, JSON.stringify(r.errors));
+      },
+      (e) => console.warn('[edge-cache] purge failed', why, e),
+    ),
+  );
+}
+
+/**
+ * Bots probing for other software (WordPress, PHP, .env, .git…): a tiny 404 before Astro, so they
+ * don't cost a full "page not found" page each. The site has none of these paths.
+ */
+export function isProbe(pathname: string) {
+  return /\.(?:php\d?|aspx?|jsp|cgi|env|ini|sql|bak|ya?ml)$|^\/(?:wp-|wordpress\b|\.git\b|\.env|\.aws\b|xmlrpc|cgi-bin\b|phpmyadmin\b)/i.test(
+    pathname,
+  );
+}
+
+export const probeNotFound = () =>
+  new Response('Not found', {
+    status: 404,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': NEVER },
+  });

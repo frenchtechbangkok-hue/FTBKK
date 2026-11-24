@@ -6,6 +6,10 @@ screen by screen for the team.
 
 ## Public site
 
+- **Speed and CPU time**: public pages are kept an hour at Cloudflare's edge and the whole edge
+  cache is cleared whenever something is saved (admin edits, forms, the daily cron, a sent
+  newsletter), so edits still show at once; bots probing for WordPress/PHP/.env files get a tiny
+  404 before Astro. Details in docs/deploy.md section 10.
 - **Home**, after the board's mockup: a full-width photo hero (the Bangkok skyline until another
   is uploaded; words between \*stars\* in the heading show in red); "About us" with the first
   paragraph of About, the values, an arched photo and four items with icons (Connect talent,
