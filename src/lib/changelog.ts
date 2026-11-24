@@ -22,6 +22,7 @@ export const RELEASES: Release[] = [
   {
     version: '26.11.22',
     date: '2026-11-24',
+    pr: 144,
     title: 'Monthly events line in the welcome email',
     summary:
       'In the "Welcome to the membership" email, "We are hosting monthly events, check and register to the next one!" now sits under the bold "Coming up next:" heading, before the list of next events.',
