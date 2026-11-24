@@ -520,7 +520,7 @@ A contact form message whose email fails gets a note saying so in Messages.
 Lists built by the site (the weekly summary's `{summary}`) are placeholders (`{renewals}`)
 that must stay in the message (not only the subject or button), like a rejection `{reason}`, the contact form `{message}` or a claim's `{domain-check}`. Optional
 parts of the welcome email are placeholders too: `{whatsapp}` (the WhatsApp sentence, empty
-without a link) and `{next-events}` ("Coming up next:" in bold, then the next events, empty when none); a
+without a link) and `{next-events}` ("Coming up next:" in bold, "We are hosting monthly events, check and register to the next one!", then the next events, empty when none); a
 placeholder left empty on its own line leaves no blank paragraph. "Email registrants" is written each time, so it is listed but not a
 template.
 

@@ -555,6 +555,13 @@ describe('membership emails', () => {
     expect(w.paragraphs).toContain('Coming up next:');
   });
 
+  it('invite to the monthly events right under "Coming up next:" in the preview', () => {
+    const def = EMAIL_TEMPLATES['member.welcome'];
+    const p = sampleEmail(def, defaultText(def)).paragraphs;
+    const i = p.indexOf('Coming up next:');
+    expect(p[i + 1]).toBe('We are hosting monthly events, check and register to the next one!');
+  });
+
   it('are in the Membership group', () => {
     for (const k of ['member.confirm', 'member.welcome', 'member.link', 'member.already-member'])
       expect(EMAIL_TEMPLATES[k as keyof typeof EMAIL_TEMPLATES].group).toBe('Membership');

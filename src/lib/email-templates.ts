@@ -576,8 +576,8 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
       {
         key: 'next-events',
         description:
-          '"Coming up next:" (in bold) and the next three events, one per paragraph when on a line of its own (empty when none is planned)',
-        sample: `Coming up next:\n${SAMPLE_EVENT}, ${SAMPLE_DATE}: ${sampleEventUrl}`,
+          '"Coming up next:" (in bold), a line inviting to our monthly events, and the next three events, one per paragraph when on a line of its own (empty when none is planned)',
+        sample: `Coming up next:\nWe are hosting monthly events, check and register to the next one!\n${SAMPLE_EVENT}, ${SAMPLE_DATE}: ${sampleEventUrl}`,
         list: true,
         heading: true,
       },

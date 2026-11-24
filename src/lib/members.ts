@@ -315,6 +315,7 @@ async function sendWelcome(m: Member, link: string) {
     'next-events': next.length
       ? [
           'Coming up next:',
+          'We are hosting monthly events, check and register to the next one!',
           ...next.map(
             (e) =>
               `${e.title}, ${formatEventDate(e.startsAt, e.endsAt)}: ${siteUrl(`/events/${e.slug}`)}`,
