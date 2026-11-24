@@ -22,7 +22,7 @@ import { audit, adminNotifyEmails, sendExpiredNotice, sendRenewalReminder, siteU
 import { sendEmail } from './email';
 import { EMAIL_TEMPLATES, applyTemplate, loadTemplateText } from './email-templates';
 import { newMemberLine, newMembersSince } from './members';
-import { TZ, formatDate } from './format';
+import { formatDate } from './format';
 
 /** Daily directory maintenance. Returns a summary for the logs. */
 export async function runDirectoryJobs(now: Date) {
@@ -98,12 +98,7 @@ export async function runDirectoryJobs(now: Date) {
   await db.delete(claims).where(and(eq(claims.status, 'unverified'), lt(claims.createdAt, cutoff)));
   await db.delete(magicTokens).where(lt(magicTokens.expiresAt, now));
 
-  // 5. Monday summary for the team: new members of the week and the directory queue.
-  const weekday = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short' }).format(now);
-  if (weekday === 'Mon') {
-    await sendModeratorDigest(now);
-    summary.digest = 1;
-  }
+  // The Monday summary is its own cron job (cron.ts), so a failure here never holds it back.
   return summary;
 }
 
@@ -175,7 +170,7 @@ export async function sendModeratorDigest(now: Date) {
     );
   const unclaimedDue = expiring.filter((o) => o.owners.length === 0).length;
   const total = ages.length;
-  if (!total && !expiring.length && !joined.length) return;
+  if (!total && !expiring.length && !joined.length) return false;
   const key = 'admin.directory-digest';
   const w = applyTemplate(EMAIL_TEMPLATES[key], withNewMembers(await loadTemplateText(key)), {
     members: newMembersCount(joined.length),
@@ -206,4 +201,5 @@ export async function sendModeratorDigest(now: Date) {
     ],
     action: { label: w.buttonLabel, url: siteUrl('/admin/ecosystem') },
   });
+  return true;
 }
