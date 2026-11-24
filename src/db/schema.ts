@@ -84,6 +84,8 @@ export const events = sqliteTable(
     recap: json<EventRecap>('recap'),
     /** The 1200x630 social share image (R2 key, lib/share.ts); its name carries a fingerprint. */
     shareImageKey: text('share_image_key'),
+    /** When the team got the day-before email for this event (src/lib/event-eve.ts); once per event. */
+    teamReminderSentAt: ts('team_reminder_sent_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

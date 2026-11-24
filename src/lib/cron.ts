@@ -3,6 +3,7 @@ import { isMonday, sendWeeklySummary } from './weekly-summary';
 import { sendEventReminders, sendFeedbackRequests, weeklyBackup } from './cron-events';
 import { runMemberRenewals } from './members';
 import { getSettings } from './settings';
+import { sendEventEveEmails } from './event-eve';
 import { runSocialPosts } from './social';
 import { runNewsletters } from './newsletters';
 
@@ -28,6 +29,8 @@ export async function runScheduled(_env: Env, now: Date): Promise<void> {
   ];
   const daily: [string, () => Promise<unknown>][] = [
     ['event-reminders', () => sendEventReminders(now)],
+    // The team's day-before email: key figures, notes and the check-in link (once per event).
+    ['event-team-email', () => sendEventEveEmails(now)],
     ['event-feedback', () => sendFeedbackRequests(now)],
     ['directory', () => runDirectoryJobs(now)],
     // Its own job, so a failing directory step never holds back the Monday summary.

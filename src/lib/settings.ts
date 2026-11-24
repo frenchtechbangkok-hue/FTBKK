@@ -76,6 +76,8 @@ export interface Settings {
   cloudflarePlan: 'free' | 'paid';
   /** Settings > Weekly summary: the parts switched off (lib/weekly-summary.ts); empty = all on. */
   weeklySummaryOff: string[];
+  /** Settings > General > Admin notifications: the day-before email to the team (lib/event-eve.ts). */
+  teamEventReminder: boolean;
 }
 
 /** Fallbacks used when a key has never been saved (fresh database). Real copy is seeded by the import. */
@@ -122,6 +124,7 @@ export const defaultSettings: Settings = {
   emailProviders: {},
   cloudflarePlan: 'free',
   weeklySummaryOff: [],
+  teamEventReminder: true,
 };
 
 export type Card = { title: string; text: string; link?: string };

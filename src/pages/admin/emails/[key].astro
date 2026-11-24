@@ -24,6 +24,7 @@ import { fieldErrors } from '../../../lib/forms';
 import { audit } from '../../../lib/orgs';
 import { formatDate, formatTime } from '../../../lib/format';
 import { SUMMARY_KEY, weeklySummaryEmail } from '../../../lib/weekly-summary';
+import { EVE_KEY, eveEmail, nextEventWithRegistration } from '../../../lib/event-eve';
 
 // Edit the wording of one email, preview it with sample values, send a test, or go back to the
 // default text. Admin only (middleware).
@@ -124,6 +125,19 @@ if (Astro.request.method === 'POST') {
       if (res.ok)
         notice = `This week's summary sent to ${to}, with today's figures. It is not saved yet.`;
       else error = `The summary could not be sent: ${res.error ?? 'unknown error'}.`;
+    } else if (action === 'eve' && key === EVE_KEY) {
+      // The real email of the next event, with the words in the form, to the admin only.
+      const to = Astro.locals.adminEmail;
+      const next = await nextEventWithRegistration(new Date());
+      const msg = next ? await eveEmail(next, new Date(), t) : null;
+      const res = !to
+        ? { ok: false, error: 'No admin email (are you signed in through Cloudflare Access?)' }
+        : !msg
+          ? { ok: false, error: 'there is no upcoming published event with registration' }
+          : await sendEmail({ ...msg, to, subject: `[Test] ${msg.subject}` });
+      if (res.ok && next)
+        notice = `The email for ${next.title} sent to ${to}, with today's figures. It is not saved yet.`;
+      else error = `The email could not be sent: ${res.error ?? 'unknown error'}.`;
     } else if (action === 'preview') {
       notice = 'Preview updated below. Not saved yet.';
     }
@@ -241,12 +255,19 @@ const hasButton = def.buttonLabel !== undefined;
               Send me this week's summary
             </Button>
           )}
+          {key === EVE_KEY && (
+            <Button type="submit" name="action" value="eve" variant="secondary">
+              Send me the one for the next event
+            </Button>
+          )}
           {unsaved && <span class="text-sm font-semibold text-ink">Not saved yet</span>}
         </div>
         <p class="text-sm text-muted">
           The test goes only to {Astro.locals.adminEmail ?? 'you'}, with the sample values below.
           {key === SUMMARY_KEY &&
             " This week's summary uses today's real figures, also only to you."}
+          {key === EVE_KEY &&
+            ' The one for the next event uses its real figures and messages, also only to you; the event is not marked as sent.'}
         </p>
       </form>
 

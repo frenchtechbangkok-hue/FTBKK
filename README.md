@@ -12,7 +12,8 @@ The website of La French Tech Bangkok, live at https://french-tech-bangkok.com s
 - **Events**: upcoming and past events with built-in registration (capacity, waitlist, guests,
   members-only and private invite-link events), or no registration at all for walk-in events; QR
   tickets, reminders, feedback emails, speakers, sponsors and recaps (with attendance, companies
-  and feedback figures).
+  and feedback figures). The team gets an email the day before each event (key figures, what
+  attendees told us, the check-in link).
 - **Ecosystem**: a directory of French companies, startups and partners in Thailand. Owners manage
   their listing through email links, no accounts.
 - **Blog** with RSS, and **Resources**: Thailand Tech Pulse (PDFs for members while membership is
@@ -55,7 +56,7 @@ Full detail: [docs/features.md](docs/features.md) (every feature, with the files
 - [Astro 7](https://astro.build) with `@astrojs/cloudflare` (server output), TypeScript, Tailwind
   CSS v4.
 - Cloudflare Worker `ft-bkk-site` (entry `src/worker.ts`) with a cron every 5 minutes: newsletters
-  and social media posts at their time, daily jobs (reminders, renewals, feedback, weekly backup)
+  and social media posts at their time, daily jobs (reminders, the team's day-before email, renewals, feedback, weekly backup)
   at 09:00 Bangkok time.
 - D1 database `ftbkk` through Drizzle (`src/db/schema.ts`, migrations in `migrations/`).
 - R2 bucket `ftbkk-media` for images and files, served at `/media/*`.
