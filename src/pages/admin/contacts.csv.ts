@@ -20,6 +20,7 @@ export const GET: APIRoute = async ({ url }) =>
       event: Number(url.searchParams.get('event')) || 0,
       tag: url.searchParams.get('tag') ?? '',
       group: Number(url.searchParams.get('group')) || 0,
+      member: url.searchParams.get('member') ?? '',
     }),
     await loadLabels(),
   );
