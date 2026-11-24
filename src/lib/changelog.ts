@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.20',
+    date: '2026-11-24',
+    title: '"Coming up next" in bold in the welcome email',
+    summary:
+      'In the "Welcome to the membership" email, the "Coming up next:" heading above the next events is now in bold; nothing to change in Admin > Automatic emails.',
+  },
+  {
     version: '26.11.19',
     date: '2026-11-24',
     pr: 141,
