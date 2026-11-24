@@ -757,9 +757,10 @@ tables.
 - **Page texts** (Website > Page texts, formerly Website pages and Site texts; one tab per page): the home page, "You can join us" cards, the Join the community page (why join,
   and the membership block; empty = a default text), the About page, the Tech Pulse page's
   introduction, the Thai page, the code of conduct and the privacy notice. The **Tech Pulse page**
-  lists by itself every published post with "Tech Pulse" in its title: to add an edition, publish
-  a post titled like "Thailand Tech Pulse Q4 2026: …" (the quarter shows as a badge) and attach
-  the report PDF to it. While Settings > Membership is ticked, that PDF is members only: visitors
+  lists by itself every published post in the **Tech Pulse** blog category: to add an edition,
+  publish a post, tick the Tech Pulse category, title it like "Thailand Tech Pulse Q4 2026: …"
+  (the quarter shows as a badge) and attach the report PDF to it. A post with "Tech Pulse" in its
+  title but not in the category is an ordinary blog post. While Settings > Membership is ticked, that PDF is members only: visitors
   give their email, members download, newcomers join (free) first. Other files attached to the
   post stay public. The **Thai page** text is written in Thai; the part before the first
   `## ` heading is the introduction and each `## ` heading starts a numbered section. Long texts ("Who we are", "Official French Tech Community", the

@@ -17,23 +17,21 @@ import {
   DEFAULT_TECH_PULSE_INTRO,
   downloadPath,
   editionOf,
-  isTechPulse,
+  TECH_PULSE_CATEGORY,
   reportFile,
   reportTitle,
 } from '../lib/tech-pulse';
 
 // Thailand Tech Pulse, our quarterly report: every edition, newest first. An edition is a blog
-// post with "Tech Pulse" in its title (see lib/tech-pulse.ts).
-const [settings, posts] = await Promise.all([getSettings(), allPosts()]);
-const editions = posts
-  .filter((p) => isTechPulse(p.title))
-  .map((p) => ({
-    ...p,
-    edition: editionOf(p.title),
-    cover: mediaUrl(p.coverKey),
-    // Through /tech-pulse/download, which asks for membership while membership is open.
-    pdf: reportFile(p) ? downloadPath(p.slug) : null,
-  }));
+// post in the "Tech Pulse" category (see lib/tech-pulse.ts).
+const [settings, posts] = await Promise.all([getSettings(), allPosts(TECH_PULSE_CATEGORY)]);
+const editions = posts.map((p) => ({
+  ...p,
+  edition: editionOf(p.title),
+  cover: mediaUrl(p.coverKey),
+  // Through /tech-pulse/download, which asks for membership while membership is open.
+  pdf: reportFile(p) ? downloadPath(p.slug) : null,
+}));
 const latest = editions[0];
 const intro = renderMarkdown(settings.techPulseIntro || DEFAULT_TECH_PULSE_INTRO, { breaks: true });
 

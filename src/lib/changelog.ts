@@ -20,6 +20,14 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.21',
+    date: '2026-11-24',
+    pr: 143,
+    title: 'Tech Pulse editions chosen by a blog category',
+    summary:
+      'The Tech Pulse page now lists the blog posts in the new "Tech Pulse" category instead of every post with Tech Pulse in its title; the three existing editions are already in it, so to publish a new edition, tick the category on its blog post.',
+  },
+  {
     version: '26.11.20',
     date: '2026-11-24',
     pr: 142,

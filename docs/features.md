@@ -44,7 +44,7 @@ screen by screen for the team.
   Founder's Guide, Expanding to Thailand and Come work in France.
 - **Thailand Tech Pulse** at `/tech-pulse` (Resources menu): our quarterly report. The latest
   edition leads with a Download button, then every edition with its quarter, a link to the summary
-  post and the PDF. Editions are the published blog posts with "Tech Pulse" in their title; the
+  post and the PDF. Editions are the published blog posts in the "Tech Pulse" category; the
   PDF is the post's first PDF attachment (or the first PDF linked in its text). The introduction
   is edited in Site texts. While membership is open (Settings > Membership), the PDFs are for
   members, with the same steps as event registration: the Download buttons ask for an email; a
