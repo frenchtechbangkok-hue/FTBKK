@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.15',
+    date: '2026-11-24',
+    title: "Weekly summary: send me this week's, renewals and failed posts",
+    summary:
+      "Emails > Weekly summary has a Send me this week's summary button (today's real figures, only to you), and the summary now also lists membership renewals of the coming week and failed social media posts.",
+  },
+  {
     version: '26.11.14',
     date: '2026-11-24',
     pr: 135,

@@ -23,6 +23,7 @@ import { newMemberLine, newMembersSince } from './members';
 import { adminNotifyEmails, siteUrl } from './orgs';
 import { sendEmail } from './email';
 import { getSettings } from './settings';
+import { failedSocialPosts } from './dashboard';
 import { TZ, formatDate, formatEventDate } from './format';
 
 /**
@@ -98,6 +99,12 @@ export const SUMMARY_PARTS = [
     hint: 'What goes out in the next 7 days.',
   },
   {
+    key: 'member-renewals',
+    group: 'next',
+    label: 'Membership renewals',
+    hint: 'Members whose yearly membership is due in the next 7 days.',
+  },
+  {
     key: 'members-to-review',
     group: 'todo',
     label: 'Members to review',
@@ -108,6 +115,12 @@ export const SUMMARY_PARTS = [
     group: 'todo',
     label: 'Messages to answer',
     hint: 'Messages still in New.',
+  },
+  {
+    key: 'social-failed',
+    group: 'todo',
+    label: 'Failed social media posts',
+    hint: 'Posts of the last 14 days that could not be published.',
   },
   {
     key: 'drafts',
@@ -195,95 +208,121 @@ export async function weeklySummaryData(now: Date) {
   const db = getDb();
   const since = new Date(now.getTime() - 7 * DAY_MS);
   const until = new Date(now.getTime() + 7 * DAY_MS);
-  const [joined, toReview, q, evs, drafts, published, touched, messages, unread, sent, nl, social] =
-    await Promise.all([
-      newMembersSince(since, now),
-      db
-        .select({ n: sql<number>`count(*)` })
-        .from(members)
-        .where(and(eq(members.status, 'active'), isNull(members.reviewedAt))),
-      moderationQueue(),
-      db
-        .select()
-        .from(events)
-        .where(and(eq(events.status, 'published'), gte(events.startsAt, since)))
-        .orderBy(events.startsAt),
-      db
-        .select({ title: posts.title, updatedAt: posts.updatedAt })
-        .from(posts)
-        .where(eq(posts.status, 'draft'))
-        .orderBy(desc(posts.updatedAt)),
-      db
-        .select({ title: posts.title, publishedAt: posts.publishedAt })
-        .from(posts)
-        .where(
-          and(
-            eq(posts.status, 'published'),
-            gte(posts.publishedAt, since),
-            lt(posts.publishedAt, now),
-          ),
-        )
-        .orderBy(posts.publishedAt),
-      db
-        .select({ id: auditLog.entityId })
-        .from(auditLog)
-        .where(
-          and(
-            eq(auditLog.entity, 'organisation'),
-            inArray(auditLog.action, ['approve', 'create']),
-            gte(auditLog.at, since),
-          ),
+  const [
+    joined,
+    toReview,
+    q,
+    evs,
+    drafts,
+    published,
+    touched,
+    messages,
+    unread,
+    sent,
+    nl,
+    social,
+    renewing,
+    socialFailed,
+  ] = await Promise.all([
+    newMembersSince(since, now),
+    db
+      .select({ n: sql<number>`count(*)` })
+      .from(members)
+      .where(and(eq(members.status, 'active'), isNull(members.reviewedAt))),
+    moderationQueue(),
+    db
+      .select()
+      .from(events)
+      .where(and(eq(events.status, 'published'), gte(events.startsAt, since)))
+      .orderBy(events.startsAt),
+    db
+      .select({ title: posts.title, updatedAt: posts.updatedAt })
+      .from(posts)
+      .where(eq(posts.status, 'draft'))
+      .orderBy(desc(posts.updatedAt)),
+    db
+      .select({ title: posts.title, publishedAt: posts.publishedAt })
+      .from(posts)
+      .where(
+        and(
+          eq(posts.status, 'published'),
+          gte(posts.publishedAt, since),
+          lt(posts.publishedAt, now),
         ),
-      db
-        .select({ n: sql<number>`count(*)` })
-        .from(submissions)
-        .where(
-          and(
-            gte(submissions.createdAt, since),
-            ne(submissions.status, 'spam'),
-            ne(submissions.status, 'deleted'),
-          ),
+      )
+      .orderBy(posts.publishedAt),
+    db
+      .select({ id: auditLog.entityId })
+      .from(auditLog)
+      .where(
+        and(
+          eq(auditLog.entity, 'organisation'),
+          inArray(auditLog.action, ['approve', 'create']),
+          gte(auditLog.at, since),
         ),
-      db
-        .select({ n: sql<number>`count(*)` })
-        .from(submissions)
-        .where(eq(submissions.status, 'new')),
-      db
-        .select({
-          subject: newsletters.subject,
-          sentAt: newsletters.sentAt,
-          n: newsletters.sentCount,
-        })
-        .from(newsletters)
-        .where(and(eq(newsletters.status, 'sent'), gte(newsletters.sentAt, since)))
-        .orderBy(newsletters.sentAt),
-      db
-        .select({ subject: newsletters.subject, at: newsletters.scheduledAt })
-        .from(newsletters)
-        .where(
-          and(
-            eq(newsletters.status, 'scheduled'),
-            gte(newsletters.scheduledAt, now),
-            lt(newsletters.scheduledAt, until),
-          ),
-        )
-        .orderBy(newsletters.scheduledAt),
-      db
-        .select({
-          text: socialPosts.text,
-          at: socialPosts.scheduledAt,
-          networks: socialPosts.networks,
-        })
-        .from(socialPosts)
-        .where(
-          and(
-            eq(socialPosts.status, 'scheduled'),
-            gte(socialPosts.scheduledAt, now),
-            lt(socialPosts.scheduledAt, until),
-          ),
-        )
-        .orderBy(socialPosts.scheduledAt),
-    ]);
+      ),
+    db
+      .select({ n: sql<number>`count(*)` })
+      .from(submissions)
+      .where(
+        and(
+          gte(submissions.createdAt, since),
+          ne(submissions.status, 'spam'),
+          ne(submissions.status, 'deleted'),
+        ),
+      ),
+    db
+      .select({ n: sql<number>`count(*)` })
+      .from(submissions)
+      .where(eq(submissions.status, 'new')),
+    db
+      .select({
+        subject: newsletters.subject,
+        sentAt: newsletters.sentAt,
+        n: newsletters.sentCount,
+      })
+      .from(newsletters)
+      .where(and(eq(newsletters.status, 'sent'), gte(newsletters.sentAt, since)))
+      .orderBy(newsletters.sentAt),
+    db
+      .select({ subject: newsletters.subject, at: newsletters.scheduledAt })
+      .from(newsletters)
+      .where(
+        and(
+          eq(newsletters.status, 'scheduled'),
+          gte(newsletters.scheduledAt, now),
+          lt(newsletters.scheduledAt, until),
+        ),
+      )
+      .orderBy(newsletters.scheduledAt),
+    db
+      .select({
+        text: socialPosts.text,
+        at: socialPosts.scheduledAt,
+        networks: socialPosts.networks,
+      })
+      .from(socialPosts)
+      .where(
+        and(
+          eq(socialPosts.status, 'scheduled'),
+          gte(socialPosts.scheduledAt, now),
+          lt(socialPosts.scheduledAt, until),
+        ),
+      )
+      .orderBy(socialPosts.scheduledAt),
+    db
+      .select({ name: members.name, renewalDueAt: members.renewalDueAt })
+      .from(members)
+      .where(
+        and(
+          eq(members.status, 'active'),
+          gte(members.renewalDueAt, now),
+          lt(members.renewalDueAt, until),
+        ),
+      )
+      .orderBy(members.renewalDueAt),
+    failedSocialPosts(now),
+  ]);
 
   const regs = evs.length
     ? await db
@@ -374,6 +413,8 @@ export async function weeklySummaryData(now: Date) {
     sent,
     scheduledNewsletters: nl,
     scheduledSocial: social,
+    renewing,
+    socialFailed,
     expiring,
   };
 }
@@ -446,6 +487,17 @@ export function partLines(key: SummaryPart, d: SummaryData, now: Date): string[]
         ? ['Scheduled to go out:', ...items.map((i) => i.line)]
         : ['Scheduled newsletters and social media posts: none.'];
     }
+    case 'member-renewals':
+      return d.renewing.length
+        ? [
+            `Membership renewals due: ${d.renewing.length}.`,
+            ...d.renewing
+              .slice(0, 30)
+              .map((m) => `${m.name}, ${m.renewalDueAt ? short(m.renewalDueAt) : ''}.`),
+          ]
+        : ['Membership renewals due: none.'];
+    case 'social-failed':
+      return [`Failed social media posts: ${d.socialFailed || 'none'}.`];
     case 'members-to-review':
       return [`Members to review: ${d.toReview || 'none'}.`];
     case 'unread-messages':
@@ -510,7 +562,7 @@ export function summaryLines(d: SummaryData, on: Set<SummaryPart>, now: Date): s
 /** The figures in the subject, e.g. "2 new members, 14 new registrations, 6 things to do". */
 export function summaryCounts(d: SummaryData) {
   const regs = d.upcoming.reduce((t, e) => t + e.newThisWeek, 0);
-  const todo = d.toReview + d.unread + d.drafts.length + d.ages.length;
+  const todo = d.toReview + d.unread + d.drafts.length + d.ages.length + d.socialFailed;
   return {
     members: newMembersCount(d.joined.length),
     registrations: count(regs, 'new registration'),
@@ -518,26 +570,34 @@ export function summaryCounts(d: SummaryData) {
   };
 }
 
-/** Sends the summary to the Admin notifications addresses. Always sends. */
-export async function sendWeeklySummary(now: Date) {
-  const [d, settings, text] = await Promise.all([
+/**
+ * The summary as an email, with this week's real figures. `text` replaces the saved words (the
+ * admin's "Send me this week's summary" uses the unsaved form).
+ */
+export async function weeklySummaryEmail(now: Date, text?: EmailText | null) {
+  const [d, settings, saved] = await Promise.all([
     weeklySummaryData(now),
     getSettings(),
-    loadTemplateText(SUMMARY_KEY),
+    text === undefined ? loadTemplateText(SUMMARY_KEY) : Promise.resolve(text),
   ]);
   const on = partsOn(settings.weeklySummaryOff ?? []);
-  const w = applyTemplate(EMAIL_TEMPLATES[SUMMARY_KEY], withSummary(text), {
+  const w = applyTemplate(EMAIL_TEMPLATES[SUMMARY_KEY], withSummary(saved), {
     ...summaryCounts(d),
     week: `${short(d.since)} to ${short(new Date(now.getTime() - 1))}`,
     summary: summaryLines(d, on, now),
   });
-  await sendEmail({
+  return {
     to: await adminNotifyEmails(settings),
     subject: w.subject,
     campaign: w.campaign,
     paragraphs: w.paragraphs,
     bodyHtml: w.bodyHtml,
     action: { label: w.buttonLabel, url: siteUrl('/admin') },
-  });
+  };
+}
+
+/** Sends the summary to the Admin notifications addresses. Always sends. */
+export async function sendWeeklySummary(now: Date) {
+  await sendEmail(await weeklySummaryEmail(now));
   return 'sent';
 }

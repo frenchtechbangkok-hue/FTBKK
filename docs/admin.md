@@ -836,13 +836,15 @@ notifications addresses, in three groups:
   of us), event registrations per upcoming event, events held with how many came, blog posts
   published, newsletters sent, contact messages received, ecosystem listings added or published.
 - **Coming up** (the next 7 days): events with registered and waiting list, scheduled newsletters
-  and social media posts.
-- **To do**: members to review, messages to answer, blog posts in draft, the directory queue (with
+  and social media posts, membership renewals due.
+- **To do**: members to review, messages to answer, failed social media posts, blog posts in draft, the directory queue (with
   the oldest item's age against the 5-day target) and listing renewals due this month.
 
 **Settings > Weekly summary** has one switch per part: untick what you don't want (a group with
 nothing left disappears). The words around it (subject, opening sentence, button) are edited here
 in Emails like any other email; `{summary}` is where the parts go and must stay in the text.
+**Send me this week's summary** on that page emails only you the real summary, with today's
+figures and the words in the form (saved or not), to check it before Monday.
 
 A **Default** badge means the text the site came with; **Edited** shows when and by whom.
 
