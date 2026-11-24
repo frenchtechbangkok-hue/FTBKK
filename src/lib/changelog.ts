@@ -20,6 +20,14 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.17',
+    date: '2026-11-24',
+    pr: 139,
+    title: 'Social media posts on Instagram too',
+    summary:
+      'Scheduled social media posts about events and blog posts can now go to Instagram as well as LinkedIn and Facebook: the post is the share image with the text, sent through the same Facebook connection once the Instagram account is linked (Social media posts > Connected pages > How to connect Instagram).',
+  },
+  {
     version: '26.11.16',
     date: '2026-11-24',
     title: 'Contacts: "Not members" filter',

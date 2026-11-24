@@ -1,5 +1,5 @@
 // Scheduled social media posts (Admin > Social media posts). The cron (every 5 minutes) publishes what is due:
-// on LinkedIn and Facebook through their APIs once the page is connected (Worker secrets, see
+// on LinkedIn, Facebook and Instagram through their APIs once the page is connected (Worker secrets, see
 // docs/deploy.md), and by email otherwise. WhatsApp has no API for groups, so a WhatsApp post is
 // always an email to the admin who scheduled it, with the text and a one-tap WhatsApp link.
 import { env } from 'cloudflare:workers';
@@ -25,6 +25,8 @@ import {
   eventLaunchText,
   eventReminderText,
   eventShareSpec,
+  instagramCaption,
+  instagramImagePath,
   linkedinText,
   NETWORK_LABELS,
   postLaunchText,
@@ -32,26 +34,34 @@ import {
   shareFingerprint,
   shareImageFor,
   whatsappLink,
+  type ApiNetwork,
   type Network,
   type ShareSpec,
 } from './share';
 
-/** Which of the two Worker values each network needs are set (shown on Admin > Social media). */
-export function networkSetup(): Record<'linkedin' | 'facebook', { id: boolean; token: boolean }> {
+/**
+ * Which of the two Worker values each network needs are set (shown on Admin > Social media).
+ * Instagram posts with the Facebook page token (the Instagram account is linked to the page), so
+ * its own value is only the Instagram account ID.
+ */
+export function networkSetup(): Record<ApiNetwork, { id: boolean; token: boolean }> {
   return {
     linkedin: {
       id: Boolean(env.LINKEDIN_ORGANIZATION_ID),
       token: Boolean(env.LINKEDIN_ACCESS_TOKEN),
     },
     facebook: { id: Boolean(env.FACEBOOK_PAGE_ID), token: Boolean(env.FACEBOOK_PAGE_TOKEN) },
+    instagram: { id: Boolean(env.INSTAGRAM_ACCOUNT_ID), token: Boolean(env.FACEBOOK_PAGE_TOKEN) },
   };
 }
 
 /** Networks the site can post to by itself right now. */
-export function connectedNetworks(): Record<'linkedin' | 'facebook', boolean> {
+export function connectedNetworks(): Record<ApiNetwork, boolean> {
+  const setup = networkSetup();
   return {
-    linkedin: Boolean(env.LINKEDIN_ACCESS_TOKEN && env.LINKEDIN_ORGANIZATION_ID),
-    facebook: Boolean(env.FACEBOOK_PAGE_TOKEN && env.FACEBOOK_PAGE_ID),
+    linkedin: setup.linkedin.id && setup.linkedin.token,
+    facebook: setup.facebook.id && setup.facebook.token,
+    instagram: setup.instagram.id && setup.instagram.token,
   };
 }
 
@@ -194,9 +204,11 @@ async function postToLinkedIn(text: string, t: ShareTarget, now: Date): Promise<
   return { ok: true, url: urn ? `https://www.linkedin.com/feed/update/${urn}` : undefined };
 }
 
+const GRAPH = 'https://graph.facebook.com/v23.0';
+
 /** Posts on the Facebook page; Facebook builds the link preview from the page's og:image. */
 async function postToFacebook(text: string, t: ShareTarget): Promise<SocialResult> {
-  const res = await fetch(`https://graph.facebook.com/v23.0/${env.FACEBOOK_PAGE_ID}/feed`, {
+  const res = await fetch(`${GRAPH}/${env.FACEBOOK_PAGE_ID}/feed`, {
     method: 'POST',
     body: new URLSearchParams({
       message: text,
@@ -207,6 +219,53 @@ async function postToFacebook(text: string, t: ShareTarget): Promise<SocialResul
   if (!res.ok) return { ok: false, error: await apiError(res, 'Facebook') };
   const { id } = (await res.json()) as { id?: string };
   return { ok: true, url: id ? `https://www.facebook.com/${id}` : undefined };
+}
+
+/**
+ * Posts on the Instagram business account linked to the Facebook page, with the Graph API's two
+ * steps: a media container made from the image's public address and the caption, then its
+ * publication once Instagram has fetched the image. Instagram needs an image with every post and
+ * shows no link preview (links in captions are not clickable).
+ */
+async function postToInstagram(text: string, t: ShareTarget): Promise<SocialResult> {
+  const account = env.INSTAGRAM_ACCOUNT_ID;
+  const token = env.FACEBOOK_PAGE_TOKEN ?? '';
+  const create = await fetch(`${GRAPH}/${account}/media`, {
+    method: 'POST',
+    body: new URLSearchParams({
+      image_url: siteUrl(instagramImagePath(t.imageKey)),
+      caption: instagramCaption(text),
+      access_token: token,
+    }),
+  });
+  if (!create.ok) return { ok: false, error: await apiError(create, 'Instagram') };
+  const { id: container } = (await create.json()) as { id: string };
+  // Instagram fetches the image in the background: wait until the container is ready (seconds).
+  for (let i = 0; i < 10; i++) {
+    const st = await fetch(
+      `${GRAPH}/${container}?${new URLSearchParams({ fields: 'status_code', access_token: token })}`,
+    );
+    const { status_code } = st.ok ? ((await st.json()) as { status_code?: string }) : {};
+    if (status_code === 'FINISHED') break;
+    if (status_code === 'ERROR' || status_code === 'EXPIRED')
+      return { ok: false, error: `Instagram could not use the image (${status_code}).` };
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  const pub = await fetch(`${GRAPH}/${account}/media_publish`, {
+    method: 'POST',
+    body: new URLSearchParams({ creation_id: container, access_token: token }),
+  });
+  if (!pub.ok) return { ok: false, error: await apiError(pub, 'Instagram') };
+  const { id } = (await pub.json()) as { id?: string };
+  // The post's address (instagram.com/p/…) is only known by asking for it.
+  let url: string | undefined;
+  if (id) {
+    const link = await fetch(
+      `${GRAPH}/${id}?${new URLSearchParams({ fields: 'permalink', access_token: token })}`,
+    ).catch(() => null);
+    if (link?.ok) url = ((await link.json()) as { permalink?: string }).permalink;
+  }
+  return { ok: true, url };
 }
 
 // ---------- publishing ----------
@@ -249,7 +308,9 @@ export async function publishSocialPost(row: SocialPost, now: Date, fromAdmin = 
       results[n] =
         n === 'linkedin'
           ? await postToLinkedIn(row.text, target, now)
-          : await postToFacebook(row.text, target);
+          : n === 'instagram'
+            ? await postToInstagram(row.text, target)
+            : await postToFacebook(row.text, target);
     } catch (e) {
       results[n] = { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
@@ -296,7 +357,16 @@ async function sendPostByHandEmail(
     bodyHtml: w.bodyHtml,
     details: [
       ['Link', t.url],
-      ...(t.imageUrl ? ([['Image', t.imageUrl]] as [string, string][]) : []),
+      ...(t.imageUrl || networks.includes('instagram')
+        ? ([
+            [
+              'Image',
+              networks.includes('instagram')
+                ? siteUrl(instagramImagePath(t.imageKey))
+                : t.imageUrl!,
+            ],
+          ] as [string, string][])
+        : []),
     ],
     action: networks.includes('whatsapp')
       ? { label: w.buttonLabel, url: whatsappLink(row.text) }

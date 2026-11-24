@@ -73,9 +73,12 @@
     "SES_CONFIGURATION_SET": "ft-bkk-site",
     // Social media (Admin > Social media). Empty = not connected: scheduled posts arrive by email
     // to post by hand. The page tokens are the secrets LINKEDIN_ACCESS_TOKEN and
-    // FACEBOOK_PAGE_TOKEN (docs/deploy.md, "Connect LinkedIn and Facebook").
+    // FACEBOOK_PAGE_TOKEN (docs/deploy.md, "Connect LinkedIn, Facebook and Instagram"). Instagram
+    // posts with the Facebook page token: INSTAGRAM_ACCOUNT_ID is the Instagram business account
+    // linked to that page.
     "LINKEDIN_ORGANIZATION_ID": "",
     "FACEBOOK_PAGE_ID": "",
+    "INSTAGRAM_ACCOUNT_ID": "",
     // Reports > Website traffic reads Cloudflare's Analytics API with the secret CF_ANALYTICS_TOKEN
     // (docs/deploy.md, "Website traffic report"). Both can stay empty: the account is the only one
     // the token reads, the site is the Web Analytics site whose token is in Settings.
