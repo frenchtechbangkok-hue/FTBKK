@@ -386,7 +386,8 @@ screen by screen for the team.
   to the cover while it is out of date. Each event or post has a Share page: download the image,
   copy the text, open it in WhatsApp, and schedule the announcement on a chosen date and time plus,
   for an event, a reminder the day before (09:00 by default). The cron (every 5 minutes) publishes what
-  is due: on the LinkedIn and Facebook pages through their APIs once connected (`docs/deploy.md`),
+  is due: on the LinkedIn and Facebook pages and the Instagram account through their APIs once
+  connected (`docs/deploy.md`),
   otherwise by an email to the admin who scheduled it with the text and a one-tap WhatsApp
   button. WhatsApp has no API for groups, so WhatsApp posts are always that email. A reminder
   whose event moved to another day, or a post about a cancelled or unpublished event or post, is
@@ -398,8 +399,19 @@ screen by screen for the team.
   image URL); LinkedIn's Post Inspector and Facebook's Sharing Debugger refresh a cached preview.
   The **Connected pages** box says per network whether it is connected and which Worker value is
   missing (`networkSetup()` in `lib/social.ts`: `LINKEDIN_ORGANIZATION_ID` /
-  `LINKEDIN_ACCESS_TOKEN`, `FACEBOOK_PAGE_ID` / `FACEBOOK_PAGE_TOKEN`), with a folding **How to
-  connect** guide per network (developer app, token, page ID, Cloudflare secret, `wrangler.jsonc`).
+  `LINKEDIN_ACCESS_TOKEN`, `FACEBOOK_PAGE_ID` / `FACEBOOK_PAGE_TOKEN`, `INSTAGRAM_ACCOUNT_ID` /
+  `FACEBOOK_PAGE_TOKEN`), with a folding **How to connect** guide per network (developer app,
+  token, page ID, Cloudflare secret, `wrangler.jsonc`).
+  **Instagram** posts on the Instagram business account linked to the Facebook page, with the
+  same page token (it needs the `instagram_basic` and `instagram_content_publish` permissions too)
+  and the account ID in `INSTAGRAM_ACCOUNT_ID`. The Graph API makes a media container from the
+  image's public URL and the caption, waits until Instagram has fetched it, publishes it and reads
+  back the post's permalink. Instagram needs an image and takes only JPEG between 4:5 and 1.91:1,
+  so the post uses the up-to-date share image, else `brand/share-default.jpg`, never a cover of
+  unknown shape (`instagramImagePath()` in `lib/share.ts`); the caption is cut at 2,200 characters
+  and its links are not clickable. Instagram is ticked by default on the Schedule form once
+  connected. Until then an Instagram post arrives in the same email, with the image's address to
+  save and post by hand.
 - **Code of conduct** at `/code-of-conduct`: how everyone is expected to behave at events, in our
   online groups (WhatsApp, LinkedIn) and on the website, and how to report a problem. Linked in
   the footer, on every event page and in the registration form. The text is edited in the admin.

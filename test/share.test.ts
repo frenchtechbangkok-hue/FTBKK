@@ -5,6 +5,9 @@ import {
   eventLaunchText,
   eventReminderText,
   eventShareSpec,
+  INSTAGRAM_DEFAULT_IMAGE,
+  instagramCaption,
+  instagramImagePath,
   linkedinText,
   postLaunchText,
   postShareSpec,
@@ -144,6 +147,33 @@ describe('schedule', () => {
     const paths = bad.error!.issues.map((i) => i.path[0]);
     expect(paths).toEqual(expect.arrayContaining(['networks', 'launchAt', 'launchText']));
     expect(ScheduleSchema.safeParse({ networks: ['facebook'] }).success).toBe(false);
+  });
+
+  it('accepts Instagram as a network', () => {
+    const r = ScheduleSchema.safeParse({
+      networks: ['instagram'],
+      launch: true,
+      launchAt: '2026-10-10T09:00',
+      launchText: 'Hello',
+    });
+    expect(r.success && r.data.networks).toEqual(['instagram']);
+  });
+
+  it('posts the share image on Instagram, else the general one', () => {
+    expect(instagramImagePath('share/event-7-0123456789.jpg')).toBe(
+      '/media/share/event-7-0123456789.jpg',
+    );
+    // A cover can be any shape or format Instagram refuses.
+    expect(instagramImagePath('covers/photo.png')).toBe(INSTAGRAM_DEFAULT_IMAGE);
+    expect(instagramImagePath('covers/tall.jpg')).toBe(INSTAGRAM_DEFAULT_IMAGE);
+    expect(instagramImagePath(null)).toBe(INSTAGRAM_DEFAULT_IMAGE);
+  });
+
+  it('keeps Instagram captions under 2,200 characters', () => {
+    expect(instagramCaption('Hello')).toBe('Hello');
+    const long = instagramCaption('a'.repeat(2900));
+    expect(long.length).toBe(2200);
+    expect(long.endsWith('…')).toBe(true);
   });
 
   it('uses a LinkedIn API version from two months ago', () => {

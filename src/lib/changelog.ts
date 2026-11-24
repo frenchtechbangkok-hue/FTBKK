@@ -20,12 +20,20 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
-    version: '26.11.17',
+    version: '26.11.18',
     date: '2026-11-24',
     pr: 140,
     title: 'Company, job title, sector and "how did you hear" required on sign-up',
     summary:
       'New members (Join page, event registration, claim link, Tech Pulse download) must now give their company, job title, at least one sector of interest and how they heard of us; the event registration form asks for company, job title and how they heard of us too.',
+  },
+  {
+    version: '26.11.17',
+    date: '2026-11-24',
+    pr: 139,
+    title: 'Social media posts on Instagram too',
+    summary:
+      'Scheduled social media posts about events and blog posts can now go to Instagram as well as LinkedIn and Facebook: the post is the share image with the text, sent through the same Facebook connection once the Instagram account is linked (Social media posts > Connected pages > How to connect Instagram).',
   },
   {
     version: '26.11.16',
