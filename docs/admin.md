@@ -120,6 +120,17 @@ uses any more.
 - **New event**: title, type (French Tech Connect, French Tech Talk, French Tech Select, or Other
   with a series name such as Workshop), start time (Bangkok time), venue, then publish. Connect,
   Talk and Select events without a cover show the default image from Settings > Event covers.
+- **At a venue or online** (Venue box, "Where does it take place?"):
+  - **At a venue**: venue name, address and map link as before. If the event is also streamed,
+    paste the **Link for online streaming** (YouTube, Facebook Live, Zoom…).
+  - **Online**: the event is a webinar. Paste the **Link to join online** (Zoom, Google Meet,
+    Teams…); it is required, and there is no venue. The site and emails say "Online" where the
+    venue usually shows.
+  - Who sees the link: the people registered get it in their confirmation, seat-freed and reminder
+    emails, on their ticket and in the calendar invite. The public event page only says the link
+    is in the confirmation email, so it isn't posted for anyone to use. If the event has "No
+    registration needed", the page shows the link to everyone. People on the waitlist get it once
+    they have a seat.
 - **Private and listing** (on the event form):
   - **Private: registration by invitation link only**. The event page shows the event with
     "Registration is by invitation only" instead of the form. Save, then copy the **Invitation

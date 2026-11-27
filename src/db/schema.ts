@@ -58,6 +58,14 @@ export const events = sqliteTable(
     venue: text('venue'),
     address: text('address'),
     mapUrl: text('map_url'),
+    /** Online only (a webinar): no venue; onlineUrl is the link to join. */
+    online: integer('online', { mode: 'boolean' }).notNull().default(false),
+    /**
+     * Online: the webinar link. At a venue: the optional link for online streaming. Given to
+     * registrants (confirmation, reminder, ticket, calendar invite); public only when nobody
+     * registers.
+     */
+    onlineUrl: text('online_url'),
     coverKey: text('cover_key'),
     /** null = unlimited */
     capacity: integer('capacity'),

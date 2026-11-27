@@ -9,6 +9,7 @@ import { eventBySlug } from '../../../lib/queries';
 import { formatEventDate } from '../../../lib/format';
 import { ticketCode } from '../../../lib/ticket';
 import { guestsLabel } from '../../../lib/registrations';
+import { onlineLink } from '../../../lib/event-online';
 
 // The ticket to show at the entrance, opened from the confirmation or reminder email.
 const event = await eventBySlug(Astro.params.slug!);
@@ -23,6 +24,8 @@ const reg = token
   : null;
 const valid = reg && (reg.status === 'registered' || reg.status === 'attended');
 const code = valid ? await ticketCode(token) : '';
+// The webinar or live stream link: only for a valid ticket, never in the public page source.
+const online = valid ? onlineLink(event) : null;
 // Black on white whatever the theme, so scanners read it.
 const svg = valid
   ? renderSVG(code, { ecc: 'M', border: 2, whiteColor: 'white', blackColor: 'black' })
@@ -39,6 +42,13 @@ privatePage(Astro);
         <p class="text-lg font-semibold text-navy">{event.title}</p>
         <p class="mt-1 text-sm text-muted">{formatEventDate(event.startsAt, event.endsAt)}</p>
         {event.venue && <p class="text-sm text-muted">{event.venue}</p>}
+        {online && (
+          <div class="mt-4">
+            <Button href={online.url} rel="noopener">
+              {online.label}
+            </Button>
+          </div>
+        )}
         <div
           class="mx-auto mt-6 w-64 max-w-full rounded-lg bg-paper p-2"
           role="img"
@@ -53,9 +63,11 @@ privatePage(Astro);
         {reg!.status === 'attended' && (
           <p class="mt-3 text-sm font-semibold text-success">Checked in. Enjoy the event!</p>
         )}
-        <p class="mt-6 text-xs text-muted">
-          Show this screen at the entrance. Turning up your screen brightness helps the scan.
-        </p>
+        {!event.online && (
+          <p class="mt-6 text-xs text-muted">
+            Show this screen at the entrance. Turning up your screen brightness helps the scan.
+          </p>
+        )}
       </div>
     ) : (
       <Alert tone="warning" class="mt-6">

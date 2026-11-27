@@ -20,6 +20,14 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.24',
+    date: '2026-11-27',
+    pr: 146,
+    title: 'Online events and live stream links',
+    summary:
+      'An event can now be "Online" with the link to join the webinar, and an event at a venue can have a "Link for online streaming"; the people registered get the link in their confirmation and reminder emails, on their ticket and in the calendar invite, while the public page only shows it for events with no registration.',
+  },
+  {
     version: '26.11.23',
     date: '2026-11-24',
     pr: 145,

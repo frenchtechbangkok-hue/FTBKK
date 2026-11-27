@@ -26,6 +26,7 @@ import { clientIp, fieldErrors, formToObject } from '../../../lib/forms';
 import { verifyTurnstile } from '../../../lib/turnstile';
 import { rateLimit } from '../../../lib/ratelimit';
 import { getSettings } from '../../../lib/settings';
+import { onlineLink, onlineLinkIsPublic } from '../../../lib/event-online';
 import { eventCover } from '../../../lib/event-covers';
 import { eventShareSpec, shareFingerprint, shareImageFor } from '../../../lib/share';
 import {
@@ -69,7 +70,7 @@ const bodyMd = event.bodyMd.replace(/\s*\**\s*Show (?:More|Less)\s*\**\s*$/i, ''
 const description =
   event.summary ||
   plainText(bodyMd) ||
-  `${event.title}, ${formatEventDate(event.startsAt, event.endsAt)}${event.venue ? ` at ${event.venue}` : ''}. A La French Tech Bangkok event.`;
+  `${event.title}, ${formatEventDate(event.startsAt, event.endsAt)}${event.online ? ', online' : event.venue ? ` at ${event.venue}` : ''}. A La French Tech Bangkok event.`;
 const settings = await getSettings();
 const now = new Date();
 let state = registrationState(event, await countTaken(event.id), now, {
@@ -206,6 +207,18 @@ const mapUrl =
   (event.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.venue ?? ''} ${event.address}`)}`
     : null);
+// The webinar or live stream link: public only when nobody registers (lib/event-online.ts).
+const online = onlineLink(event);
+const showOnline = onlineLinkIsPublic(event) && upcoming && event.status !== 'cancelled';
+const place = {
+  '@type': 'Place',
+  name: event.venue ?? 'Bangkok',
+  address: event.address ?? 'Bangkok, Thailand',
+};
+const virtual = {
+  '@type': 'VirtualLocation',
+  url: online && showOnline ? online.url : siteUrl(`/events/${event.slug}`),
+};
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Event',
@@ -216,13 +229,13 @@ const jsonLd = {
     event.status === 'cancelled'
       ? 'https://schema.org/EventCancelled'
       : 'https://schema.org/EventScheduled',
-  eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+  eventAttendanceMode: event.online
+    ? 'https://schema.org/OnlineEventAttendanceMode'
+    : event.onlineUrl
+      ? 'https://schema.org/MixedEventAttendanceMode'
+      : 'https://schema.org/OfflineEventAttendanceMode',
   isAccessibleForFree: true,
-  location: {
-    '@type': 'Place',
-    name: event.venue ?? 'Bangkok',
-    address: event.address ?? 'Bangkok, Thailand',
-  },
+  location: event.online ? virtual : event.onlineUrl ? [place, virtual] : place,
   image: cover ? siteUrl(cover) : undefined,
   description,
   offers: {
@@ -276,7 +289,7 @@ if (!(!isPost && !invite)) privatePage(Astro);
                 <span class="text-sm text-muted"> (Bangkok time)</span>
               </dd>
             </div>
-            {(event.venue || event.address) && (
+            {!event.online && (event.venue || event.address) && (
               <div class="flex gap-3">
                 <dt>
                   <Icon name="pin" class="size-5 text-brand" />
@@ -289,6 +302,30 @@ if (!(!isPost && !invite)) privatePage(Astro);
                     <a href={mapUrl} rel="noopener" class="text-sm text-accent">
                       Open in Google Maps
                     </a>
+                  )}
+                </dd>
+              </div>
+            )}
+            {(event.online || event.onlineUrl) && (
+              <div class="flex gap-3">
+                <dt>
+                  <Icon name="globe" class="size-5 text-brand" />
+                  <span class="sr-only">Online</span>
+                </dt>
+                <dd>
+                  <span class="font-semibold">
+                    {event.online ? 'Online event' : 'Also streamed online'}
+                  </span>
+                  {online && showOnline && (
+                    <a href={online.url} rel="noopener" class="block text-sm text-accent">
+                      {online.label}
+                    </a>
+                  )}
+                  {online && !showOnline && upcoming && event.status !== 'cancelled' && (
+                    <span class="block text-sm text-muted">
+                      {event.online ? 'The link to join' : 'The link to the stream'} is in your
+                      confirmation email and on your ticket.
+                    </span>
                   )}
                 </dd>
               </div>

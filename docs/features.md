@@ -39,6 +39,18 @@ screen by screen for the team.
   "No registration needed: just come along" instead of the form or "Registration is closed", and
   nobody can register (`registrationState` returns `reason: 'none'`). The social post texts say
   "just come along" instead of "Register".
+- **Online events and live streams**: the event form's Venue box asks "Where does it take place?":
+  **At a venue** (venue name, address, map link, plus an optional **Link for online streaming**) or
+  **Online** (a required **Link to join online**, the webinar; no venue, address or map). Columns
+  `events.online` and `events.online_url`, migration 0048. An online event is saved with "Online"
+  as its venue, so cards, the share image, social texts and email placeholders say "Online". The
+  link goes to the people registered, not the public page (`lib/event-online.ts`): the
+  confirmation and seat-freed emails and the day-before reminder ("Join online" button for an
+  online event; "Watch the live stream" link for a streamed one), the ticket page and the calendar
+  invite (the link is the location of an online event). The waitlist email has no link. The event
+  page shows "Online event" or "Also streamed online" and says the link is in the confirmation
+  email and on the ticket; only an event with no registration shows the link itself. Structured
+  data uses `OnlineEventAttendanceMode` / `MixedEventAttendanceMode`.
 - **About**: the community, the board (each card shows the member's French Tech responsibility,
   such as President or Commission lead, instead of their company), "Speakers we've hosted" (everyone who spoke
   at a past event, most recent first), institutional partners, "You can join us" cards and the

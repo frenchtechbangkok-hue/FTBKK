@@ -6,6 +6,7 @@ import { email } from './forms';
 import { DAY_MS } from './lifecycle';
 import { formatEventDate } from './format';
 import { eventIcs } from './ics';
+import { onlineLink } from './event-online';
 import { sendEmail, sendEmailBatch, type EmailMessage } from './email';
 import { randomToken } from './tokens';
 import { myDataPath } from './privacy';
@@ -425,6 +426,21 @@ function mapLink(e: Event) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${e.venue ?? ''} ${e.address}`)}`;
 }
 
+/**
+ * The button of a confirmation or reminder: "Join online" for an online event, else the map
+ * (with the template's wording) when there is one. A venue's live stream is a link below.
+ */
+function eventAction(e: Event, map: string | null, label?: string) {
+  if (e.online) return onlineLink(e) ?? undefined;
+  return map && label ? { label, url: map } : undefined;
+}
+
+/** "Watch the live stream" in the links of an event at a venue that is also streamed. */
+function streamLink(e: Event) {
+  const link = e.online ? null : onlineLink(e);
+  return link ? [link] : [];
+}
+
 const ticketUrl = (e: Event, token: string) => siteUrl(`/events/${e.slug}/ticket?token=${token}`);
 
 /** The ticket block and its inline QR code for a confirmation email. */
@@ -463,8 +479,10 @@ export async function sendConfirmation(
     bodyHtml: w.bodyHtml,
     details: [...eventDetails(e, r.guests), ...sp.details],
     logos: sp.logos,
-    action: map && !waitlist && w.buttonLabel ? { label: w.buttonLabel, url: map } : undefined,
+    // The online link is for people with a seat, not the waitlist.
+    action: waitlist ? undefined : eventAction(e, map, w.buttonLabel),
     links: [
+      ...(waitlist ? [] : streamLink(e)),
       { label: 'Event page', url: siteUrl(`/events/${e.slug}`) },
       { label: waitlist ? 'Leave the waitlist' : "Can't come? Cancel", url: cancelUrl },
     ],
@@ -486,7 +504,9 @@ export async function sendPromotion(e: Event, r: RegistrationRow) {
     bodyHtml: w.bodyHtml,
     details: [...eventDetails(e, r.guests), ...sp.details],
     logos: sp.logos,
+    action: eventAction(e, null),
     links: [
+      ...streamLink(e),
       { label: 'Event page', url: siteUrl(`/events/${e.slug}`) },
       { label: 'Cancel', url: siteUrl(`/events/${e.slug}/cancel?token=${r.token}`) },
     ],
@@ -513,8 +533,9 @@ export function reminderEmail(
     bodyHtml: w.bodyHtml,
     details: [...eventDetails(e, r.guests), ...sp.details],
     logos: sp.logos,
-    action: map && w.buttonLabel ? { label: w.buttonLabel, url: map } : undefined,
+    action: eventAction(e, map, w.buttonLabel),
     links: [
+      ...streamLink(e),
       { label: 'Show my ticket', url: ticketUrl(e, r.token) },
       {
         label: "Can't come any more? Cancel",

@@ -201,10 +201,11 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
     subject: "You're registered: {event}",
     body: 'Hi {name}, see you at {event}! The calendar invite is attached.',
     buttonLabel: 'Open the map',
-    buttonNote: 'Shown when the event has a map link or an address.',
+    buttonNote:
+      'Shown when the event has a map link or an address. An online event gets a "Join online" button with its link instead.',
     placeholders: EVENT_PLACEHOLDERS,
     added:
-      'Date and venue, hosts and sponsors with their logos, the ticket with its QR code, the calendar invite, links to the event page and to cancel, and the "Manage or delete my data" link.',
+      'Date and venue, hosts and sponsors with their logos, the ticket with its QR code, the calendar invite, links to the event page and to cancel, the link to join online or watch the live stream when there is one, and the "Manage or delete my data" link.',
     preview: {
       details: sampleDetails,
       buttonUrl: 'https://maps.google.com',
@@ -243,7 +244,7 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
     body: "Good news {name}: a seat freed up and you are now registered for {event}. The calendar invite is attached.\n\nIf you can't come any more, please cancel so the next person can take your seat.",
     placeholders: EVENT_PLACEHOLDERS,
     added:
-      'Date and venue, hosts and sponsors with their logos, the ticket with its QR code, the calendar invite, links to the event page and to cancel, and the "Manage or delete my data" link.',
+      'Date and venue, hosts and sponsors with their logos, the ticket with its QR code, the calendar invite, links to the event page and to cancel, the link to join online or watch the live stream when there is one, and the "Manage or delete my data" link.',
     preview: {
       details: sampleDetails,
       links: [
@@ -261,10 +262,11 @@ export const EMAIL_TEMPLATES: Record<TemplateKey, EmailTemplateDef> = {
     subject: 'Tomorrow: {event}',
     body: 'Hi {name}, a reminder that {event} is tomorrow. See you there!',
     buttonLabel: 'Open the map',
-    buttonNote: 'Shown when the event has a map link or an address.',
+    buttonNote:
+      'Shown when the event has a map link or an address. An online event gets a "Join online" button with its link instead.',
     placeholders: EVENT_PLACEHOLDERS,
     added:
-      'Date and venue, hosts and sponsors with their logos, links to the ticket and to cancel, and the "Manage or delete my data" link.',
+      'Date and venue, hosts and sponsors with their logos, links to the ticket and to cancel, the link to join online or watch the live stream when there is one, and the "Manage or delete my data" link.',
     preview: {
       details: sampleDetails,
       buttonUrl: 'https://maps.google.com',

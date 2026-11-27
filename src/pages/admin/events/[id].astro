@@ -84,6 +84,11 @@ const asValues = (e: Event): Record<string, unknown> => ({
   registrationOpensAt: toLocalInput(e.registrationOpensAt),
   registrationClosesAt: toLocalInput(e.registrationClosesAt),
   registration: e.noRegistration ? 'none' : e.registrationOpen ? 'open' : 'closed',
+  location: e.online ? 'online' : 'venue',
+  // An online event keeps "Online" as its venue: the field starts empty if it moves to a venue.
+  venue: e.online ? '' : e.venue,
+  streamUrl: e.online ? '' : e.onlineUrl,
+  webinarUrl: e.online ? e.onlineUrl : '',
 });
 
 // "Duplicate" opens a new event prefilled from another one (dates left empty).
@@ -541,6 +546,14 @@ const KINDS = [
   { value: 'select', label: SELECT },
   { value: 'other', label: 'Other' },
 ];
+const LOCATION_CHOICES = [
+  { value: 'venue', label: 'At a venue', hint: 'A place in Bangkok, with its address and map.' },
+  {
+    value: 'online',
+    label: 'Online',
+    hint: 'Online only (webinar): the page and emails say "Online" instead of a venue.',
+  },
+];
 const REGISTRATION_CHOICES = [
   { value: 'open', label: 'Registration open', hint: 'People register on the event page.' },
   {
@@ -647,29 +660,67 @@ const inviteLink =
         />
         <MarkdownEditor name="bodyMd" label="Description" value={str('bodyMd')} rows={12} />
       </div>
-      <div class="admin-panel grid gap-4">
+      <div class="location-panel admin-panel grid gap-4">
         <h2 class="text-lg">Venue</h2>
-        <FormField
-          name="venue"
-          label="Venue name"
-          maxlength={200}
-          value={str('venue')}
-          error={errors.venue}
-        />
-        <FormField
-          name="address"
-          label="Address"
-          maxlength={1000}
-          value={str('address')}
-          error={errors.address}
-        />
-        <FormField
-          name="mapUrl"
-          label="Map link"
-          value={str('mapUrl')}
-          error={errors.mapUrl}
-          placeholder="https://maps.google.com/…"
-        />
+        <fieldset class="grid gap-2">
+          <legend class="text-sm font-semibold text-ink">Where does it take place?</legend>
+          {LOCATION_CHOICES.map((c) => (
+            <label class="flex items-start gap-2">
+              <input
+                type="radio"
+                name="location"
+                value={c.value}
+                checked={(str('location') || 'venue') === c.value}
+                class="mt-1 size-4 shrink-0 accent-brand"
+              />
+              <span>
+                {c.label}
+                <span class="block text-sm text-muted">{c.hint}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        <div data-venue-fields class="grid gap-4">
+          <FormField
+            name="venue"
+            label="Venue name"
+            maxlength={200}
+            value={str('venue')}
+            error={errors.venue}
+          />
+          <FormField
+            name="address"
+            label="Address"
+            maxlength={1000}
+            value={str('address')}
+            error={errors.address}
+          />
+          <FormField
+            name="mapUrl"
+            label="Map link"
+            value={str('mapUrl')}
+            error={errors.mapUrl}
+            placeholder="https://maps.google.com/…"
+          />
+          <FormField
+            name="streamUrl"
+            label="Link for online streaming"
+            value={str('streamUrl')}
+            error={errors.streamUrl}
+            placeholder="https://youtube.com/live/…"
+            hint="Optional, if the event is also streamed. Sent to the people registered (confirmation, reminder, ticket); shown on the page only when nobody registers."
+          />
+        </div>
+        <div data-online-fields class="grid gap-4">
+          <FormField
+            name="webinarUrl"
+            label="Link to join online"
+            value={str('webinarUrl')}
+            error={errors.webinarUrl}
+            placeholder="https://zoom.us/j/…"
+            hint="Zoom, Google Meet, Teams… Sent to the people registered (confirmation, reminder, ticket); shown on the page only when nobody registers."
+          />
+        </div>
       </div>
     </div>
 
@@ -1462,6 +1513,11 @@ const inviteLink =
 </script>
 
 <style>
+  /* At a venue or online: only the fields of the chosen one show. */
+  .location-panel:has(input[name='location'][value='online']:checked) [data-venue-fields],
+  .location-panel:not(:has(input[name='location'][value='online']:checked)) [data-online-fields] {
+    display: none;
+  }
   /* No registration needed: capacity and registration dates don't apply, so they step aside. */
   .registration-panel:has(input[name='registration'][value='none']:checked)
     [data-registration-details] {
