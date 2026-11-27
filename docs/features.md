@@ -34,6 +34,15 @@ screen by screen for the team.
   old one); everyone else sees "Registration is by invitation only". Members-only registration
   still applies on top. Any event can also be unlisted: its page works by direct link but it stays
   off the events page, home page, sitemap and welcome email, and gets `noindex` (migration 0038).
+- **Event preview link**: a draft event gets a secret preview link
+  (`/events/<slug>?preview=<token>`, `events.preview_token`, migration 0050), made the first time an
+  admin opens the draft and shown as "Preview the page ↗" and "Copy preview link" in the event tabs.
+  It is not behind Cloudflare Access, so it can be shared with speakers, sponsors or attendees
+  before publishing. The page is the real event page from the last saved version, with a yellow
+  _Preview_ band, registration closed ("Registration opens once this event is published", POSTs
+  ignored), no calendar button, `noindex` and `private, no-store` (never kept at the edge). Without
+  the token, or once the event is no longer a draft, the address behaves as usual (404 for a
+  draft, the normal page once published).
 - **Events with no registration**: an event can be information only ("No registration needed" in
   the admin, `events.no_registration`, migration 0042). Its page shows a "Walk-in welcome" label and
   "No registration needed: just come along" instead of the form or "Registration is closed", and

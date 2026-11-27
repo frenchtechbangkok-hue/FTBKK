@@ -30,6 +30,8 @@ interface Props {
   step?: 'email' | 'join';
   /** Private event: the invitation token, kept in the form's address. */
   invite?: string;
+  /** Preview link of a draft event: nobody can register yet. */
+  preview?: boolean;
 }
 const {
   event,
@@ -40,6 +42,7 @@ const {
   membersOnly = false,
   step = 'email',
   invite,
+  preview = false,
 } = Astro.props;
 const action = `/events/${event.slug}${invite ? `?invite=${encodeURIComponent(invite)}` : ''}#register`;
 const str = (k: string) => (values[k] === null || values[k] === undefined ? '' : String(values[k]));
@@ -86,7 +89,9 @@ const str = (k: string) => (values[k] === null || values[k] === undefined ? '' :
     <Alert class="mt-4">
       {state.reason === 'not_yet' && state.opensAt
         ? `Registration opens on ${formatDate(state.opensAt)} at ${formatTime(state.opensAt)}.`
-        : 'Registration is closed for this event.'}
+        : preview
+          ? 'Registration opens once this event is published.'
+          : 'Registration is closed for this event.'}
     </Alert>
   ) : membersOnly && step === 'join' ? (
     <form method="post" action={action} class="mt-4 grid gap-4">

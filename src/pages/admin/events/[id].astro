@@ -80,6 +80,12 @@ if (!isNew) {
     .where(eq(events.id, Number(Astro.params.id)))
     .limit(1);
   if (!event) return Astro.redirect('/admin/events');
+  // A draft gets its shareable preview link (EventTabs) the first time it is opened here.
+  if (event.status === 'draft' && !event.previewToken) {
+    const previewToken = randomToken(12);
+    await db.update(events).set({ previewToken }).where(eq(events.id, event.id));
+    event = { ...event, previewToken };
+  }
 }
 const settings = await getSettings();
 

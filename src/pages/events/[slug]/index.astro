@@ -10,6 +10,7 @@ import RegistrationForm from '../../../components/RegistrationForm.astro';
 import PostCard from '../../../components/PostCard.astro';
 import SpeakerCard from '../../../components/SpeakerCard.astro';
 import {
+  draftEventForPreview,
   eventBySlug,
   isUpcoming,
   publishedPostById,
@@ -46,8 +47,17 @@ import {
   signupInput,
 } from '../../../lib/members';
 
-const event = await eventBySlug(Astro.params.slug!);
-if (!event) return Astro.rewrite('/404');
+// A draft opens only with its preview link (?preview=<token>), for anyone holding it: shown as
+// visitors will see it, with registration closed, never indexed or kept in a cache.
+const previewToken = Astro.url.searchParams.get('preview') ?? '';
+const draft = await (async () => {
+  const live = await eventBySlug(Astro.params.slug!);
+  if (live) return { event: live, preview: false };
+  const d = await draftEventForPreview(Astro.params.slug!, previewToken.slice(0, 100));
+  return d ? { event: d, preview: true } : null;
+})();
+if (!draft) return Astro.rewrite('/404');
+const { event, preview } = draft;
 
 const upcoming = isUpcoming(event);
 const speakers = await speakersForEvent(event.id);
@@ -92,7 +102,7 @@ let result: {
   email: string;
   guests?: number;
 } | null = null;
-if (isPost && invited) {
+if (isPost && invited && !preview) {
   const form = await Astro.request.formData();
   values = formToObject(form, ['interests']);
   const ip = clientIp(Astro.request);
@@ -251,17 +261,28 @@ const jsonLd = {
     : undefined,
 };
 // Kept at Cloudflare's edge except in this case (lib/edge-cache.ts).
-if (!(!isPost && !invite)) privatePage(Astro);
+if (isPost || invite || previewToken) privatePage(Astro);
 ---
 
 <BaseLayout
-  noindex={!event.listed}
+  noindex={!event.listed || preview}
   title={event.title}
   description={description}
   image={shareImage ?? cover}
   shareImage={Boolean(shareImage)}
   jsonLd={jsonLd}
 >
+  {preview && (
+    <div class="border-b border-warning/30 bg-warning/10">
+      <p class="container-page flex flex-wrap items-center gap-x-4 gap-y-1 py-3 text-sm text-ink">
+        <strong>Preview.</strong>
+        <span>
+          This event is not published yet: only people with this link can see this page, and
+          registration opens once it is published.
+        </span>
+      </p>
+    </div>
+  )}
   <article>
     <header class="bg-surface">
       <div class="container-page grid gap-8 py-10 md:grid-cols-5 md:py-14">
@@ -363,9 +384,11 @@ if (!(!isPost && !invite)) privatePage(Astro);
               {state.open && invited && (
                 <Button href="#register">{state.full ? 'Join the waitlist' : 'Register'}</Button>
               )}
-              <Button href={`/events/${event.slug}/calendar.ics`} variant="secondary">
-                <Icon name="calendar" /> Add to calendar
-              </Button>
+              {!preview && (
+                <Button href={`/events/${event.slug}/calendar.ics`} variant="secondary">
+                  <Icon name="calendar" /> Add to calendar
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -394,6 +417,7 @@ if (!(!isPost && !invite)) privatePage(Astro);
           <RegistrationForm
             event={event}
             invite={event.inviteOnly ? invite : undefined}
+            preview={preview}
             state={state}
             membersOnly={membersOnly}
             step={step}

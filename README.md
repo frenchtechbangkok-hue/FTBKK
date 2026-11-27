@@ -10,7 +10,7 @@ The website of La French Tech Bangkok, live at https://french-tech-bangkok.com s
 - **Home**: hero, about us, key numbers, next events, a carousel of the ecosystem directory, latest
   posts, ways to join, partners.
 - **Events**: upcoming and past events with built-in registration (capacity, waitlist, guests,
-  members-only and private invite-link events), or no registration at all for walk-in events; at
+  members-only and private invite-link events, and a shareable preview link for drafts), or no registration at all for walk-in events; at
   a venue (optionally streamed) or online with a link to join sent to registrants; QR
   tickets, reminders, feedback emails, speakers (from People or any contact tagged Speaker),
   sponsors and recaps (with attendance, companies
