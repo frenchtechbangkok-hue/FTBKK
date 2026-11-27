@@ -131,6 +131,13 @@ uses any more.
     is in the confirmation email, so it isn't posted for anyone to use. If the event has "No
     registration needed", the page shows the link to everyone. People on the waitlist get it once
     they have a seat.
+- **Preview the page ↗** (top right of the event, while it is a draft) opens the event page as
+  visitors will see it, from the last saved version, with a yellow _Preview_ band. **Copy preview
+  link** copies its address to share it: anyone with the link can open it, without an admin
+  login, for example a speaker or a partner checking the page before you publish. Nobody can
+  register from it ("Registration opens once this event is published"), and search engines never
+  list it. Once you publish, the link simply shows the normal event page. Save first to see your
+  latest changes.
 - **Private and listing** (on the event form):
   - **Private: registration by invitation link only**. The event page shows the event with
     "Registration is by invitation only" instead of the form. Save, then copy the **Invitation

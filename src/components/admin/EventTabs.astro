@@ -1,5 +1,6 @@
 ---
 import PageTabs from './PageTabs.astro';
+import { siteUrl } from '../../lib/site';
 
 // The screens of one event (or one post) as tabs, the same on each of them.
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
     status: string;
     startsAt?: Date | null;
     publishedAt?: Date | null;
+    previewToken?: string | null;
   };
   current: 'details' | 'registrations' | 'email' | 'share' | 'feedback';
 }
@@ -38,6 +40,12 @@ const live =
   item.status !== 'draft' &&
   (kind === 'event' || !item.publishedAt || item.publishedAt <= new Date());
 const publicHref = kind === 'event' ? `/events/${item.slug}` : `/blog/${item.slug}`;
+// A draft event's preview link works for anyone holding it (not only admins), to share before
+// publishing. The Details tab makes the token when it is missing.
+const eventPreview =
+  kind === 'event' && item.status === 'draft' && item.previewToken
+    ? siteUrl(`/events/${item.slug}?preview=${encodeURIComponent(item.previewToken)}`)
+    : null;
 ---
 
 <div class="mb-2 flex flex-wrap items-start justify-between gap-2">
@@ -60,6 +68,21 @@ const publicHref = kind === 'event' ? `/events/${item.slug}` : `/blog/${item.slu
       >
         Preview the page ↗
       </a>
+    )}
+    {eventPreview && (
+      <>
+        <a
+          href={eventPreview}
+          target="_blank"
+          rel="noopener"
+          title="Opens the event page as visitors will see it, from the last saved version. Anyone with this link can open it, admin or not; registration opens once the event is published."
+        >
+          Preview the page ↗
+        </a>
+        <button type="button" data-copy={eventPreview} class="cursor-pointer">
+          Copy preview link
+        </button>
+      </>
     )}
     {kind === 'event' && <a href={`/admin/events/new?from=${item.id}`}>Duplicate</a>}
   </div>

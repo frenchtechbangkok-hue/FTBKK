@@ -86,6 +86,11 @@ export const events = sqliteTable(
     inviteOnly: integer('invite_only', { mode: 'boolean' }).notNull().default(false),
     /** The secret of the invitation link (/events/<slug>?invite=<token>); a new one revokes it. */
     inviteToken: text('invite_token'),
+    /**
+     * The secret of the preview link (/events/<slug>?preview=<token>): shows a draft event to anyone
+     * holding it, admin or not (never indexed or cached). Made when an admin opens the draft.
+     */
+    previewToken: text('preview_token'),
     /** Shown on the events list, home page and sitemap; unlisted = page by direct link only. */
     listed: integer('listed', { mode: 'boolean' }).notNull().default(true),
     /** Photos, slides, video and blog write-up of a past event; null = no recap yet. */

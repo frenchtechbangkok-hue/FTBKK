@@ -57,6 +57,20 @@ export async function eventBySlug(slug: string) {
   return e ?? null;
 }
 
+/**
+ * A draft event for whoever holds its preview link (/events/<slug>?preview=<token>), admin or not.
+ * Published and cancelled events are found by eventBySlug instead, so an old link just shows the page.
+ */
+export async function draftEventForPreview(slug: string, token: string) {
+  if (!token) return null;
+  const [e] = await getDb()
+    .select()
+    .from(events)
+    .where(and(eq(events.slug, slug), eq(events.status, 'draft'), eq(events.previewToken, token)))
+    .limit(1);
+  return e ?? null;
+}
+
 export function isUpcoming(e: { startsAt: Date; endsAt: Date | null }) {
   return (e.endsAt ?? e.startsAt) >= nowDate();
 }
