@@ -174,7 +174,10 @@ uses any more.
   Contacts": picking one adds them to People in the Speakers group with the name, job title,
   company and LinkedIn of their contact card (or of their membership profile where the card is
   empty) and the photo of their contact card. They then show with People, so nobody is listed
-  twice; someone already in People under the same name is reused rather than duplicated. The
+  twice; someone already in People under the same name is reused rather than duplicated. Their
+  card then follows the contact: editing the contact card (or the member editing their profile)
+  updates the name, job title, company and LinkedIn on their speaker card too (a field emptied
+  there is kept on the card; edit it in Board and speakers). The
   **Photo** field next to the picker uploads a photo for whoever you add (picked or new); it is
   saved on their People card and on their contact card, and left empty it keeps the photo they
   have. Each speaker already on the event also has **Add a photo** / **Replace the photo**, saved
