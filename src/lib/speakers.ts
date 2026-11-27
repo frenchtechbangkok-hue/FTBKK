@@ -167,6 +167,8 @@ export interface TaggedContact {
   role: string | null;
   company: string | null;
   linkedin: string | null;
+  /** The photo on their contact card, used for their People card. */
+  photoKey?: string | null;
 }
 /** What the member's profile adds when the contact card leaves a field empty. */
 export interface MemberProfile {

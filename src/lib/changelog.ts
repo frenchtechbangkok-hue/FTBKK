@@ -20,11 +20,20 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
-    version: '26.11.26',
+    version: '26.11.27',
     date: '2026-11-27',
+    pr: 149,
     title: 'Preview link for draft events',
     summary:
       'A draft event now has "Preview the page" and "Copy preview link" at the top of its admin page: the link opens the event page as it will look once published, and works for anyone who has it (no admin login), so it can be shared with speakers or partners; registration stays closed until the event is published and search engines never list it.',
+  },
+  {
+    version: '26.11.26',
+    date: '2026-11-27',
+    pr: 148,
+    title: 'Photos for speakers and contacts',
+    summary:
+      'Each speaker on an event now has a photo upload right in the Speakers section, also offered for the person being added; the photo goes on their Board and speakers card and on their contact card. Contacts get a Photo panel of their own, used when they are picked as a speaker, and a photo changed in one place shows in the other.',
   },
   {
     version: '26.11.25',

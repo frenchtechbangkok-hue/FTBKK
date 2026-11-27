@@ -201,6 +201,8 @@ export const contacts = sqliteTable('contacts', {
   company: text('company'),
   role: text('role'),
   linkedin: text('linkedin'),
+  /** Their photo (R2 key), shared with their People card when they speak at an event. */
+  photoKey: text('photo_key'),
   notes: text('notes'),
   /** Keys of their tags (contact_tags). */
   tags: json<string[]>('tags').notNull().default([]),

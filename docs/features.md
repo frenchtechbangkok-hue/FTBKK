@@ -35,7 +35,7 @@ screen by screen for the team.
   still applies on top. Any event can also be unlisted: its page works by direct link but it stays
   off the events page, home page, sitemap and welcome email, and gets `noindex` (migration 0038).
 - **Event preview link**: a draft event gets a secret preview link
-  (`/events/<slug>?preview=<token>`, `events.preview_token`, migration 0050), made the first time an
+  (`/events/<slug>?preview=<token>`, `events.preview_token`, migration 0051), made the first time an
   admin opens the draft and shown as "Preview the page ↗" and "Copy preview link" in the event tabs.
   It is not behind Cloudflare Access, so it can be shared with speakers, sponsors or attendees
   before publishing. The page is the real event page from the last saved version, with a yellow
@@ -384,7 +384,7 @@ screen by screen for the team.
   template; `src/lib/add-registrants.ts`), confirmation email with a calendar invite, reminder the day before, QR
   ticket and cancel link, **speakers** (a "Who's taking the stage" section of cards with photo,
   role such as Keynote speaker, Moderator or Panelist, title, company, talk title, an optional short
-  bio for the event and LinkedIn; picked from People, or from contacts and members tagged Speaker, who get a People card made from their contact card and membership profile (`people.contact_id` remembers the contact so they are never offered twice), and reused across events), **hosts, sponsors and partners** with their logo (linked to
+  bio for the event and LinkedIn; picked from People, or from contacts and members tagged Speaker, who get a People card made from their contact card and membership profile (`people.contact_id` remembers the contact so they are never offered twice), and reused across events; a photo can be uploaded for each speaker right in the event's Speakers section and is saved on both the People card and the contact card, and contacts have their own photo (`contacts.photo_key`, Contacts > a contact > Photo) that their People card starts with and stays in step with), **hosts, sponsors and partners** with their logo (linked to
   their ecosystem listing or website, shown on the event page, "Hosted by" next to the venue, and
   named in the confirmation and reminder emails), and a **feedback email** the day after (one-click 1 to 5 rating, then
   an optional comment; results in the admin's Reports). Past events can show a **recap**: a

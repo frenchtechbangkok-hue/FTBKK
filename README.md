@@ -12,7 +12,8 @@ The website of La French Tech Bangkok, live at https://french-tech-bangkok.com s
 - **Events**: upcoming and past events with built-in registration (capacity, waitlist, guests,
   members-only and private invite-link events, and a shareable preview link for drafts), or no registration at all for walk-in events; at
   a venue (optionally streamed) or online with a link to join sent to registrants; QR
-  tickets, reminders, feedback emails, speakers (from People or any contact tagged Speaker),
+  tickets, reminders, feedback emails, speakers (from People or any contact tagged Speaker, with
+  their photo),
   sponsors and recaps (with attendance, companies
   and feedback figures). The team gets an email the day before each event (key figures, what
   attendees told us, the check-in link).

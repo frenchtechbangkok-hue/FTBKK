@@ -6,7 +6,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 import Button from '../../components/Button.astro';
 import Alert from '../../components/Alert.astro';
 import { getDb } from '../../db';
-import { eventSpeakers, people, type Person } from '../../db/schema';
+import { contacts, eventSpeakers, people, type Person } from '../../db/schema';
 import { fieldErrors, formToObject, optionalText, optionalUrl } from '../../lib/forms';
 import { IMAGE_TYPES, storeUpload } from '../../lib/uploads';
 import { audit } from '../../lib/orgs';
@@ -85,6 +85,12 @@ if (Astro.request.method === 'POST') {
       if (form.get('removePhoto')) row.photoKey = null;
       if (person) {
         await db.update(people).set(row).where(eq(people.id, id));
+        // The photo is shared with the contact card this person was made from.
+        if (row.photoKey !== undefined && person.contactId)
+          await db
+            .update(contacts)
+            .set({ photoKey: row.photoKey })
+            .where(eq(contacts.id, person.contactId));
         await audit(actor, 'update', 'person', id, { name: person.name }, parsed.data);
       } else {
         const sortOrder = all.filter((p) => p.group === parsed.data.group).length;

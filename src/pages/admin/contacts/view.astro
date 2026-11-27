@@ -18,11 +18,13 @@ import {
   loadContacts,
   resolveEmailKey,
   saveContact,
+  setContactPhoto,
   whatsappUrl,
 } from '../../../lib/contacts';
 import { audit } from '../../../lib/orgs';
 import { fieldErrors, formToObject } from '../../../lib/forms';
-import { formatDate, formatEventDate } from '../../../lib/format';
+import { formatDate, formatEventDate, mediaUrl } from '../../../lib/format';
+import { IMAGE_TYPES, storeUpload } from '../../../lib/uploads';
 import { MEMBER_STATUSES, moveMembership, setMembershipByTeam } from '../../../lib/members';
 import { groupNames, knownLabelsOnly, loadLabels, tagNames } from '../../../lib/contact-labels';
 
@@ -34,6 +36,7 @@ const view = (k: string, flash = 'saved=done') =>
   `/admin/contacts/view?c=${encodeURIComponent(k)}&${flash}`;
 let errors: Record<string, string> = {};
 let values: Record<string, unknown> | null = null;
+let photoError: string | null = null;
 const labels = await loadLabels();
 
 if (Astro.request.method === 'POST') {
@@ -45,39 +48,69 @@ if (Astro.request.method === 'POST') {
     await deleteContacts([key], actor, now);
     return Astro.redirect('/admin/contacts?saved=deleted');
   }
-  values = formToObject(form, ['tags', 'groups']);
-  const parsed = ContactSchema.safeParse(values);
-  const before = parsed.success ? (await loadContacts(now)).find((x) => x.key === key) : null;
-  const input = parsed.success
-    ? contactInput(
-        knownLabelsOnly(parsed.data, labels),
-        (await cardFor(key)) ?? null,
-        now,
-        latestRegistrationAnswer(before?.history ?? []),
-      )
-    : null;
-  const member = values.member === true;
-  if (!parsed.success) errors = fieldErrors(parsed.error);
-  else if (!input || 'error' in input) errors = { newsletterAt: input?.error ?? 'Invalid date.' };
-  else if (member && !input.email) errors = { member: 'Add an email to make them a member.' };
-  else {
-    const result = await saveContact(key, input);
-    if ('error' in result)
-      errors = /other email|belongs to another|own membership/.test(result.error)
-        ? { otherEmails: result.error }
-        : { email: result.error };
+  if (action === 'photo') {
+    const c = (await loadContacts(now)).find((x) => x.key === key);
+    if (!c) return Astro.redirect('/admin/contacts');
+    const remove = form.get('removePhoto') === 'on';
+    const photo: { key: string | null; error?: string } = remove
+      ? { key: null }
+      : await storeUpload(form.get('photo'), {
+          prefix: 'people',
+          maxBytes: 2 * 1024 * 1024,
+          types: IMAGE_TYPES,
+        });
+    if (photo.error) photoError = photo.error;
+    else if (!remove && !photo.key) photoError = 'Choose a photo first.';
     else {
-      await audit(actor, 'contact_update', 'contact', null, { key }, input);
-      if (input.email) {
-        if (!key.includes(':')) await moveMembership(key, input.email);
-        await setMembershipByTeam(
-          { ...input, email: input.email },
-          member,
+      const result = await setContactPhoto(c, photo.key, now);
+      if ('error' in result) photoError = result.error;
+      else {
+        await audit(
           actor,
-          values.welcome === true,
+          'contact_photo',
+          'contact',
+          null,
+          { key, photoKey: c.photoKey },
+          { key, photoKey: photo.key },
         );
+        return Astro.redirect(view(key));
       }
-      return Astro.redirect(view(result.key));
+    }
+  } else {
+    values = formToObject(form, ['tags', 'groups']);
+    const parsed = ContactSchema.safeParse(values);
+    const before = parsed.success ? (await loadContacts(now)).find((x) => x.key === key) : null;
+    const input = parsed.success
+      ? contactInput(
+          knownLabelsOnly(parsed.data, labels),
+          (await cardFor(key)) ?? null,
+          now,
+          latestRegistrationAnswer(before?.history ?? []),
+        )
+      : null;
+    const member = values.member === true;
+    if (!parsed.success) errors = fieldErrors(parsed.error);
+    else if (!input || 'error' in input) errors = { newsletterAt: input?.error ?? 'Invalid date.' };
+    else if (member && !input.email) errors = { member: 'Add an email to make them a member.' };
+    else {
+      const result = await saveContact(key, input);
+      if ('error' in result)
+        errors = /other email|belongs to another|own membership/.test(result.error)
+          ? { otherEmails: result.error }
+          : { email: result.error };
+      else {
+        await audit(actor, 'contact_update', 'contact', null, { key }, input);
+        if (input.email) {
+          if (!key.includes(':')) await moveMembership(key, input.email);
+          await setMembershipByTeam(
+            { ...input, email: input.email },
+            member,
+            actor,
+            values.welcome === true,
+          );
+        }
+        return Astro.redirect(view(result.key));
+      }
     }
   }
 }
@@ -216,6 +249,66 @@ const stats = [
             ? 'Saved contact card. Details typed in new registrations do not change it.'
             : 'Taken from their latest registration until you edit them.'}
         </p>
+      </section>
+
+      <section class="admin-panel" id="photo" aria-labelledby="photo-title">
+        <h2 id="photo-title" class="mb-3 text-lg">
+          Photo
+        </h2>
+        {photoError && (
+          <Alert tone="danger" class="mb-3">
+            {photoError}
+          </Alert>
+        )}
+        <div class="flex flex-wrap items-start gap-4">
+          {c.photoKey ? (
+            <img
+              src={mediaUrl(c.photoKey)}
+              alt={`Photo of ${c.name}`}
+              class="size-20 rounded-full object-cover"
+            />
+          ) : (
+            <span class="grid size-20 place-items-center rounded-full bg-surface text-xs text-muted">
+              No photo
+            </span>
+          )}
+          {walkIn && !c.email ? (
+            <p class="max-w-xs text-sm text-muted">Add an email to save a photo for a walk-in.</p>
+          ) : (
+            <form
+              method="post"
+              action="#photo"
+              enctype="multipart/form-data"
+              class="grid min-w-0 flex-1 gap-3"
+            >
+              <input type="hidden" name="action" value="photo" />
+              <label class="text-sm font-semibold text-ink">
+                {c.photoKey ? 'Replace the photo' : 'Upload a photo'}
+                <input
+                  type="file"
+                  name="photo"
+                  accept="image/png,image/jpeg,image/webp"
+                  class="admin-input mt-1 font-normal"
+                  aria-describedby="photo-hint"
+                />
+              </label>
+              <p id="photo-hint" class="text-xs text-muted">
+                Square works best, 2 MB max. Used on their speaker card when they speak at an event.
+              </p>
+              {c.photoKey && (
+                <label class="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="removePhoto" class="size-4 accent-brand" /> Remove
+                  the photo
+                </label>
+              )}
+              <div>
+                <Button type="submit" size="sm" variant="secondary">
+                  Save the photo
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
       </section>
 
       <details class="admin-panel" open={Object.keys(errors).length > 0}>

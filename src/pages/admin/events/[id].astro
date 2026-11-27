@@ -159,6 +159,7 @@ const taggedContacts = speakerTagKeys.length
         role: contacts.role,
         company: contacts.company,
         linkedin: contacts.linkedin,
+        photoKey: contacts.photoKey,
       })
       .from(contacts)
       .where(
@@ -355,17 +356,36 @@ if (bodyTooLarge) {
     if (!parsed.success) speakerErrors = fieldErrors(parsed.error);
     const picked = form.get('newPhoto');
     const hasPhoto = picked instanceof File && picked.size > 0;
+    const removedIds = form.getAll('speakerRemove').map(String);
+    const rowPhotos = speakers.flatMap((s) => {
+      const f = form.get(`speakerPhoto-${s.id}`);
+      return f instanceof File && f.size > 0 && !removedIds.includes(String(s.id))
+        ? [{ personId: s.id, name: s.name, file: f }]
+        : [];
+    });
+    // A speaker's photo goes on their People card and on the contact card it was made from.
+    const savePhoto = async (personId: number, photoKey: string, contactId?: number | null) => {
+      await db.update(people).set({ photoKey }).where(eq(people.id, personId));
+      const cid = contactId ?? everyone.find((p) => p.id === personId)?.contactId;
+      if (cid) await db.update(contacts).set({ photoKey }).where(eq(contacts.id, cid));
+      const name = everyone.find((p) => p.id === personId)?.name;
+      await audit(actor, 'update', 'person', personId, { name }, { name, photoKey });
+    };
     if (parsed.success) {
       const d = parsed.data;
       if (d.addPersonId && !everyone.some((p) => p.id === d.addPersonId))
         speakerErrors.addPersonId = 'Pick someone from the list.';
       if (d.addContactId && !taggedContacts.some((c) => c.id === d.addContactId && c.name.trim()))
         speakerErrors.addPersonId = 'Pick someone from the list.';
-      const pickedContact = taggedContacts.find((c) => c.id === d.addContactId);
-      if (hasPhoto && pickedContact && personForContact(pickedContact, everyone))
-        speakerErrors.newPhoto = `${pickedContact.name} is already in People: change their photo there.`;
-      if (hasPhoto && !d.newName && !d.addContactId)
-        speakerErrors.newName = 'Enter the name of the new speaker.';
+      if (hasPhoto && !d.newName && !d.addContactId && !d.addPersonId)
+        speakerErrors.newPhoto = 'Pick the speaker this photo is for, or enter a new one.';
+      // A photo for a speaker already on the event: checked here, stored once the form is valid.
+      for (const r of rowPhotos) {
+        if (!IMAGE_TYPES.includes(r.file.type))
+          speakerErrors.speakerPhoto = `${r.name}: photo type not allowed (PNG, JPEG or WebP).`;
+        else if (r.file.size > 2 * 1024 * 1024)
+          speakerErrors.speakerPhoto = `${r.name}: photo too large (max 2 MB).`;
+      }
       const kept = speakers.filter((s) => !d.speakerRemove.includes(String(s.id))).length;
       if (kept + (d.addPersonId || d.addContactId || d.newName ? 1 : 0) > MAX_SPEAKERS)
         speakerErrors.addPersonId = `An event has at most ${MAX_SPEAKERS} speakers.`;
@@ -383,6 +403,8 @@ if (bodyTooLarge) {
             error: hasPhoto ? 'Choose the photo again after fixing the other fields.' : null,
           };
     if (photo.error) speakerErrors.newPhoto = photo.error;
+    if (rowPhotos.length && Object.keys(speakerErrors).length && !speakerErrors.speakerPhoto)
+      speakerErrors.speakerPhoto = 'Choose the speaker photos again after fixing the other fields.';
     if (parsed.success && !Object.keys(speakerErrors).length) {
       const d = parsed.data;
       let added = d.addPersonId;
@@ -414,14 +436,28 @@ if (bodyTooLarge) {
               group: 'speaker' as const,
               contactId: null,
             };
+        // Their contact card's photo, unless one was chosen here (then saved on the contact too).
+        const photoKey = photo.key ?? contact?.photoKey ?? null;
         const [ins] = await db
           .insert(people)
-          .values({ ...person, photoKey: photo.key })
+          .values({ ...person, photoKey })
           .returning({ id: people.id });
         added = ins!.id;
         everyone.push({ id: added, ...person });
         candidates = candidates.filter((c) => c.contactId !== person.contactId);
-        await audit(actor, 'create', 'person', added, null, person);
+        await audit(actor, 'create', 'person', added, null, { ...person, photoKey });
+        if (photo.key && contact)
+          await db.update(contacts).set({ photoKey: photo.key }).where(eq(contacts.id, contact.id));
+      } else if (added && photo.key) {
+        await savePhoto(added, photo.key, contact?.id);
+      }
+      for (const r of rowPhotos) {
+        const up = await storeUpload(r.file, {
+          prefix: 'people',
+          maxBytes: 2 * 1024 * 1024,
+          types: IMAGE_TYPES,
+        });
+        if (up.key) await savePhoto(r.personId, up.key);
       }
       const ids = new Set(everyone.map((p) => p.id));
       const plan = planSpeakers(
@@ -1265,6 +1301,20 @@ const inviteLink =
                     set:text={p.bio ?? ''}
                   />
                 </label>
+                <label class="text-sm sm:col-span-4">
+                  {p.photoKey ? 'Replace the photo' : 'Add a photo'}
+                  <span class="sr-only"> of {p.name}</span>
+                  <span class="text-muted">
+                    {' '}
+                    (saved on their People card{p.contactId ? ' and contact card' : ''})
+                  </span>
+                  <input
+                    type="file"
+                    name={`speakerPhoto-${p.id}`}
+                    accept="image/png,image/jpeg,image/webp"
+                    class="admin-input mt-1"
+                  />
+                </label>
               </li>
             ))}
           </ol>
@@ -1314,7 +1364,7 @@ const inviteLink =
               </select>
               <span id="add-person-hint" class="mt-1 block text-xs font-normal text-muted">
                 Contacts and members tagged Speaker get a People card (name, job title, company,
-                LinkedIn) when you save.
+                LinkedIn and the photo of their contact card) when you save.
               </span>
             </label>
             <FormField
@@ -1334,6 +1384,14 @@ const inviteLink =
                 ))}
               </select>
             </label>
+            <FormField
+              name="newPhoto"
+              label="Photo"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              error={speakerErrors.newPhoto}
+              hint="Optional. For the person picked above or the new speaker below; saved on their People card and contact card. Empty keeps the photo they have. Square works best, 2 MB max."
+            />
             <div class="sm:col-span-2">
               <FormField
                 name="addBio"
@@ -1368,14 +1426,6 @@ const inviteLink =
               value={sstr('newLinkedin')}
               error={speakerErrors.newLinkedin}
               placeholder="https://www.linkedin.com/in/…"
-            />
-            <FormField
-              name="newPhoto"
-              label="Photo"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              error={speakerErrors.newPhoto}
-              hint="Square works best. 2 MB max. Also used for someone picked from Contacts."
             />
           </div>
         </fieldset>
