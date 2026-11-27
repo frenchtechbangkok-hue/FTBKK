@@ -229,6 +229,7 @@ export async function speakersForEvent(eventId: number) {
       linkedin: people.linkedin,
       photoKey: people.photoKey,
       group: people.group,
+      contactId: people.contactId,
       talkTitle: eventSpeakers.talkTitle,
       role: eventSpeakers.role,
       bio: eventSpeakers.bio,
