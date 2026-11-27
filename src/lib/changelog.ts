@@ -22,6 +22,7 @@ export const RELEASES: Release[] = [
   {
     version: '26.11.25',
     date: '2026-11-27',
+    pr: 147,
     title: 'Speakers picked from contacts tagged Speaker',
     summary:
       'When adding a speaker to an event, the list now also offers every contact or member tagged Speaker; picking one adds them to Board and speakers with their name, job title, company and LinkedIn, so they show on the event page like any other speaker and are never listed twice.',
