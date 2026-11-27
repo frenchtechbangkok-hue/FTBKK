@@ -226,21 +226,58 @@ export function speakerCandidates(
   memberProfiles: MemberProfile[],
   everyone: PersonRef[],
 ): SpeakerCandidate[] {
-  const byEmail = new Map(memberProfiles.map((m) => [m.email.toLowerCase(), m]));
   return tagged
     .filter((c) => c.name.trim() && !personForContact(c, everyone))
-    .map((c) => {
-      const m = [c.email, ...c.otherEmails]
-        .filter((e): e is string => !!e)
-        .map((e) => byEmail.get(e.toLowerCase()))
-        .find(Boolean);
-      return {
-        contactId: c.id,
-        name: c.name.trim(),
-        title: c.role || m?.jobTitle || null,
-        organisationName: c.company || m?.company || null,
-        linkedin: c.linkedin || m?.linkedin || null,
-      };
-    })
+    .map((c) => speakerDetails(c, memberProfiles))
     .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+}
+
+/**
+ * What a contact's People card shows: their contact card's name, job title, company and LinkedIn,
+ * or their membership profile's where the card leaves one empty.
+ */
+export function speakerDetails(
+  c: TaggedContact,
+  memberProfiles: MemberProfile[],
+): SpeakerCandidate {
+  const byEmail = new Map(memberProfiles.map((m) => [m.email.toLowerCase(), m]));
+  const m = [c.email, ...c.otherEmails]
+    .filter((e): e is string => !!e)
+    .map((e) => byEmail.get(e.toLowerCase()))
+    .find(Boolean);
+  return {
+    contactId: c.id,
+    name: c.name.trim(),
+    title: c.role || m?.jobTitle || null,
+    organisationName: c.company || m?.company || null,
+    linkedin: c.linkedin || m?.linkedin || null,
+  };
+}
+
+/** A People card as far as following its contact goes. */
+export interface LinkedPerson {
+  id: number;
+  name: string;
+  title: string | null;
+  organisationName: string | null;
+  linkedin: string | null;
+  contactId: number | null;
+}
+
+/**
+ * The changes that bring a People card in step with its contact after the contact card or the
+ * membership profile was edited (null when nothing changes). A value the contact no longer has
+ * is kept on the card, so clearing a field elsewhere never blanks a speaker card. A card matched
+ * by name gets linked to the contact.
+ */
+export function speakerCardChanges(person: LinkedPerson, details: SpeakerCandidate) {
+  const next = {
+    name: details.name || person.name,
+    title: details.title ?? person.title,
+    organisationName: details.organisationName ?? person.organisationName,
+    linkedin: details.linkedin ?? person.linkedin,
+    contactId: details.contactId,
+  };
+  const changed = (Object.keys(next) as (keyof typeof next)[]).filter((k) => next[k] !== person[k]);
+  return changed.length ? Object.fromEntries(changed.map((k) => [k, next[k]])) : null;
 }

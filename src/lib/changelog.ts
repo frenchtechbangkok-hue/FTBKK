@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.28',
+    date: '2026-11-27',
+    title: 'Speaker cards follow contact and member edits',
+    summary:
+      'A speaker added from Contacts now keeps up with their details: when the team edits their contact card or they edit their membership profile, the new name, job title, company or LinkedIn also show on their speaker card and on the event pages where they speak.',
+  },
+  {
     version: '26.11.27',
     date: '2026-11-27',
     pr: 149,

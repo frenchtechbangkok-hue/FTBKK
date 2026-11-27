@@ -22,6 +22,7 @@ import {
   whatsappUrl,
 } from '../../../lib/contacts';
 import { audit } from '../../../lib/orgs';
+import { syncSpeakerCardForKey } from '../../../lib/speaker-sync';
 import { fieldErrors, formToObject } from '../../../lib/forms';
 import { formatDate, formatEventDate, mediaUrl } from '../../../lib/format';
 import { IMAGE_TYPES, storeUpload } from '../../../lib/uploads';
@@ -100,6 +101,8 @@ if (Astro.request.method === 'POST') {
           : { email: result.error };
       else {
         await audit(actor, 'contact_update', 'contact', null, { key }, input);
+        // Their speaker card (Board and speakers) follows the contact card.
+        await syncSpeakerCardForKey(result.key, actor);
         if (input.email) {
           if (!key.includes(':')) await moveMembership(key, input.email);
           await setMembershipByTeam(

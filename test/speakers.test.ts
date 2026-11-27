@@ -8,6 +8,7 @@ import {
   personLine,
   planSpeakers,
   speakerCandidates,
+  speakerCardChanges,
 } from '../src/lib/speakers';
 
 const prev = [
@@ -202,5 +203,39 @@ describe('contacts tagged Speaker', () => {
   it('does not match by name a People card made from another contact', () => {
     const everyone = [{ id: 1, name: 'Ana Lee', contactId: 99 }];
     expect(personForContact(contact(), everyone)).toBeNull();
+  });
+});
+
+describe('speakerCardChanges', () => {
+  const card = {
+    id: 5,
+    name: 'Yassine B',
+    title: null,
+    organisationName: null,
+    linkedin: 'https://l.in/y',
+    contactId: 9,
+  };
+  const details = {
+    contactId: 9,
+    name: 'Yassine B',
+    title: 'CTO',
+    organisationName: 'Acme',
+    linkedin: null,
+  };
+  it('copies the new title and company, keeps what the contact has no value for', () => {
+    expect(speakerCardChanges(card, details)).toEqual({ title: 'CTO', organisationName: 'Acme' });
+  });
+  it('changes nothing when the card is already in step', () => {
+    expect(
+      speakerCardChanges({ ...card, title: 'CTO', organisationName: 'Acme' }, details),
+    ).toBeNull();
+  });
+  it('links a card matched by name', () => {
+    expect(
+      speakerCardChanges(
+        { ...card, title: 'CTO', organisationName: 'Acme', contactId: null },
+        details,
+      ),
+    ).toEqual({ contactId: 9 });
   });
 });

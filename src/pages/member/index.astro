@@ -1,5 +1,6 @@
 ---
 import { privatePage } from '../../lib/edge-cache';
+import { syncSpeakerCardForEmail } from '../../lib/speaker-sync';
 import { z } from 'zod';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Section from '../../components/Section.astro';
@@ -67,6 +68,8 @@ if (Astro.request.method === 'POST') {
     if (!parsed.success) errors = fieldErrors(parsed.error);
     else {
       await updateProfile(member, parsed.data);
+      // A speaker card made from their contact picks up the new job title, company or LinkedIn.
+      await syncSpeakerCardForEmail(member.email, 'self-service');
       return Astro.redirect(`${memberPagePath(token)}&saved=1`, 303);
     }
   } else if (member && action === 'cancel') {
