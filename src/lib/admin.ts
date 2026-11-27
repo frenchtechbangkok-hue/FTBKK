@@ -132,6 +132,12 @@ export const EventSchema = z
     venue: optionalText(200),
     address: optionalText(1000),
     mapUrl: optionalUrl(4000),
+    /** venue = a place (venue, address, map); online = a webinar, no venue. */
+    location: z.enum(['venue', 'online']).default('venue'),
+    /** At a venue: the optional link for online streaming. */
+    streamUrl: optionalUrl(2000),
+    /** Online: the link to join the webinar (required). */
+    webinarUrl: optionalUrl(2000),
     capacity: optionalInt,
     /** open = the form, closed = "Registration is closed", none = no registration, just come along. */
     registration: z.enum(['open', 'closed', 'none']).default('closed'),
@@ -147,11 +153,22 @@ export const EventSchema = z
     path: ['endsAt'],
     message: 'The end must be after the start.',
   })
-  .transform(({ registration, ...e }) => ({
-    ...e,
-    registrationOpen: registration === 'open',
-    noRegistration: registration === 'none',
-  }));
+  .refine((e) => e.location !== 'online' || e.webinarUrl, {
+    path: ['webinarUrl'],
+    message: 'Enter the link people use to join the online event.',
+  })
+  .transform(({ registration, location, streamUrl, webinarUrl, ...e }) => {
+    const online = location === 'online';
+    return {
+      ...e,
+      // Online: no place. "Online" stands where the venue shows (cards, emails, share image).
+      ...(online ? { venue: 'Online', address: null, mapUrl: null } : {}),
+      online,
+      onlineUrl: online ? webinarUrl : streamUrl,
+      registrationOpen: registration === 'open',
+      noRegistration: registration === 'none',
+    };
+  });
 
 /** Slug unique within a table (posts or events), ignoring the row being edited. */
 export async function uniqueContentSlug(

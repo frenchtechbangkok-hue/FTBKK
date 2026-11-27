@@ -20,9 +20,19 @@ export function eventIcs(e: {
   address: string | null;
   summary: string | null;
   url: string;
+  /** Online only: the webinar link is the location. */
+  online?: boolean;
+  /** The webinar link (online) or the live stream (at a venue). */
+  onlineUrl?: string | null;
   cancelled?: boolean;
 }) {
   const end = e.endsAt ?? new Date(e.startsAt.getTime() + 2 * 3600 * 1000);
+  const location =
+    e.online && e.onlineUrl ? e.onlineUrl : [e.venue, e.address].filter(Boolean).join(', ');
+  const online = e.onlineUrl
+    ? `${e.online ? 'Join online' : 'Watch the live stream'}: ${e.onlineUrl}`
+    : '';
+  const description = [e.summary ?? '', online, e.url].filter(Boolean).join('\n');
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -35,8 +45,8 @@ export function eventIcs(e: {
     `DTSTART:${fmt(e.startsAt)}`,
     `DTEND:${fmt(end)}`,
     `SUMMARY:${escText(e.title)}`,
-    `LOCATION:${escText([e.venue, e.address].filter(Boolean).join(', '))}`,
-    `DESCRIPTION:${escText(`${e.summary ?? ''}\n${e.url}`.trim())}`,
+    `LOCATION:${escText(location)}`,
+    `DESCRIPTION:${escText(description)}`,
     `URL:${e.url}`,
     `STATUS:${e.cancelled ? 'CANCELLED' : 'CONFIRMED'}`,
     'END:VEVENT',
