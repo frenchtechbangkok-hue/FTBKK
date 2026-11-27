@@ -1,6 +1,6 @@
 ---
 import { CONNECT, SELECT, TALK, eventKind, seriesFor } from '../../../lib/event-covers';
-import { asc, desc, eq } from 'drizzle-orm';
+import { asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import EventTabs from '../../../components/admin/EventTabs.astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import FormField from '../../../components/FormField.astro';
@@ -9,8 +9,11 @@ import Alert from '../../../components/Alert.astro';
 import MarkdownEditor from '../../../components/admin/MarkdownEditor.astro';
 import { getDb } from '../../../db';
 import {
+  contactTags,
+  contacts,
   eventSpeakers,
   eventSponsors,
+  members,
   events,
   organisations,
   people,
@@ -49,6 +52,9 @@ import {
   SpeakersFormSchema,
   personLine,
   planSpeakers,
+  isSpeakerTag,
+  personForContact,
+  speakerCandidates,
 } from '../../../lib/speakers';
 import {
   MAX_SPONSORS,
@@ -125,10 +131,57 @@ const everyone = event
         title: people.title,
         organisationName: people.organisationName,
         group: people.group,
+        contactId: people.contactId,
       })
       .from(people)
       .orderBy(asc(people.name))
   : [];
+// Contacts (and members) tagged Speaker who are not in People yet are offered too; picking one
+// makes their People card from the contact card, or the membership profile where it is empty.
+const speakerTagKeys = event
+  ? (await db.select({ key: contactTags.key, name: contactTags.name }).from(contactTags))
+      .filter(isSpeakerTag)
+      .map((t) => t.key)
+  : [];
+const taggedContacts = speakerTagKeys.length
+  ? await db
+      .select({
+        id: contacts.id,
+        email: contacts.email,
+        otherEmails: contacts.otherEmails,
+        name: contacts.name,
+        role: contacts.role,
+        company: contacts.company,
+        linkedin: contacts.linkedin,
+      })
+      .from(contacts)
+      .where(
+        sql`exists (select 1 from json_each(${contacts.tags}) where json_each.value in (${sql.join(
+          speakerTagKeys.map((k) => sql`${k}`),
+          sql`, `,
+        )}))`,
+      )
+  : [];
+const taggedEmails = taggedContacts
+  .flatMap((c) => [c.email, ...c.otherEmails])
+  .filter((e): e is string => !!e);
+// D1 takes at most 100 bound values per query: look the emails up in chunks.
+const memberProfiles = (
+  await Promise.all(
+    Array.from({ length: Math.ceil(taggedEmails.length / 90) }, (_, i) =>
+      db
+        .select({
+          email: members.email,
+          jobTitle: members.jobTitle,
+          company: members.company,
+          linkedin: members.linkedin,
+        })
+        .from(members)
+        .where(inArray(members.email, taggedEmails.slice(i * 90, (i + 1) * 90))),
+    ),
+  )
+).flat();
+let candidates = speakerCandidates(taggedContacts, memberProfiles, everyone);
 let speakerErrors: Record<string, string> = {};
 let speakerValues: Record<string, unknown> = {};
 
@@ -300,9 +353,15 @@ if (bodyTooLarge) {
       const d = parsed.data;
       if (d.addPersonId && !everyone.some((p) => p.id === d.addPersonId))
         speakerErrors.addPersonId = 'Pick someone from the list.';
-      if (hasPhoto && !d.newName) speakerErrors.newName = 'Enter the name of the new speaker.';
+      if (d.addContactId && !taggedContacts.some((c) => c.id === d.addContactId && c.name.trim()))
+        speakerErrors.addPersonId = 'Pick someone from the list.';
+      const pickedContact = taggedContacts.find((c) => c.id === d.addContactId);
+      if (hasPhoto && pickedContact && personForContact(pickedContact, everyone))
+        speakerErrors.newPhoto = `${pickedContact.name} is already in People: change their photo there.`;
+      if (hasPhoto && !d.newName && !d.addContactId)
+        speakerErrors.newName = 'Enter the name of the new speaker.';
       const kept = speakers.filter((s) => !d.speakerRemove.includes(String(s.id))).length;
-      if (kept + (d.addPersonId || d.newName ? 1 : 0) > MAX_SPEAKERS)
+      if (kept + (d.addPersonId || d.addContactId || d.newName ? 1 : 0) > MAX_SPEAKERS)
         speakerErrors.addPersonId = `An event has at most ${MAX_SPEAKERS} speakers.`;
     }
     // Upload only once the rest is valid, so a rejected form leaves no orphan file in R2.
@@ -321,20 +380,41 @@ if (bodyTooLarge) {
     if (parsed.success && !Object.keys(speakerErrors).length) {
       const d = parsed.data;
       let added = d.addPersonId;
-      if (d.newName) {
-        const person = {
-          name: d.newName,
-          title: d.newTitle,
-          organisationName: d.newCompany,
-          linkedin: d.newLinkedin,
-          group: 'speaker' as const,
-        };
+      const contact = d.addContactId
+        ? (taggedContacts.find((c) => c.id === d.addContactId) ?? null)
+        : null;
+      // A contact who got a People card meanwhile (or has one under the same name) is linked as is.
+      const existing = contact ? personForContact(contact, everyone) : null;
+      if (existing) added = existing.id;
+      const fromContact =
+        contact && !existing
+          ? speakerCandidates([contact], memberProfiles, everyone)[0]
+          : undefined;
+      if (d.newName || fromContact) {
+        const person = fromContact
+          ? {
+              name: fromContact.name,
+              title: fromContact.title,
+              organisationName: fromContact.organisationName,
+              linkedin: fromContact.linkedin,
+              group: 'speaker' as const,
+              contactId: fromContact.contactId,
+            }
+          : {
+              name: d.newName!,
+              title: d.newTitle,
+              organisationName: d.newCompany,
+              linkedin: d.newLinkedin,
+              group: 'speaker' as const,
+              contactId: null,
+            };
         const [ins] = await db
           .insert(people)
           .values({ ...person, photoKey: photo.key })
           .returning({ id: people.id });
         added = ins!.id;
         everyone.push({ id: added, ...person });
+        candidates = candidates.filter((c) => c.contactId !== person.contactId);
         await audit(actor, 'create', 'person', added, null, person);
       }
       const ids = new Set(everyone.map((p) => p.id));
@@ -1190,9 +1270,26 @@ const inviteLink =
           <legend class="font-semibold text-navy">Add a speaker</legend>
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="text-sm font-semibold text-ink">
-              Someone already in People
-              <select name="addPersonId" class="admin-input mt-1 font-normal">
+              Someone in People or tagged Speaker
+              <select
+                name="addPersonId"
+                class="admin-input mt-1 font-normal"
+                aria-describedby="add-person-hint"
+              >
                 <option value="">Choose…</option>
+                {candidates.length > 0 && (
+                  <optgroup label="Tagged Speaker in Contacts (not in People yet)">
+                    {candidates.map((c) => (
+                      <option
+                        value={`contact:${c.contactId}`}
+                        selected={sstr('addPersonId') === `contact:${c.contactId}`}
+                      >
+                        {c.name}
+                        {personLine(c) ? ` (${personLine(c)})` : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
                 {(['speaker', 'board', 'institutional'] as const).map((g) => {
                   const list = everyone.filter((p) => p.group === g && !linked.has(p.id));
                   return (
@@ -1209,6 +1306,10 @@ const inviteLink =
                   );
                 })}
               </select>
+              <span id="add-person-hint" class="mt-1 block text-xs font-normal text-muted">
+                Contacts and members tagged Speaker get a People card (name, job title, company,
+                LinkedIn) when you save.
+              </span>
             </label>
             <FormField
               name="addTalkTitle"
@@ -1268,7 +1369,7 @@ const inviteLink =
               type="file"
               accept="image/png,image/jpeg,image/webp"
               error={speakerErrors.newPhoto}
-              hint="Square works best. 2 MB max."
+              hint="Square works best. 2 MB max. Also used for someone picked from Contacts."
             />
           </div>
         </fieldset>

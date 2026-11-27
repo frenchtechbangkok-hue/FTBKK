@@ -375,7 +375,7 @@ screen by screen for the team.
   template; `src/lib/add-registrants.ts`), confirmation email with a calendar invite, reminder the day before, QR
   ticket and cancel link, **speakers** (a "Who's taking the stage" section of cards with photo,
   role such as Keynote speaker, Moderator or Panelist, title, company, talk title, an optional short
-  bio for the event and LinkedIn; picked from People and reused across events), **hosts, sponsors and partners** with their logo (linked to
+  bio for the event and LinkedIn; picked from People, or from contacts and members tagged Speaker, who get a People card made from their contact card and membership profile (`people.contact_id` remembers the contact so they are never offered twice), and reused across events), **hosts, sponsors and partners** with their logo (linked to
   their ecosystem listing or website, shown on the event page, "Hosted by" next to the venue, and
   named in the confirmation and reminder emails), and a **feedback email** the day after (one-click 1 to 5 rating, then
   an optional comment; results in the admin's Reports). Past events can show a **recap**: a

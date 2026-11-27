@@ -495,6 +495,8 @@ export const people = sqliteTable('people', {
   linkedin: text('linkedin'),
   photoKey: text('photo_key'),
   sortOrder: integer('sort_order').notNull().default(0),
+  /** The contact tagged Speaker this card was made from in the event's speaker picker. */
+  contactId: integer('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
 });
 
 /** Who spoke at an event, in the order shown on its page. */

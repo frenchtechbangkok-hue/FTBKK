@@ -29,10 +29,22 @@ const role = z
 export const HOSTED_SPEAKERS_LIMIT = 24;
 
 const list = (len: number) => z.array(z.string().max(len)).max(MAX_SPEAKERS).default([]);
-const optionalId = z
-  .union([z.literal(''), z.coerce.number().int().positive()])
+/**
+ * The "Add a speaker" picker: "12" is someone in People, "contact:34" a contact tagged Speaker
+ * who is not in People yet (a People card is made for them when the form is saved).
+ */
+const pickedSpeaker = z
+  .union([
+    z.literal(''),
+    z.string().regex(/^(contact:)?[1-9]\d{0,11}$/, 'Pick someone from the list.'),
+  ])
   .optional()
-  .transform((v) => (v ? v : null));
+  .transform((v) => {
+    if (!v) return { personId: null, contactId: null };
+    return v.startsWith('contact:')
+      ? { personId: null, contactId: Number(v.slice(8)) }
+      : { personId: Number(v), contactId: null };
+  });
 
 /** The speakers form of the event editor (use formToObject(form, SPEAKER_ARRAYS)). */
 export const SpeakersFormSchema = z
@@ -45,8 +57,8 @@ export const SpeakersFormSchema = z
       .default([]),
     speakerBio: list(MAX_SPEAKER_BIO),
     speakerRemove: list(12),
-    /** Link someone already in People... */
-    addPersonId: optionalId,
+    /** Link someone already in People or a contact tagged Speaker... */
+    addPersonId: pickedSpeaker,
     /** ...or create a new person in the Speakers group. */
     newName: z
       .string()
@@ -61,10 +73,15 @@ export const SpeakersFormSchema = z
     addRole: role,
     addBio: optionalText(MAX_SPEAKER_BIO),
   })
-  .refine((d) => !(d.addPersonId && d.newName), {
+  .refine((d) => !((d.addPersonId.personId || d.addPersonId.contactId) && d.newName), {
     message: 'Pick someone from the list or add a new speaker, not both.',
     path: ['addPersonId'],
-  });
+  })
+  .transform(({ addPersonId: picked, ...d }) => ({
+    ...d,
+    addPersonId: picked.personId,
+    addContactId: picked.contactId,
+  }));
 export type SpeakersForm = z.infer<typeof SpeakersFormSchema>;
 export const SPEAKER_ARRAYS = [
   'speakerId',
@@ -137,4 +154,91 @@ export function planSpeakers(
 /** "Head of Growth, Acme" for the speaker picker and the event page. */
 export function personLine(p: { title: string | null; organisationName: string | null }) {
   return [p.title, p.organisationName].filter(Boolean).join(', ');
+}
+
+// ---------- contacts tagged Speaker ----------
+
+/** A contact card carrying the Speaker tag (Contacts > Tags and groups). */
+export interface TaggedContact {
+  id: number;
+  email: string | null;
+  otherEmails: string[];
+  name: string;
+  role: string | null;
+  company: string | null;
+  linkedin: string | null;
+}
+/** What the member's profile adds when the contact card leaves a field empty. */
+export interface MemberProfile {
+  email: string;
+  jobTitle: string | null;
+  company: string | null;
+  linkedin: string | null;
+}
+/** Someone in People, as far as matching a contact goes. */
+export interface PersonRef {
+  id: number;
+  name: string;
+  contactId: number | null;
+}
+/** A contact tagged Speaker, offered in the speaker picker, with what their People card gets. */
+export interface SpeakerCandidate {
+  contactId: number;
+  name: string;
+  title: string | null;
+  organisationName: string | null;
+  linkedin: string | null;
+}
+
+/** Tags that mean "speaker": the built-in `speaker` tag, or one the team named Speaker(s). */
+export function isSpeakerTag(t: { key: string; name: string }) {
+  const name = t.name.trim().toLowerCase();
+  return t.key === 'speaker' || name === 'speaker' || name === 'speakers';
+}
+
+/** "Élodie  Martin" and "elodie martin" are the same name. */
+export function nameKey(name: string) {
+  return name.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * The People card already standing for a contact: the one made from it, else someone with the
+ * same name (People cards added by hand before this link existed).
+ */
+export function personForContact(c: { id: number; name: string }, everyone: PersonRef[]) {
+  const key = nameKey(c.name);
+  return (
+    everyone.find((p) => p.contactId === c.id) ??
+    everyone.find((p) => p.contactId === null && nameKey(p.name) === key) ??
+    null
+  );
+}
+
+/**
+ * Contacts tagged Speaker who have no People card yet, by name, with their job title, company
+ * and LinkedIn from the contact card or, where it is empty, from their membership profile.
+ * Those who already have a card are listed with People, so nobody appears twice.
+ */
+export function speakerCandidates(
+  tagged: TaggedContact[],
+  memberProfiles: MemberProfile[],
+  everyone: PersonRef[],
+): SpeakerCandidate[] {
+  const byEmail = new Map(memberProfiles.map((m) => [m.email.toLowerCase(), m]));
+  return tagged
+    .filter((c) => c.name.trim() && !personForContact(c, everyone))
+    .map((c) => {
+      const m = [c.email, ...c.otherEmails]
+        .filter((e): e is string => !!e)
+        .map((e) => byEmail.get(e.toLowerCase()))
+        .find(Boolean);
+      return {
+        contactId: c.id,
+        name: c.name.trim(),
+        title: c.role || m?.jobTitle || null,
+        organisationName: c.company || m?.company || null,
+        linkedin: c.linkedin || m?.linkedin || null,
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
 }
