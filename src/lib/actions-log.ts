@@ -309,6 +309,10 @@ export function describeAction(row: LogRow, names: LogNames = emptyNames()): Des
             );
           case 'contact_merge':
             return P(`Merged ${plural(num(b.keys), 'contact')} into `, contact(str(a.key)));
+          case 'contact_photo':
+            return a.photoKey
+              ? P('Changed the photo of ', contact())
+              : P('Removed the photo of ', contact());
           case 'contact_tag_add':
             return P('Tagged ', contact());
           case 'contact_tag_remove':

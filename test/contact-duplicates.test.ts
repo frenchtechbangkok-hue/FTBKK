@@ -18,6 +18,7 @@ const person = (p: Partial<Contact> & { key: string }): Contact => ({
   company: null,
   role: null,
   linkedin: null,
+  photoKey: null,
   notes: null,
   tags: [],
   groups: [],

@@ -166,8 +166,12 @@ uses any more.
   **Speaker** (Community > Tags and groups) who is not in People yet, under "Tagged Speaker in
   Contacts": picking one adds them to People in the Speakers group with the name, job title,
   company and LinkedIn of their contact card (or of their membership profile where the card is
-  empty), plus the photo if you choose one. They then show with People, so nobody is listed twice;
-  someone already in People under the same name is reused rather than duplicated. Reorder with the arrows, edit roles, talk titles and bios, tick
+  empty) and the photo of their contact card. They then show with People, so nobody is listed
+  twice; someone already in People under the same name is reused rather than duplicated. The
+  **Photo** field next to the picker uploads a photo for whoever you add (picked or new); it is
+  saved on their People card and on their contact card, and left empty it keeps the photo they
+  have. Each speaker already on the event also has **Add a photo** / **Replace the photo**, saved
+  the same way when you save the speakers. Reorder with the arrows, edit roles, talk titles and bios, tick
   "Remove" to unlink (the person stays in People), then **Save the speakers**. They show on the
   event page in a "Who's taking the stage" section, one card each with their photo, role, title,
   company, talk title, bio and LinkedIn. Speakers are reused
@@ -328,7 +332,9 @@ uses any more.
   membership can't be added: merge the two contacts instead.
 - On a contact's page: **Email**, **WhatsApp** (Thai numbers starting with 0 get +66) and
   **Call** buttons, and **Edit** for name, email, other emails, phone, company, role, tags,
-  groups, LinkedIn and team notes.
+  groups, LinkedIn and team notes. **Photo** uploads, replaces or removes their photo (walk-ins
+  need an email first); it is shared with their People card when they speak at an event, so a
+  photo changed in either place shows in both.
   Once edited, the saved details win over what the person types in later registrations. Changing
   the email moves their registrations to the new one; if that email already registered, the two
   merge. Adding an email to a walk-in groups their future registrations with it. **New contact**
@@ -703,7 +709,8 @@ tables.
   company. Board members also have a **French Tech responsibility** (President, Commission
   lead...): their About card shows it under the name in place of the company, and shows no
   company when it is empty. Use ↑ ↓ to reorder. The **Speakers** group holds people who only spoke at events
-  (added here or from an event's Speakers section); edit their photo, title or company here and
+  (added here or from an event's Speakers section; a photo changed here also goes on the contact
+  card they were made from); edit their photo, title or company here and
   every event page updates. Each person shows how many events they spoke at; removing a person
   also removes them from those events.
 - **Messages**: contact form messages, filed in folders: Inbox, Answered, Handled, Spam and

@@ -20,6 +20,13 @@ export const REPO_URL = 'https://github.com/frenchtechbangkok-hue/FTBKK';
 
 export const RELEASES: Release[] = [
   {
+    version: '26.11.26',
+    date: '2026-11-27',
+    title: 'Photos for speakers and contacts',
+    summary:
+      'Each speaker on an event now has a photo upload right in the Speakers section, also offered for the person being added; the photo goes on their Board and speakers card and on their contact card. Contacts get a Photo panel of their own, used when they are picked as a speaker, and a photo changed in one place shows in the other.',
+  },
+  {
     version: '26.11.25',
     date: '2026-11-27',
     pr: 147,

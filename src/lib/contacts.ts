@@ -9,6 +9,7 @@ import {
   members,
   newsletterSends,
   organisations,
+  people,
   registrations,
 } from '../db/schema';
 import { email as emailField, optionalText, optionalUrl } from './forms';
@@ -89,6 +90,7 @@ export interface SavedContact {
   company: string | null;
   role: string | null;
   linkedin: string | null;
+  photoKey?: string | null;
   notes: string | null;
   tags?: string[] | null;
   groups?: number[] | null;
@@ -138,6 +140,8 @@ export interface Contact {
   company: string | null;
   role: string | null;
   linkedin: string | null;
+  /** Their photo (R2 key), from the saved card. */
+  photoKey: string | null;
   notes: string | null;
   /** Keys of their tags (see lib/contact-labels.ts for the names). */
   tags: string[];
@@ -267,6 +271,7 @@ export function buildContacts(
         company,
         role: card ? card.role : pick('role'),
         linkedin: card?.linkedin ?? null,
+        photoKey: card?.photoKey ?? null,
         notes: card?.notes ?? null,
         tags: normalizeTags(card?.tags),
         groups: normalizeGroups(card?.groups),
@@ -849,6 +854,34 @@ export async function tagContacts(
 }
 
 /**
+ * Sets or removes someone's photo on their contact card (made from their latest registration if
+ * they have none yet) and on the People card made from it, so their speaker card shows it too.
+ * Walk-ins without an email can't hold a card.
+ */
+export async function setContactPhoto(
+  c: Contact,
+  photoKey: string | null,
+  now = new Date(),
+): Promise<{ error: string } | { id: number }> {
+  const db = getDb();
+  if (c.key.startsWith('name:')) return { error: 'Add an email to save a photo for a walk-in.' };
+  let id = c.savedId;
+  if (id) {
+    await db.update(contacts).set({ photoKey, updatedAt: now }).where(eq(contacts.id, id));
+  } else {
+    const { name, email, phone, company, role } = c;
+    const [row] = await db
+      .insert(contacts)
+      .values({ name, email, phone, company, role, photoKey })
+      .onConflictDoUpdate({ target: contacts.email, set: { photoKey, updatedAt: now } })
+      .returning({ id: contacts.id });
+    id = row!.id;
+  }
+  await db.update(people).set({ photoKey }).where(eq(people.contactId, id));
+  return { id };
+}
+
+/**
  * Deletes a contact: their saved card and all their registrations. Returns the events where a
  * seat was freed, so the caller can register the next person on the waitlist.
  */
@@ -1098,6 +1131,7 @@ export async function mergeContacts(
     company: first('company'),
     role: first('role'),
     linkedin: first('linkedin'),
+    photoKey: main.photoKey ?? list.find((c) => c.photoKey)?.photoKey ?? null,
     notes: notes || null,
     tags,
     groups,
