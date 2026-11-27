@@ -162,7 +162,12 @@ uses any more.
   Keynote speaker, Moderator, Panelist or Host; Speaker by default) and an optional short bio
   (one or two sentences, written for this event, 400 characters max), or fill in **Or
   someone new** (name, job title, company, LinkedIn, photo) to add them to People in the
-  Speakers group and link them in one go. Reorder with the arrows, edit roles, talk titles and bios, tick
+  Speakers group and link them in one go. The list also offers every contact or member tagged
+  **Speaker** (Community > Tags and groups) who is not in People yet, under "Tagged Speaker in
+  Contacts": picking one adds them to People in the Speakers group with the name, job title,
+  company and LinkedIn of their contact card (or of their membership profile where the card is
+  empty), plus the photo if you choose one. They then show with People, so nobody is listed twice;
+  someone already in People under the same name is reused rather than duplicated. Reorder with the arrows, edit roles, talk titles and bios, tick
   "Remove" to unlink (the person stays in People), then **Save the speakers**. They show on the
   event page in a "Who's taking the stage" section, one card each with their photo, role, title,
   company, talk title, bio and LinkedIn. Speakers are reused

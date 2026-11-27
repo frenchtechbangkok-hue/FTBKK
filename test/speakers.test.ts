@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_SPEAKERS, SpeakersFormSchema, personLine, planSpeakers } from '../src/lib/speakers';
+import {
+  MAX_SPEAKERS,
+  SpeakersFormSchema,
+  isSpeakerTag,
+  nameKey,
+  personForContact,
+  personLine,
+  planSpeakers,
+  speakerCandidates,
+} from '../src/lib/speakers';
 
 const prev = [
   { personId: 1, talkTitle: 'Scaling in SEA', role: null, bio: 'Founder of Acme.' },
@@ -29,6 +38,19 @@ describe('SpeakersFormSchema', () => {
   it('refuses both an existing person and a new one', () => {
     const r = SpeakersFormSchema.safeParse({ addPersonId: '3', newName: 'Ana Lee' });
     expect(r.success).toBe(false);
+  });
+  it('reads a contact tagged Speaker from the picker', () => {
+    const d = form({ addPersonId: 'contact:7' });
+    expect(d.addPersonId).toBeNull();
+    expect(d.addContactId).toBe(7);
+    expect(form({ addPersonId: '3' })).toMatchObject({ addPersonId: 3, addContactId: null });
+  });
+  it('refuses a contact and a new speaker together, and junk values', () => {
+    expect(SpeakersFormSchema.safeParse({ addPersonId: 'contact:7', newName: 'Ana' }).success).toBe(
+      false,
+    );
+    expect(SpeakersFormSchema.safeParse({ addPersonId: 'contact:x' }).success).toBe(false);
+    expect(SpeakersFormSchema.safeParse({ addPersonId: '0' }).success).toBe(false);
   });
   it('refuses a one-letter name', () => {
     expect(SpeakersFormSchema.safeParse({ newName: 'A' }).success).toBe(false);
@@ -127,5 +149,58 @@ describe('personLine', () => {
     expect(personLine({ title: 'CTO', organisationName: 'Acme' })).toBe('CTO, Acme');
     expect(personLine({ title: null, organisationName: 'Acme' })).toBe('Acme');
     expect(personLine({ title: null, organisationName: null })).toBe('');
+  });
+});
+
+describe('contacts tagged Speaker', () => {
+  const contact = (over: Record<string, unknown> = {}) => ({
+    id: 10,
+    email: 'ana@acme.co',
+    otherEmails: [],
+    name: 'Ana Lee',
+    role: null,
+    company: null,
+    linkedin: null,
+    ...over,
+  });
+  it('knows the speaker tag by key or name', () => {
+    expect(isSpeakerTag({ key: 'speaker', name: 'Intervenant' })).toBe(true);
+    expect(isSpeakerTag({ key: 'speakers-2027', name: ' Speakers ' })).toBe(true);
+    expect(isSpeakerTag({ key: 'investor', name: 'Investor' })).toBe(false);
+  });
+  it('matches names without accents, case or extra spaces', () => {
+    expect(nameKey('  Élodie   MARTIN ')).toBe('elodie martin');
+  });
+  it('fills empty contact fields from the membership profile', () => {
+    const [c] = speakerCandidates(
+      [contact({ otherEmails: ['ana@old.co'], email: null, company: 'Acme' })],
+      [{ email: 'ana@old.co', jobTitle: 'CTO', company: 'Other', linkedin: 'https://l.in/ana' }],
+      [],
+    );
+    expect(c).toEqual({
+      contactId: 10,
+      name: 'Ana Lee',
+      title: 'CTO',
+      organisationName: 'Acme',
+      linkedin: 'https://l.in/ana',
+    });
+  });
+  it('leaves out contacts who already have a People card', () => {
+    const tagged = [
+      contact(),
+      contact({ id: 11, name: 'Bo Chan' }),
+      contact({ id: 12, name: 'Cy' }),
+    ];
+    const everyone = [
+      { id: 1, name: 'Renamed in People', contactId: 10 },
+      { id: 2, name: 'bo  chan', contactId: null },
+    ];
+    expect(speakerCandidates(tagged, [], everyone).map((c) => c.contactId)).toEqual([12]);
+    expect(personForContact(tagged[0]!, everyone)?.id).toBe(1);
+    expect(personForContact(tagged[1]!, everyone)?.id).toBe(2);
+  });
+  it('does not match by name a People card made from another contact', () => {
+    const everyone = [{ id: 1, name: 'Ana Lee', contactId: 99 }];
+    expect(personForContact(contact(), everyone)).toBeNull();
   });
 });
